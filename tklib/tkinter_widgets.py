@@ -314,7 +314,7 @@ class ComboboxWidget(tk.Frame):
     #===========================================================================
     def update_items(self, items=[], default_item=None, default_match=None):
         self.items = items
-        print('update_items', default_item, default_match)
+        # print('update_items', default_item, default_match)
         if not default_item and self.items:
             if default_match:
                 for k, item in enumerate(self.items):
