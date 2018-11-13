@@ -2025,7 +2025,7 @@ class PlotFrame(tk.Frame):
         
         self.frame_plot = tk.Frame(self)
         self.frame_plot.pack(side=tk.TOP, fill=tk.BOTH, expand=True)
-        grid_configure(self.frame_plot)
+        # grid_configure(self.frame_plot)
         
         self.canvas = FigureCanvasTkAgg(self.fig, master=self.frame_plot)
         self.canvas.draw()
