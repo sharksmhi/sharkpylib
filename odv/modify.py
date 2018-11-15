@@ -8,15 +8,16 @@
 
 import os
 import codecs
+import pandas as pd
+import numpy as np
 
 
-class ModifyODVfile(object):
+class ModifyODVfile_old(object):
 
     def __init__(self, file_path):
         if not os.path.exists(file_path):
             raise IOError
         self.file_path = file_path
-
 
     def convert_to_time_series(self, **kwargs):
         """
@@ -102,6 +103,138 @@ class ModifyODVfile(object):
         with codecs.open(file_path, 'w', encoding=kwargs.get('encoding_out', kwargs.get('encoding', 'utf8'))) as fid_out:
             fid_out.write('\n'.join(new_lines))
 
+class ModifyODVfile(object):
 
+    def __init__(self, file_path):
+        if not os.path.exists(file_path):
+            raise IOError
+        self.file_path = file_path
 
+    def _load_metadata(self, breakpoint='Cruise', **kwargs):
+        """
+        Read lines until the line that starts with breakpoint, default = 'Cruise' according to Seadatanet ODV file standard.
 
+        :param breakpoint: 'Cruise' by default
+        :param kwargs:
+        :return:
+        """
+        self.metadata = []
+        with codecs.open(self.file_path, encoding=kwargs.get('encoding_in', kwargs.get('encoding', 'cp1252'))) as fid_in:
+            for line in fid_in:
+                line = line.strip('\n\r')
+                if line.startswith(breakpoint):
+                    break
+                else:
+                    self.metadata.append(line)
+
+    def _load_data(self, comment_prefix='//', header_locator='Cruise', **kwargs):
+        """
+        Reader data and data header
+
+        :param comment_prefix:
+        :param header_locator:
+        :param kwargs:
+        :return:
+        """
+        self.data = []
+        self.header = []
+        with codecs.open(self.file_path, encoding=kwargs.get('encoding_in', kwargs.get('encoding', 'cp1252'))) as fid_in:
+            for line in fid_in:
+                line = line.strip('\n\r')
+                if line.startswith(comment_prefix):
+                    continue
+                else:
+                    if line.startswith(header_locator):
+                        self.header = line.split('\t')
+                    else:
+                        self.data.append(line.split('\t'))
+            self.df = pd.DataFrame.from_records(data=self.data, columns=self.header)
+
+    def add_column(self, df=False, current_column_name='', new_column='QV:SEADATANET', data='1', position=1, **kwargs):
+        """
+        Add columns to ODV file.
+        OBS! if you add parameter column it will break the Seadatanet ODV structure, you need to add a row in the
+        metadata as well, not ready in this version yet. For now this is for adding missing quality flag columns.
+        /OBac 2018-11-14
+
+        :param df:
+        :param current_column_name: name of the column used as a reference
+        :param new_column: label of your new column
+        :param data: mest be string(s) could be a scalar which will be the same for all rows, but also a list with the same len() as other data
+        :param position: position in relation to current_column_name, 1 means directly after, -1 means before etc...
+        :param kwargs:
+        :return:
+        """
+
+        if df:
+            self.df = df
+
+        #else:
+        #    if df:
+        #        self.df = df
+        #    else:
+        #        raise ValueError('Missing pandas dataframe! Use _load_data() or supply your own dataframe as input')
+
+        index = self.df.keys().get_loc(current_column_name)
+
+        # check if the new column doesn't already exist!
+        if self.df.keys()[index + position][0] != new_column:
+            if type(data) == list:
+                new_data = data
+            else:
+                new_data = [data] * len(self.df[current_column_name])
+            self.df.insert(loc=index + position, column=new_column, value=new_data, allow_duplicates=True)
+        else:
+            print('WARNING! The column you want to insert is already present in your file: %s' % self.file_path)
+
+        # print(self.df.loc[1])
+
+    def replace_values_in_col(self, df=False, column_name='Bot. Depth [m]', old_val = 'None', new_val = '', **kwargs):
+        """
+        Fix a bug when creating Seadatanet ODV-files that got None as Bot. Depth when value was missing,
+        replace these None with empty string.
+
+        :param df:
+        :param column_name:
+        :param kwargs:
+        :return:
+        """
+
+        if df:
+            self.df = df
+
+        self.df.loc[self.df[column_name] == old_val, column_name] = new_val
+
+    def write_new_odv(self, output_dir='D:\\temp\\', file_name=False, df=False, metadata=False, **kwargs):
+        """
+        Write data and metadata to file
+
+        :param self:
+        :param output_dir: directory to store the new ODV-file
+        :param file_name:
+        :param df:
+        :param metadata:
+        :param kwargs:
+        :return:
+        """
+
+        if df:
+            self.df = df
+
+        if metadata:
+            self.metadata = metadata
+
+        if not file_name:
+            file_name = self.file_path.split('\\')[-1]
+
+        with codecs.open(output_dir+file_name, 'w',
+                         encoding=kwargs.get('encoding_out', kwargs.get('encoding', 'cp1252'))) as fid_out:
+
+            fid_out.write('\n'.join(self.metadata)+'\n')
+
+            data_dict = self.df.to_dict('split')
+
+            fid_out.write('\t'.join(list(self.df))+'\n')
+
+            for item in data_dict['data']:
+                fid_out.write('\t'.join(item)+'\n')
