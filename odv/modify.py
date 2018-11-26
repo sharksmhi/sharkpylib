@@ -10,6 +10,7 @@ import os
 import codecs
 import pandas as pd
 import numpy as np
+from . import odvfile
 
 
 class ModifyODVfile_old(object):
@@ -110,7 +111,15 @@ class ModifyODVfile(object):
             raise IOError
         self.file_path = file_path
 
-    def _load_metadata(self, breakpoint='Cruise', **kwargs):
+        self.metadata = []
+        self.data = []
+        self.header = []
+        self.df = []
+
+        self.modifications_made = []
+
+
+    def load_metadata(self, breakpoint='Cruise', **kwargs):
         """
         Read lines until the line that starts with breakpoint, default = 'Cruise' according to Seadatanet ODV file standard.
 
@@ -127,7 +136,7 @@ class ModifyODVfile(object):
                 else:
                     self.metadata.append(line)
 
-    def _load_data(self, comment_prefix='//', header_locator='Cruise', **kwargs):
+    def load_data(self, comment_prefix='//', header_locator='Cruise', **kwargs):
         """
         Reader data and data header
 
@@ -187,7 +196,68 @@ class ModifyODVfile(object):
         else:
             print('WARNING! The column you want to insert is already present in your file: %s' % self.file_path)
 
-        # print(self.df.loc[1])
+    def convert_to_timeseries(self, **kwargs):
+        """
+        Converts the file to a time series by adding the column "time_ISO8601" as first and primary variable
+        //<subject>SDN:LOCAL:time_ISO8601</subject><object>SDN:P01::DTUT8601</object><units>SDN:P06::TISO</units>
+        Also adds the QV:SEADATANET column.
+        Information of time is taken from the first metadata row.
+
+        :return:
+        """
+        if 'convert_to_timeseries' in self.modifications_made:
+            return
+
+        primary_par = 'time_ISO8601'
+        primary_semantic = '//<subject>SDN:LOCAL:time_ISO8601</subject><object>SDN:P01::DTUT8601</object><units>SDN:P06::TISO</units>\n'
+
+        # Check if file already has time as primary variable
+        odv_file = odvfile.ODVfile(self.file_path)
+        primary_variable = odv_file.get_primary_variable()
+        # print('primary_variable', primary_variable)
+        if primary_par in primary_variable:
+            return
+
+        # Add sematic header line
+        lines = self.metadata[:]
+        for k, line in enumerate(lines):
+            if line.startswith('//<subject>'):
+                self.metadata.insert(k, primary_semantic)
+                break
+
+        # Add data in dataframe
+        time = self.df['yyyy-mm-ddThh:mm:ss.sss'].values[0]
+        last_metadata_variable = kwargs.get('last_metadata_variable', 'Bot. Depth [m]')
+        self.add_column(current_column_name=last_metadata_variable, new_column=primary_par, data=time, position=1)
+        self.add_column(current_column_name=primary_par, new_column='QV:SEADATANET', data='1', position=1)
+
+        self.modifications_made.append('convert_to_timeseries')
+
+    def replace_string_in_metadata(self, from_string, to_string):
+        """
+        Replaces string in metadata.
+        :return:
+        """
+        if not self.metadata:
+            print('No metadata loaded for file {}'.format(self.file_path))
+            return
+        for k, line in enumerate(self.metadata):
+            self.metadata[k] = line.replace(from_string, to_string)
+
+    def replace_string_in_column(self, from_string, to_string, *args):
+        """
+        Replaces string in columns given in args.
+        :param from_string:
+        :param to_string:
+        :param args:
+        :return:
+        """
+        for col in args:
+            if col not in self.df.columns:
+                continue
+            self.df[col] = self.df[col].apply(lambda x: x.replace(from_string, to_string))
+
+
 
     def replace_values_in_col(self, df=False, column_name='Bot. Depth [m]', old_val = 'None', new_val = '', **kwargs):
         """
@@ -205,7 +275,7 @@ class ModifyODVfile(object):
 
         self.df.loc[self.df[column_name] == old_val, column_name] = new_val
 
-    def write_new_odv(self, output_dir='D:\\temp\\', file_name=False, df=False, metadata=False, **kwargs):
+    def write_new_odv(self, output_dir='D:/temp', file_name=False, df=False, metadata=False, **kwargs):
         """
         Write data and metadata to file
 
@@ -224,10 +294,14 @@ class ModifyODVfile(object):
         if metadata:
             self.metadata = metadata
 
+        if not all([len(self.df), self.metadata]):
+            print('No data loaded in file object for file {}'.format(self.file_path))
+            return
+
         if not file_name:
             file_name = self.file_path.split('\\')[-1]
 
-        with codecs.open(output_dir+file_name, 'w',
+        with codecs.open(os.path.join(output_dir, file_name), 'w',
                          encoding=kwargs.get('encoding_out', kwargs.get('encoding', 'cp1252'))) as fid_out:
 
             fid_out.write('\n'.join(self.metadata)+'\n')
