@@ -105,7 +105,7 @@ class CheckbuttonWidget(tk.Frame):
         
         
         if self.include_select_all:
-            prop = dict((k, v) for k, v in self.prop_cbuttons.iteritems() if k in ['padx', 'pady']) 
+            prop = dict((k, v) for k, v in self.prop_cbuttons.items() if k in ['padx', 'pady'])
             ttk.Separator(self, orient=u'horizontal').grid(row=r, column=c, sticky=u'ew', **prop)
             r+=1
             self.booleavar_select_all = tk.BooleanVar()
@@ -151,7 +151,7 @@ class CheckbuttonWidget(tk.Frame):
         self._check_disable_list()
         
     #===========================================================================
-    def _rermove_from_disabled(self, item):
+    def _remove_from_disabled(self, item):
         if item in self.disabled_list:
             self.disabled_list.pop(self.disabled_list.index(item))
             self._check_disable_list()
@@ -181,12 +181,20 @@ class CheckbuttonWidget(tk.Frame):
         self.cbutton[item].deselect()
         self.cbutton[item].config(state=u'disabled')
         self._add_to_disabled(item)
+
+    def deactivate_all(self):
+        for item in self.cbutton:
+            self.deactivate(item)
     
     #===========================================================================
     def activate(self, item):
         self.cbutton[item].config(state=u'normal')
-        self._rermove_from_disabled(item)
-      
+        self._remove_from_disabled(item)
+
+    def activate_all(self):
+        for item in self.cbutton:
+            self.activate(item)
+
     #===========================================================================
     def get_checked_item_list(self):
         return_list = []
@@ -300,7 +308,7 @@ class ComboboxWidget(tk.Frame):
         """
         Created     20180821     
         """
-        print('self.stringvar.get()'.upper(), self.stringvar.get())
+        # print('self.stringvar.get()'.upper(), self.stringvar.get())
         return self.stringvar.get() 
             
     
@@ -423,10 +431,8 @@ class EntryWidget(tk.Entry):
                           frame, 
                           textvariable=self.stringvar,  
                           **self.prop_entry)
-        if pack:
-            self.pack(side="top", fill="both", expand=1) 
-        else:
-            self.grid(**self.grid_entry)
+
+        self.grid(**self.grid_entry)
         
         self._load_default()
         self._activate_bindings()
@@ -881,7 +887,7 @@ class EntryGridWidget(tk.Frame):
     #===========================================================================
     def set_width_for_columns(self, col_width={}):
         """ Sets the column width. col_width is a dict with column index as key and width as value """
-        for col, value in col_width.iteritems():
+        for col, value in col_width.items():
             for row in self.entries:
                 if col in self.entries[row]:
                     self.entries[row][col].set_prop(width=value)
@@ -986,10 +992,10 @@ class LabelFrameLabel(tk.LabelFrame):
                 
         
         self.grid_frame = {'row':0, 
-                           'column':0, 
-                           'sticky':'nsew', 
-                           'padx':5, 
-                           'pady':5}
+                           'column': 0,
+                           'sticky': 'nsew',
+                           'padx': 0,
+                           'pady': 0}
         self.grid_frame.update(kwargs)
 
         
@@ -1002,7 +1008,9 @@ class LabelFrameLabel(tk.LabelFrame):
             
         self.stringvar = tk.StringVar()
         self.label = tk.Label(self, textvariable=self.stringvar)
-        self.label.pack(side="top", fill="both", expand=True)
+        self.label.grid(row=0, column=0, sticky='nsew')
+        grid_configure(self)
+        # self.label.pack(side="top", fill="both", expand=True)
 
 
     #===========================================================================
@@ -1051,14 +1059,14 @@ class ListboxWidget(tk.Frame):
         self.prop_frame = {}
         self.prop_frame.update(prop_frame)
         
-        self.prop_listbox = {'bg':'grey'} 
+        self.prop_listbox = {'bg': 'grey'}
         self.prop_listbox.update(prop_listbox)        
         
-        self.grid_frame = {'row':0, 
-                           'column':0, 
-                           'sticky':'nsew', 
-                           'padx':5, 
-                           'pady':5}
+        self.grid_frame = {'row': 0,
+                           'column': 0,
+                           'sticky': 'nsew',
+                           'padx': 5,
+                           'pady': 5}
         self.grid_frame.update(kwargs)
         
         self.title = title
@@ -1184,7 +1192,8 @@ class ListboxSelectionWidget(tk.Frame):
                  bind_tab_entry_items=None, 
                  widget_id=u'', 
                  allow_nr_selected=None, 
-                 vertical=False, 
+                 vertical=False,
+                 search_case_sensitive=True,
                  **kwargs):
         
         # Update kwargs dict
@@ -1192,21 +1201,21 @@ class ListboxSelectionWidget(tk.Frame):
         self.prop_frame = {}
         self.prop_frame.update(prop_frame)
         
-        self.prop_listbox_items = {'bg':'grey', 
-                                   'width':30, 
-                                   'height':10}
+        self.prop_listbox_items = {'bg': 'grey',
+                                   'width': 30,
+                                   'height': 10}
         self.prop_listbox_items.update(prop_items)
         
-        self.prop_listbox_selected = {'width':30, 
-                                      'height':10}
+        self.prop_listbox_selected = {'width': 30,
+                                      'height': 10}
         self.prop_listbox_selected.update(prop_selected)
         
         
-        self.grid_frame = {'row':0, 
-                           'column':0, 
-                           'sticky':'nsew', 
-                           'padx':5, 
-                           'pady':5}
+        self.grid_frame = {'row': 0,
+                           'column': 0,
+                           'sticky': 'nsew',
+                           'padx': 5,
+                           'pady': 5}
         self.grid_frame.update(kwargs)
 
         
@@ -1222,7 +1231,8 @@ class ListboxSelectionWidget(tk.Frame):
         self.widget_id = widget_id
         self.bind_tab_entry_items = bind_tab_entry_items
         self.allow_nr_selected = allow_nr_selected
-        self.vertical = vertical
+        self.vertical = vertical 
+        self.search_case_sensitive = search_case_sensitive
 
         self.include_button_move_all_items = include_button_move_all_items
         self.include_button_move_all_selected = include_button_move_all_selected
@@ -1528,22 +1538,33 @@ class ListboxSelectionWidget(tk.Frame):
     #===========================================================================
     def _search_item(self, *dummy):
         self.listbox_items.selection_clear(0, u'end')
-        search_string = self.stringvar_items.get().lower()
+        search_string = self.stringvar_items.get()
+        if not self.search_case_sensitive:
+            search_string = search_string.lower()
+            
+        # print(search_string)
         index = []
         for i, item in enumerate(self.items):
-            if search_string and item.lower().startswith(search_string):
+            if not self.search_case_sensitive:
+                item = item.lower()
+            if search_string and item.startswith(search_string):
                 index.append(i)
-        if index: 
+        if index:
+            # print(index)
             self.listbox_items.selection_set(index[0], index[-1])
             self.listbox_items.see(index[0])
         
     #===========================================================================
     def _search_selected(self, *dummy):
         self.listbox_selected.selection_clear(0, u'end')
-        search_string = self.stringvar_selected.get().lower()
+        search_string = self.stringvar_selected.get()
+        if not self.search_case_sensitive:
+            search_string = search_string.lower()
         index = []
         for i, item in enumerate(self.selected_items):
-            if search_string and item.lower().startswith(search_string):
+            if not self.search_case_sensitive:
+                item = item.lower()
+            if search_string and item.startswith(search_string):
                 index.append(i)
         if index: 
             self.listbox_selected.selection_set(index[0], index[-1])
@@ -1583,6 +1604,7 @@ class ListboxSelectionWidget(tk.Frame):
     #===========================================================================
     def _on_click_items(self, event):
         selection = self.listbox_items.curselection()
+        print('selection', selection)
         if selection:
             self.stringvar_items.set(self.listbox_items.get(selection[0]))
             
@@ -1603,6 +1625,7 @@ class ListboxSelectionWidget(tk.Frame):
             self.last_move_is_selected = True
             self._update_listboxes()
             self.stringvar_items.set(u'')
+            self.listbox_items.see(max(0, index_to_pop))
     
     #===========================================================================
     def _on_doubleclick_selected(self, event):
@@ -1615,6 +1638,7 @@ class ListboxSelectionWidget(tk.Frame):
             self.last_move_is_selected = False
             self._update_listboxes()
             self.stringvar_selected.set(u'')
+            self.listbox_items.see(max(0, index_to_pop))
     
     #===========================================================================
     def _update_listbox_items(self): 
@@ -2024,18 +2048,17 @@ class PlotFrame(tk.Frame):
         
     #===========================================================================
     def _set_frame(self):
-        
         self.frame_plot = tk.Frame(self)
         self.frame_plot.pack(side=tk.TOP, fill=tk.BOTH, expand=True)
         # grid_configure(self.frame_plot)
-        
         self.canvas = FigureCanvasTkAgg(self.fig, master=self.frame_plot)
         self.canvas.draw()
         self.canvas.get_tk_widget().pack(side=tk.TOP, fill=tk.BOTH, expand=True)
         self.canvas._tkcanvas.pack(side=tk.TOP, fill=tk.BOTH, expand=True)
-        
         if self.include_toolbar:
-            self.toolbar = NavigationToolbar2Tk(self.canvas, self.frame_plot)
+            self.frame_toolbar = tk.Frame(self)
+            self.frame_toolbar.pack(side=tk.BOTTOM, fill=tk.BOTH, expand=True)
+            self.toolbar = NavigationToolbar2Tk(self.canvas, self.frame_toolbar)
             self.toolbar.update()
             self.canvas._tkcanvas.pack()
             
@@ -2101,7 +2124,63 @@ class MapFrame(tk.Frame):
     #========================================================================== 
     def update_canvas(self):
         self.canvas.draw()
-        
+
+
+class ProgressbarWidget(tk.Frame):
+    def __init__(self,
+                 parent,
+                 prop_frame={},
+                 bar_length=100,
+                 in_rows=False,
+                 **kwargs):
+
+        self.bar_length = bar_length
+
+        self.prop_frame = {}
+        self.prop_frame.update(prop_frame)
+        self.in_rows = in_rows
+
+        self.grid_frame = {'padx': 5,
+                           'pady': 5,
+                           'sticky': 'nsew'}
+        self.grid_frame.update(kwargs)
+
+        tk.Frame.__init__(self, parent, **self.prop_frame)
+        self.grid(**self.grid_frame)
+
+        self._set_frame()
+
+    def _set_frame(self):
+        padx = 2
+        pady = 0
+
+        self.stringvar_text = tk.StringVar()
+        self.text = tk.Label(self, textvariable=self.stringvar_text)
+        if self.in_rows:
+            self.text.grid(row=0, column=0, padx=padx, pady=pady)
+            grid_configure(self, nr_rows=2)
+        else:
+            self.text.grid(row=0, column=0, padx=padx, pady=pady, sticky='w')
+            grid_configure(self, nr_columns=2)
+
+        self.progress = ttk.Progressbar(self, orient=tk.HORIZONTAL, length=self.bar_length, mode='indeterminate')
+
+    def run_progress(self, run_function, message='', **kwargs):
+        self.stringvar_text.set(message)
+        if self.in_rows:
+            self.progress.grid(row=1, column=0)
+            grid_configure(self, nr_rows=2)
+        else:
+            self.progress.grid(row=0, column=1, sticky='e')
+            grid_configure(self, nr_columns=2)
+        self.progress.start()
+        run_function()
+        self.progress.stop()
+        self.progress.grid_forget()
+        self.stringvar_text.set('')
+
+
+
 """
 ================================================================================
 ================================================================================
@@ -2658,10 +2737,10 @@ class TimeWidget(ttk.Labelframe):
             self.current_datenumber = datenumber
             time_object = dates.num2date(datenumber)
         elif first:
-            print('FIRST', time_object)
+            # print('FIRST', time_object)
             time_object = self.from_time
         elif last:
-            print('LAST', time_object)
+            # print('LAST', time_object)
             time_object = self.to_time
         
         if not time_object:
@@ -2854,7 +2933,7 @@ class FlagWidget(tk.Frame):
             # Color selection
             color_frame = tk.Frame(frame)
             color_frame.grid(row=r, column=c)
-            width = 9
+            width = 12
             row=0
             
             self.combobox_color = {}
@@ -3102,11 +3181,15 @@ class TestApp(tk.Tk):
                             
                 entries[row][col].return_entry = entries[return_row][return_col]
                     
-#                 print(row, col, entries[row][col].return_entry.entry_id
-        
-    
-    
 
+def disable_widgets(*args):
+    for arg in args:
+        arg.config(state='disabled')
+
+
+def enable_widgets(*args):
+    for arg in args:
+        arg.config(state='normal')
                         
 """
 ================================================================================
@@ -3142,26 +3225,30 @@ def grid_configure(frame, nr_rows=1, nr_columns=1, **kwargs):
 
         
         
-#"""
-#================================================================================
-#================================================================================
-#================================================================================
-#""" 
-#def grid_configure(frame, rows={}, columns={}):
-#    """
-#    Put weighting on the given frame. Rows and collumns that ar not in rows and columns will get weight 1.
-#    """
-#    for r in range(30):
-#        if r in rows:
-#            frame.grid_rowconfigure(r, weight=rows[r])
-#        else:
-#            frame.grid_rowconfigure(r, weight=1)
-#    
-#    for c in range(30):
-#        if c in columns:
-#            frame.grid_columnconfigure(c, weight=columns[c])
-#        else:
-#            frame.grid_columnconfigure(c, weight=1)
+def set_aspect(content_frame, pad_frame, aspect_ratio):
+    # a function which places a frame within a containing frame, and
+    # then forces the inner frame to keep a specific aspect ratio
+
+    def enforce_aspect_ratio(event):
+        # when the pad window resizes, fit the content into it,
+        # either by fixing the width or the height and then
+        # adjusting the height or width based on the aspect ratio.
+
+        # start by using the width as the controlling dimension
+        desired_width = event.width
+        desired_height = int(event.width / aspect_ratio)
+
+        # if the window is too tall to fit, use the height as
+        # the controlling dimension
+        if desired_height > event.height:
+            desired_height = event.height
+            desired_width = int(event.height * aspect_ratio)
+
+        # place the window, giving it an explicit size
+        content_frame.place(in_=pad_frame, x=0, y=0,
+            width=desired_width, height=desired_height)
+
+    pad_frame.bind("<Configure>", enforce_aspect_ratio)
      
      
 """
@@ -3186,7 +3273,8 @@ def check_path_entry(stringvar, return_string=False):
             
     if sv:
         string = sv.get()
-        string = string.replace('\\', '/').rstrip('/')
+        # string = string.replace('\\', '/').rstrip('/')
+        string = string.replace('\\', '/')
         sv.set(string)
         
         if return_string:

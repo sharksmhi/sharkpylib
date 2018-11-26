@@ -10,7 +10,7 @@ import pandas as pd
 
 import numpy as np
 
-from gismo.exceptions import *
+from .exceptions import *
 
 
 import pickle
@@ -175,6 +175,14 @@ class GISMOdataManager(object):
         self._check_file_id(file_id)
         return self.objects.get(file_id).get_parameter_list(**kwargs)
 
+    def get_unit(self, file_id, unit, **kwargs):
+        self._check_file_id(file_id)
+        return self.objects.get(file_id).get_unit(unit, **kwargs)
+
+    def get_valid_qc_routines(self, file_id):
+        self._check_file_id(file_id)
+        return self.objects.get(file_id).get_valid_qc_routines()
+
     def match_files(self, main_file_id, match_file_id, **kwargs):
         if not all([self.objects.get(main_file_id), self.objects.get(match_file_id)]):
             raise GISMOExceptionInvalidInputArgument
@@ -214,6 +222,8 @@ class GISMOdata(object):
 
         self.valid_flags = []
 
+        self.valid_qc_routines = []     # Specify the valid qc routines
+
         self.comment_id = None
 
 
@@ -240,15 +250,26 @@ class GISMOdata(object):
 
     def get_parameter_list(self, *args, **kwargs):
         """
-        Created 20181022
-
         :return: list of available data parameters. Parameters that have quality flags.
+        """
+        return sorted(self.parameter_list)
+
+    def get_unit(self, unit, **kwargs):
+        """
+
+        :return: the unit of the parameter
         """
         raise GISMOExceptionMethodNotImplemented
 
+    def get_valid_qc_routines(self, **kwargs):
+        """
+
+        :return: list of valid qc routines
+        """
+        return sorted(self.valid_qc_routines)
+
     def save_file(self, **kwargs):
         """
-        Created 20181106
         Saves data to file. Also saves metadata if available.
 
         """
@@ -289,7 +310,7 @@ class GISMOqcManager(object):
 
     def __init__(self, factory, *args, **kwargs):
         """
-        Created 20181005     
+        Handles qc controll of gismo_objects.
 
         :param factory:
         :param args:
@@ -297,14 +318,36 @@ class GISMOqcManager(object):
         """
         self.factory = factory
         self.qc_routine_list = factory.get_list()
-        self.objects = {}
-        self.objects_by_qc_routine = dict((item, {}) for item in self.qc_routine_list)
+        self.qc_routines = {}
+        for qcr in self.qc_routine_list:
+            self.add_qc_routine(qcr)
 
     def add_qc_routine(self, routine, **kwargs):
-        routine = self.factory.get_object(sampling_type=routine, **kwargs)
+        self.qc_routines[routine] = self.factory.get_object(routine=routine, **kwargs)
 
-    def run_qc(self):
-        pass
+
+    def run_automatic_qc(self, gismo_object=None, qc_routines=[], **kwargs):
+        """
+        Runs the qc routines specified in qc_routines on the given gismo_object.
+
+        :param gismo_object:
+        :param args:
+        :return:
+        """
+        if not qc_routines:
+            raise GISMOExceptionMissingInputArgument('No qc_routines given.')
+        if type(qc_routines) == str:
+            qc_routines = [qc_routines]
+        # Check if all qc_routines are valid for the given gismo_object
+        not_implemented = []
+        for qcr in qc_routines:
+            if qcr not in gismo_object.valid_qc_routines or qcr not in self.qc_routine_list:
+                not_implemented.append(qcr)
+        if not_implemented:
+            raise GISMOExceptionInvalidQCroutine('; '.join(not_implemented))
+
+        for qcr in qc_routines:
+            self.qc_routines.get(qcr).run_qc(gismo_object, **kwargs)
 
 
 
@@ -330,13 +373,13 @@ class GISMOqc(object):
         """
         raise GISMOExceptionMethodNotImplemented
 
-    def run_qc(self, gismo_object, *args):
+    def run_qc(self, gismo_object, **kwargs):
         """
-        Created 20181005     
+        Data is generally in a pandas dataframe that can be reach under gismo_object.df
 
-        Data is a pandas dataframe that can be reach under gismo_object.df
+        Make sure self.name is in gismo_object.valid_qc_routines
+
         :param gismo_object:
-        :param args: qc routines that you want to run
         :return:
         """
         raise GISMOExceptionMethodNotImplemented

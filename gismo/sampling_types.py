@@ -25,6 +25,7 @@ class PluginFactory(object):
 
     Class hold information about active classes in module.
     Also contains method to return an object of a mapped class.
+
     """
     def __init__(self):
         # Add key and class to dict if you want to activate it
@@ -36,6 +37,8 @@ class PluginFactory(object):
         gismo_requirements = ['data_file_path', 'settings_file_path', 'root_directory']
         self.required_arguments = {'ferrybox_cmems': gismo_requirements,
                                    'ctd_gismo': gismo_requirements}
+
+
 
     def get_list(self):
         return sorted(self.classes)
@@ -97,7 +100,8 @@ class GISMOfile(GISMOdata):
 
         self.parameter_list = []
 
-        self.parameter_list = ['time', 'lat', 'lon', 'depth', 'visit_id', 'visit_depth_id'] + self.qpar_list
+        # self.parameter_list = ['time', 'lat', 'lon', 'depth', 'visit_id', 'visit_depth_id'] + self.qpar_list
+        self.parameter_list = ['time', 'lat', 'lon', 'depth'] + self.qpar_list
         self.filter_data_options = []
         self.flag_data_options = []
         self.mask_data_options = ['include_flags', 'exclude_flags']
@@ -105,6 +109,8 @@ class GISMOfile(GISMOdata):
         self.save_data_options = ['file_path', 'overwrite']
 
         self.valid_flags = self.settings.flag_list[:]
+
+        self.valid_qc_routines = []
 
     # ==========================================================================
     def _load_settings_file(self):
@@ -157,6 +163,14 @@ class GISMOfile(GISMOdata):
 
         self.original_columns = header[:]
         self.df = pd.DataFrame(data, columns=header)
+
+        # Remove columns with no column name
+        try:
+            self.df.drop('', axis=1, inplace=True)
+            self.original_columns = [col for col in self.original_columns if col]
+        except KeyError:
+            pass
+
         self.df.fillna('', inplace=True)
 
 
@@ -193,7 +207,7 @@ class GISMOfile(GISMOdata):
         self.internal_to_external = dict(zip(self.parameters_internal, self.parameters_external))
         self.external_to_internal = dict(zip(self.parameters_external, self.parameters_internal))
 
-        self.qpar_list = sorted([par for par in self.parameters_external if self._get_qf_par(par) not in [None, False]])
+        self.qpar_list = sorted([par for par in self.parameters_external if self.get_qf_par(par) not in [None, False]])
         self.mapped_parameters = [self.parameter_mapping.get_internal(par) for par in self.qpar_list]
 
         # Set type of flags to str
@@ -202,7 +216,6 @@ class GISMOfile(GISMOdata):
 
     # ==========================================================================
     def _do_import_changes(self):
-
         self._add_columns()
 
         if self.missing_value:
@@ -269,7 +282,7 @@ class GISMOfile(GISMOdata):
         if 'index' in time_par:
             # At this moment mainly for CMEMS-files
             time_par = self.df.columns[int(time_par.split('=')[-1].strip())]
-
+            print('time_par', time_par)
             self.df['time'] = pd.to_datetime(self.df[time_par], format=self.time_format)
         else:
             time_pars = self.settings.column.get_list('time')
@@ -363,7 +376,7 @@ class GISMOfile(GISMOdata):
 
         # Flag data
         for par in args:
-            qf_par = self._get_qf_par(par)
+            qf_par = self.get_qf_par(par)
             if not qf_par:
                 raise GISMOExceptionMissingQualityParameter('for parameter "{}"'.format(par))
             self.df.loc[boolean, qf_par] = flag
@@ -432,8 +445,10 @@ class GISMOfile(GISMOdata):
         # Create filter boolean
         boolean = self._get_pandas_series(True)
         for key, value in kwargs.get('filter_options', {}).items():
+            if not value:
+                continue
             if key not in self.filter_data_options:
-                raise GISMOExceptionInvalidOption
+                raise GISMOExceptionInvalidOption('{} not in {}'.format(key, self.filter_data_options))
             if key == 'time':
                 value_list = self._get_argument_list(value)
                 boolean = boolean & (self.df.time.isin(value_list))
@@ -470,14 +485,14 @@ class GISMOfile(GISMOdata):
                 if opt not in self.mask_data_options:
                     raise GISMOExceptionInvalidOption
                 if opt == 'include_flags':
-                    qf_par = self._get_qf_par(par)
+                    qf_par = self.get_qf_par(par)
                     if not qf_par:
                         continue
                     # print('\n'.join(sorted(filtered_df.columns)))
                     keep_boolean = filtered_df[qf_par].astype(str).isin([str(v) for v in value])
                     par_array[~keep_boolean] = ''
                 elif opt == 'exclude_flags':
-                    qf_par = self._get_qf_par(par)
+                    qf_par = self.get_qf_par(par)
                     if not qf_par:
                         continue
                     nan_boolean = filtered_df[qf_par].astype(str).isin([str(v) for v in value])
@@ -527,12 +542,22 @@ class GISMOfile(GISMOdata):
 
     def get_parameter_list(self, **kwargs):
         if kwargs.get('external'):
-            return sorted(self.parameter_list)
+            par_list = sorted(self.parameter_list)
         else:
-            return sorted([self.parameter_mapping.get_internal(par) for par in self.parameter_list])
+            par_list = sorted([self.parameter_mapping.get_internal(par) for par in self.parameter_list])
+
+        return par_list
+
+    def get_unit(self, par='', **kwargs):
+        """
+        Returns the unit of the given parameter in found.
+        :param par:
+        :return:
+        """
+        return self.parameter_mapping.get_unit(par)
 
     # ==========================================================================
-    def _get_qf_par(self, par):
+    def get_qf_par(self, par):
         """
         Updated 20181004
         :param par:
@@ -639,8 +664,11 @@ class FERRYBOXfile(GISMOfile):
                            root_directory=root_directory))
         GISMOfile.__init__(self, **kwargs)
 
+        self.filter_data_options = self.filter_data_options + ['time', 'time_start', 'time_end']
         self.flag_data_options = self.flag_data_options + ['time', 'time_start', 'time_end']
         self.mask_data_options = self.mask_data_options + []
+
+        self.valid_qc_routines = ['iocftp_qc0']
 
 
 # ==============================================================================
@@ -715,7 +743,7 @@ class CTDfile(GISMOfile):
     #         self.internal_to_external = dict(zip(self.parameters_internal, self.parameters_external))
     #         self.external_to_internal = dict(zip(self.parameters_external, self.parameters_internal))
     #
-    #         self.qpar_list = sorted([par for par in self.parameters_external if self._get_qf_par(par) != False])
+    #         self.qpar_list = sorted([par for par in self.parameters_external if self.get_qf_par(par) != False])
     #         self.mapped_parameters = [self.parameter_mapping.get_internal(par) for par in self.qpar_list]
 
     # ==========================================================================
@@ -1094,7 +1122,7 @@ class SHARKfilePhysicalChemichal(GISMOfile):
                            root_directory=root_directory))
         GISMOfile.__init__(self, **kwargs)
 
-        self.filter_data_options = self.filter_data_options + ['time', 'time_start', 'time_end', 'visit_id']
+        self.filter_data_options = self.filter_data_options + ['time', 'time_start', 'time_end', 'visit_id', 'visit_depth_id']
         self.flag_data_options = []
         self.mask_data_options = self.mask_data_options + []
 

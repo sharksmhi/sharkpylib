@@ -31,7 +31,8 @@ class ColumnMapping():
                  source_file_path=None, 
                  local_file_path=None, 
                  internal_column=None, 
-                 external_column=None, 
+                 external_column=None,
+                 unit_column=None,
                  encoding=None, 
                  add_all_matches=False):
 #        print '='*30
@@ -55,6 +56,8 @@ class ColumnMapping():
         
         self.internal_column = internal_column
         self.external_column = external_column
+
+        self.unit_column = unit_column
         
         self.all_columns = internal_column + external_column
         
@@ -90,10 +93,11 @@ class ColumnMapping():
     def _load_data(self):
         self.internal_to_external = {}
         self.external_to_internal = {}
+        self.internal_to_unit = {}
         fid = codecs.open(self.local_file_path, 'r')
          
         for r, line in enumerate(fid):
-            if not line:
+            if not line.strip():
                 continue
             if line.startswith('#'): # Comment
                 continue
@@ -119,7 +123,7 @@ class ColumnMapping():
                 else:
                     self.internal_to_external[internal_value] = external_value
                     self.external_to_internal[external_value] = internal_value
-                 
+                self.internal_to_unit[internal_value] = line_dict[self.unit_column]
         fid.close()
  
     #==========================================================================
@@ -137,8 +141,11 @@ class ColumnMapping():
             return par
         else:
             return external
-        
-        
+
+    # ===========================================================================
+    def get_unit(self, item):
+        return self.internal_to_unit.get(item, '')
+
 """
 ================================================================================
 ================================================================================
@@ -153,9 +160,11 @@ class ParameterMapping(ColumnMapping):
                                source_file_path=settings_object.parameter_mapping.source_file_path, 
                                local_file_path=settings_object.parameter_mapping.local_file_path, 
                                internal_column=settings_object.parameter_mapping.internal_column, 
-                               external_column=settings_object.parameter_mapping.external_column)
-        
-        
+                               external_column=settings_object.parameter_mapping.external_column,
+                               unit_column=settings_object.parameter_mapping.unit_column)
+
+
+
 """
 ================================================================================
 ================================================================================
@@ -170,7 +179,7 @@ class StationMapping():
                  local_file_path=None, 
                  header_starts_with=None, 
                  external_column=None, 
-                 internal_column=None, 
+                 internal_column=None,
                  platform_type_column=None, 
                  encoding=None):
                      
@@ -193,7 +202,7 @@ class StationMapping():
             self.local_file_path = local_file_path
             self.header_starts_with = header_starts_with
             self.external_column = external_column 
-            self.internal_column = internal_column 
+            self.internal_column = internal_column
             self.platform_type_column = platform_type_column
             self.encoding = encoding
         
@@ -221,6 +230,11 @@ class StationMapping():
         
     #===========================================================================
     def _load_file(self):
+        """
+        "Exteernal" is the names in files
+        "Internal" is the internal name displayed in gismo session.
+        :return:
+        """
             
         self.internal_to_external = {}
         self.internal_to_type = {}
@@ -279,7 +293,7 @@ class StationMapping():
             if item in self.external_by_type[t]:
                 return t
         return 'Unknown'
-    
+
     #===========================================================================
     def get_internal(self, item):
         return self.external_to_internal.get(item, item)

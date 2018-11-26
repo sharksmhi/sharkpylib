@@ -8,6 +8,7 @@
 
 #from mpl_toolkits.axes_grid1 import host_subplot
 #import mpl_toolkits.axisartist as axisartist
+import matplotlib
 from matplotlib.figure import Figure
 #from matplotlib.widgets import Cursor
 
@@ -22,6 +23,7 @@ import random
 import numpy as np
 import datetime
 import matplotlib.dates as dates
+import matplotlib.dates as mdates
 import pandas as pd
 
 class PlotSeries():
@@ -310,7 +312,8 @@ class Plot():
     def __init__(self, sync_colors=True, 
                  allow_two_axis=True, 
                  orientation='vertical', 
-                 time_axis=None, 
+                 time_axis=None,
+                 hover_target=None,
                  **kwargs):
         
         self.sync_colors = sync_colors
@@ -322,6 +325,7 @@ class Plot():
             self.vertical_orientation = False
             
         self.time_axis = time_axis
+        self.hover_target = hover_target
 
         self.prop_fig = kwargs
         self._get_default_settings()
@@ -423,11 +427,29 @@ class Plot():
         if ax not in self.mark_ax:
             ax.set_mark_color(color)
             self.mark_ax.append(ax)
-    
+
+    # ===========================================================================
+    def _add_event_hover(self):
+        ax = self._get_ax_object(1)
+        ax.set_mark_color('r')
+        # ax = self._get_ax_object(ax)
+        self.mark_ax.append(ax)
+        try:
+            self.disconnect_event('motion_notify_event')
+            self.disconnect_event('button_press_event')
+            self.rangetype = None
+        except:
+            pass
+        self.add_event('motion_notify_event', self._on_movement_hover)
+
     #===========================================================================
     def _add_mark_range_events(self):
         if not self.mark_ax:
             return
+        try:
+            self.disconnect_event('motion_notify_event')
+        except:
+            pass
         self.add_event('motion_notify_event', self._on_movement)
         self.add_event('button_press_event', self._on_click)
         
@@ -562,11 +584,17 @@ class Plot():
         self.call_targets()
    
     #===========================================================================
-    def clear_all_marked(self):
+    def clear_all_marked(self ,color='r'):
         self.clear_marked_range(call_targets=False)
         self.clear_marked_points(call_targets=False)
         self.clear_marked_lasso(call_targets=False)
-        
+
+        try:
+            if self.hover_target:
+                self._add_event_hover()
+        except:
+            pass
+
         if hasattr(self, 'first_ax') and self.first_ax:
             self.call_targets()
         
@@ -693,6 +721,11 @@ class Plot():
             self.disconnect_event('button_press_event')
             self.rangetype = None
 
+    def _on_movement_hover(self, event):
+        self.hover_x = event.xdata
+        self.hover_y = event.ydata
+        self.call_target_hover()
+
     #===========================================================================
     def _on_movement(self, event):
         if self.rangetype == 'bottom':
@@ -753,6 +786,10 @@ class Plot():
                 target()
         
         self.call_targets()
+
+    def call_target_hover(self):
+        if self.hover_target:
+            self.hover_target()
             
     #===========================================================================
     def call_targets(self):
@@ -876,6 +913,9 @@ class Plot():
             except:
                 pass
             ax.set_data(x=x, y=y, line_id=line_id, exclude_index=exclude_index, call_targets=call_targets, **kwargs)
+
+        if self.hover_target:
+            self._add_event_hover()
 
     #===========================================================================
     def set_label(self, label):
@@ -1098,28 +1138,19 @@ class Ax():
         alpha = 0.2
         x_min, x_max = self.ax.get_xlim()
         y_min, y_max = self.ax.get_ylim()
-        
-        x = np.array(self.x_data[line_id])
-        y = np.array(self.y_data[line_id])
-        
-        value_list = []
+
         
         #----------------------------------------------------------------------
         # Vertical orientation
         if mark_bottom != None or mark_top != None:
-            value_list = y
-#            print(x_min, x_max, x[0]
-            if isinstance(x[0], datetime.datetime):
-                xt = list(map(dates.date2num, x))
-                nan_index = np.logical_or(xt > x_max, xt < x_min)
-            else:
-                nan_index = np.logical_or(x > x_max, x < x_min)
-            
-#            print('=', np.where(nan_index)
-            value_list[nan_index] = np.nan
-#            value_list = np.array([value for value in y if not np.isnan(value)])
             mark_from_value = mark_bottom
             mark_to_value = mark_top
+
+            if mark_from_value is None:
+                mark_from_value = y_min
+            if mark_to_value is None:
+                mark_to_value = y_max
+
             ax_span_function = self.ax.axhspan
             bottom_top = True
             
@@ -1127,206 +1158,199 @@ class Ax():
         #----------------------------------------------------------------------    
         # Horizontal orientation
         elif mark_left != None or mark_right != None:
-            # print('=' * 50)
-            # print('=' * 50)
-            # print('Horizontal orientation')
-            # print('y', y)
-            # print('ylim', y_min, y_max)
-            # print('x', x)
-            # print('type(x[0]', type(x[0]))
-
-            value_list = x
-            nan_index = np.logical_and(y > y_max, y < y_min)
-            # print('nan_index', nan_index)
-            # print('np.where(nan_index)', np.where(nan_index))
-            # print('-' * 50)
-            value_list = np.where(nan_index, np.nan, value_list)
-            # value_list[np.where()] = np.nan
-            # value_list[nan_index] = np.nan
-#            value_list = np.array([value for value in x if not np.isnan(value)])
             mark_from_value = mark_left
             mark_to_value = mark_right
+
+            if mark_from_value is None:
+                mark_from_value = x_min
+            if mark_to_value is None:
+                mark_to_value = x_max
             ax_span_function = self.ax.axvspan
             bottom_top = False
         
-        if not len(value_list):
-            return
-        #----------------------------------------------------------------------    
-        # Convert if datetime axis
-        if isinstance(value_list[0], datetime.datetime):
-            value_list = np.array([dates.date2num(val) for val in value_list])
-            
-        #----------------------------------------------------------------------
-        # Get info about min and max if they are not given
-        if mark_from_value == None:
-#            print('value_list', value_list
-            mark_from_value = np.nanmin(value_list)
-        if mark_to_value == None:
-            mark_to_value = np.nanmax(value_list)
-        
         if self.mark_at_point:
-            #----------------------------------------------------------------------
-            # Find "from" index
-            from_dist = np.abs(value_list-mark_from_value)
-            from_min_dist = np.nanmin(from_dist)
-            from_index = np.where(from_dist==from_min_dist)[0][0]
-            from_value = value_list[from_index]
-            
-            #----------------------------------------------------------------------
-            # Find "to" index
-            to_dist = np.abs(value_list-mark_to_value)
-            to_min_dist = np.nanmin(to_dist)
-            to_index = np.where(to_dist==to_min_dist)[0][0]
-            to_value = value_list[to_index]
-            
-            #----------------------------------------------------------------------
-            # Find index between bottom_range and top_range
-            boolean_index = np.logical_and(value_list <= to_value, value_list >= from_value)
-            index = np.where(boolean_index)[0]
-            
-            #----------------------------------------------------------------------
-            # Save data
-            self.mark_from_value = mark_from_value
-            self.value_list = value_list
-            self.mark_to_value = mark_to_value
-            
-            self.mark_from_index = from_index
-            self.mark_to_index = to_index
-            self.mark_index = index
-            
-            #----------------------------------------------------------------------
-            # Plot
-            if mark_to_value > mark_from_value:
-                if bottom_top:
-                    self.ax.plot([x_min, x_max], [value_list[from_index], value_list[from_index]], color=self.mark_color, linestyle='-', zorder=20, label='marked_min')
-                    self.ax.plot([x_min, x_max], [value_list[to_index], value_list[to_index]], color=self.mark_color, linestyle='-', zorder=21, label='marked_max')
-                    self.span = ax_span_function(value_list[from_index], value_list[to_index], facecolor=self.mark_color, alpha=alpha, label='marked_span')
-        #            self.span = self.ax.axhspan(value_list[top_index], value_list[bottom_index], facecolor=self.mark_color, alpha=alpha, label='marked_span')
-                else:
-                    self.ax.plot([value_list[from_index], value_list[from_index]], [y_min, y_max], color=self.mark_color, linestyle='-', zorder=20, label='marked_min')
-                    self.ax.plot([value_list[to_index], value_list[to_index]], [y_min, y_max], color=self.mark_color, linestyle='-', zorder=21, label='marked_max')
-                    self.span = ax_span_function(value_list[from_index], value_list[to_index], facecolor=self.mark_color, alpha=alpha, label='marked_span')
-
-            
-        
+            pass
         else:
-            from_value = mark_from_value
-            to_value = mark_to_value
-            
-            #----------------------------------------------------------------------
-            # Find index between bottom_range and top_range
-#             print('value_list', from_value, to_value, value_list[:10]
-            boolean_index = np.logical_and(value_list <= to_value, value_list >= from_value)
-            index = np.where(boolean_index)[0]
-        
-            #----------------------------------------------------------------------
+
             # Save data
-#            self.mark_from_index = from_index
-#            self.mark_to_index = to_index
-            self.mark_index = index
             self.mark_from_value = mark_from_value
-            self.value_list = value_list
             self.mark_to_value = mark_to_value
-        
-            #----------------------------------------------------------------------
+
+            # print('From: {}, To: {}'.format(self.mark_from_value, self.mark_to_value))
+
             # Plot
             if mark_to_value > mark_from_value:
                 if bottom_top:
-                    self.ax.plot([x_min, x_max], [from_value, from_value], color=self.mark_color, linestyle='-', zorder=20, label='marked_min')
-                    self.ax.plot([x_min, x_max], [to_value, to_value], color=self.mark_color, linestyle='-', zorder=21, label='marked_max')
-                    self.span = ax_span_function(from_value, to_value, facecolor=self.mark_color, alpha=alpha, label='marked_span')
+                    self.ax.plot([x_min, x_max], [mark_from_value, mark_from_value], color=self.mark_color, linestyle='-', zorder=20, label='marked_min')
+                    self.ax.plot([x_min, x_max], [mark_to_value, mark_to_value], color=self.mark_color, linestyle='-', zorder=21, label='marked_max')
+                    self.span = ax_span_function(mark_from_value, mark_to_value, facecolor=self.mark_color, alpha=alpha, label='marked_span')
         #            self.span = self.ax.axhspan(value_list[top_index], value_list[bottom_index], facecolor=self.mark_color, alpha=alpha, label='marked_span')
                 else:
-                    self.ax.plot([from_value, from_value], [y_min, y_max], color=self.mark_color, linestyle='-', zorder=20, label='marked_min')
-                    self.ax.plot([to_value, to_value], [y_min, y_max], color=self.mark_color, linestyle='-', zorder=21, label='marked_max')
-                    self.span = ax_span_function(from_value, to_value, facecolor=self.mark_color, alpha=alpha, label='marked_span')
+                    self.ax.plot([mark_from_value, mark_from_value], [y_min, y_max], color=self.mark_color, linestyle='-', zorder=20, label='marked_min')
+                    self.ax.plot([mark_to_value, mark_to_value], [y_min, y_max], color=self.mark_color, linestyle='-', zorder=21, label='marked_max')
+                    self.span = ax_span_function(mark_from_value, mark_to_value, facecolor=self.mark_color, alpha=alpha, label='marked_span')
 
-#             print('self.mark_index', len(self.mark_index), self.mark_index
-#        if mark_bottom or mark_top:
-#            # Vertical orientation
-#            #----------------------------------------------------------------------------------------------------------------------------------------
-#            # Get info about min and max
-#            value_list = [value for value in y if not np.isnan(value)]
-#            
-#            # Find top and bottom index
-#            if not mark_bottom:
-#                mark_bottom = min(value_list)
-#            if not mark_top:
-#                mark_top = max(value_list)
+# #===========================================================================
+#     def mark_range_range(self,
+#                          mark_bottom=None,
+#                          mark_top=None,
+#                          mark_left=None,
+#                          mark_right=None,
+#                          line_id='default'):
+# #        print('IN: mark_range_range: line_id = %s' % line_id
+#         #----------------------------------------------------------------------
+#         # Reset current markers
+#         self.reset_marked_range()
+#         # print('mark_left:', mark_left, 'mark_right:', mark_right)
+#         #----------------------------------------------------------------------
+#         # Plot range lines
+#         alpha = 0.2
+#         x_min, x_max = self.ax.get_xlim()
+#         y_min, y_max = self.ax.get_ylim()
 #
-#            
-#            bottom_values_dist = np.abs(np.array(y) - mark_bottom) 
-#            bottom_index = np.where(bottom_values_dist==np.min(bottom_values_dist))[0][0]
-#            
-#            top_values_dist = np.abs(np.array(y) - mark_top)
-#            top_index = np.where(top_values_dist==np.min(top_values_dist))[0][0]
-#            
-##            boolean_list = [True if mark_bottom <= value <= mark_top else False for value in z]
-##            index = list(np.where(boolean_list)[0])
-#                 
-#            self.reset_marked_range()
-#            self.mark_index = range(bottom_index, top_index+1) 
-#            print('self.mark_index', self.mark_index
-#            
-#            if mark_top > mark_bottom:
-#                print('mark_top', mark_top, top_index
-#                print('mark_bottom', mark_bottom, bottom_index
-#                self.ax.plot([x_min, x_max], [y[bottom_index], y[bottom_index]], color=self.mark_color, linestyle='-', zorder=20, label='marked_min')
-#                self.ax.plot([x_min, x_max], [y[top_index], y[top_index]], color=self.mark_color, linestyle='-', zorder=21, label='marked_max')
-##                self.span = self.ax.axhspan(y[bottom_index], y[top_index], facecolor=self.mark_color, alpha=alpha, label='marked_span')
-#                self.span = self.ax.axhspan(y[top_index], y[bottom_index], facecolor=self.mark_color, alpha=alpha, label='marked_span')
-#                
-#        elif mark_left or mark_right:
-#            # Horizontal orientation
-#            #----------------------------------------------------------------------------------------------------------------------------------------
-#            
-#            # Get info about min and max
-#            value_list = [value for value in x if not np.isnan(value)]
-#            print('#'*30
-#            print(value_list
-#            # Find left and right index
-#            if not mark_left:
-#                mark_left = min(value_list)
-#            if not mark_right:
-#                mark_right = max(value_list)
-#            
-#            left_values_dist = np.abs(np.array(x) - mark_left) 
-#            left_index = np.where(left_values_dist==np.min(left_values_dist))[0][0]
-#        
-#            right_values_dist = np.abs(np.array(x) - mark_right)
-#            right_index = np.where(right_values_dist==np.min(right_values_dist))[0][0]
-#            
-#            self.reset_marked_range()
-#            
-#            self.mark_index = range(bottom_index, top_index+1)
-#            
-#            print('='*30
-#            print('mark_left', mark_left
-#            print('left_index', left_index
-#            print('x[left_index]', x[left_index]
-#            
-#            print('-'*30
-#            print('mark_right', mark_right
-#            print('right_index', right_index
-#            print('x[right_index]', x[right_index]
-#            
-#            
-#             
-#            if mark_right > mark_left:
-#                self.ax.plot([x[left_index], x[left_index]], [y_min, y_max], color=self.mark_color, linestyle='-', zorder=20, label='marked_min')
-#                self.ax.plot([x[right_index], x[right_index]], [y_min, y_max], color=self.mark_color, linestyle='-', zorder=21, label='marked_max')
-#                self.span = self.ax.axvspan(x[left_index], x[right_index], facecolor=self.mark_color, alpha=alpha, label='marked_span')
-                
-#             elif mark_left:
-#                 self.ax.plot([x[left_index], x[left_index]], [y_min, y_max], color=self.mark_color, linestyle='-', zorder=20, label='marked_min')
-# #                 self.span = self.ax.axvspan(x[left_index], x_max, facecolor=self.mark_color, alpha=alpha, label='marked_span')
-#                 
-#             elif mark_right:
-#                 self.ax.plot([x[right_index], x[right_index]], [y_min, y_max], color=self.mark_color, linestyle='-', zorder=21, label='marked_max')
-#                 self.span = self.ax.axvspan(x_min, x[right_index], facecolor=self.mark_color, alpha=alpha, label='marked_span')
-                    
+#         x = np.array(self.x_data[line_id])
+#         y = np.array(self.y_data[line_id])
+#
+#         value_list = []
+#
+#         #----------------------------------------------------------------------
+#         # Vertical orientation
+#         if mark_bottom != None or mark_top != None:
+#             value_list = y
+# #            print(x_min, x_max, x[0]
+#             if isinstance(x[0], datetime.datetime):
+#                 xt = list(map(dates.date2num, x))
+#                 nan_index = np.logical_or(xt > x_max, xt < x_min)
+#             else:
+#                 nan_index = np.logical_or(x > x_max, x < x_min)
+#
+# #            print('=', np.where(nan_index)
+#             value_list[nan_index] = np.nan
+# #            value_list = np.array([value for value in y if not np.isnan(value)])
+#             mark_from_value = mark_bottom
+#             mark_to_value = mark_top
+#             ax_span_function = self.ax.axhspan
+#             bottom_top = True
+#
+#
+#         #----------------------------------------------------------------------
+#         # Horizontal orientation
+#         elif mark_left != None or mark_right != None:
+#             # print('=' * 50)
+#             # print('=' * 50)
+#             # print('Horizontal orientation')
+#             # print('y', y)
+#             # print('ylim', y_min, y_max)
+#             # print('x', x)
+#             # print('type(x[0]', type(x[0]))
+#
+#             value_list = x
+#             nan_index = np.logical_and(y > y_max, y < y_min)
+#             # print('nan_index', nan_index)
+#             # print('np.where(nan_index)', np.where(nan_index))
+#             # print('-' * 50)
+#             value_list = np.where(nan_index, np.nan, value_list)
+#             # value_list[np.where()] = np.nan
+#             # value_list[nan_index] = np.nan
+# #            value_list = np.array([value for value in x if not np.isnan(value)])
+#             mark_from_value = mark_left
+#             mark_to_value = mark_right
+#             ax_span_function = self.ax.axvspan
+#             bottom_top = False
+#
+#         if not len(value_list):
+#             return
+#         #----------------------------------------------------------------------
+#         # Convert if datetime axis
+#         if isinstance(value_list[0], datetime.datetime):
+#             value_list = np.array([dates.date2num(val) for val in value_list])
+#
+#         #----------------------------------------------------------------------
+#         # Get info about min and max if they are not given
+#         if mark_from_value == None:
+# #            print('value_list', value_list
+#             mark_from_value = np.nanmin(value_list)
+#         if mark_to_value == None:
+#             mark_to_value = np.nanmax(value_list)
+#
+#         if self.mark_at_point:
+#             #----------------------------------------------------------------------
+#             # Find "from" index
+#             from_dist = np.abs(value_list-mark_from_value)
+#             from_min_dist = np.nanmin(from_dist)
+#             from_index = np.where(from_dist==from_min_dist)[0][0]
+#             from_value = value_list[from_index]
+#
+#             #----------------------------------------------------------------------
+#             # Find "to" index
+#             to_dist = np.abs(value_list-mark_to_value)
+#             to_min_dist = np.nanmin(to_dist)
+#             to_index = np.where(to_dist==to_min_dist)[0][0]
+#             to_value = value_list[to_index]
+#
+#             #----------------------------------------------------------------------
+#             # Find index between bottom_range and top_range
+#             boolean_index = np.logical_and(value_list <= to_value, value_list >= from_value)
+#             index = np.where(boolean_index)[0]
+#
+#             #----------------------------------------------------------------------
+#             # Save data
+#             self.mark_from_value = mark_from_value
+#             self.value_list = value_list
+#             self.mark_to_value = mark_to_value
+#
+#             self.mark_from_index = from_index
+#             self.mark_to_index = to_index
+#             self.mark_index = index
+#
+#             #----------------------------------------------------------------------
+#             # Plot
+#             if mark_to_value > mark_from_value:
+#                 if bottom_top:
+#                     self.ax.plot([x_min, x_max], [value_list[from_index], value_list[from_index]], color=self.mark_color, linestyle='-', zorder=20, label='marked_min')
+#                     self.ax.plot([x_min, x_max], [value_list[to_index], value_list[to_index]], color=self.mark_color, linestyle='-', zorder=21, label='marked_max')
+#                     self.span = ax_span_function(value_list[from_index], value_list[to_index], facecolor=self.mark_color, alpha=alpha, label='marked_span')
+#         #            self.span = self.ax.axhspan(value_list[top_index], value_list[bottom_index], facecolor=self.mark_color, alpha=alpha, label='marked_span')
+#                 else:
+#                     self.ax.plot([value_list[from_index], value_list[from_index]], [y_min, y_max], color=self.mark_color, linestyle='-', zorder=20, label='marked_min')
+#                     self.ax.plot([value_list[to_index], value_list[to_index]], [y_min, y_max], color=self.mark_color, linestyle='-', zorder=21, label='marked_max')
+#                     self.span = ax_span_function(value_list[from_index], value_list[to_index], facecolor=self.mark_color, alpha=alpha, label='marked_span')
+#
+#
+#
+#         else:
+#             from_value = mark_from_value
+#             to_value = mark_to_value
+#
+#             #----------------------------------------------------------------------
+#             # Find index between bottom_range and top_range
+# #             print('value_list', from_value, to_value, value_list[:10]
+#             boolean_index = np.logical_and(value_list <= to_value, value_list >= from_value)
+#             index = np.where(boolean_index)[0]
+#
+#             #----------------------------------------------------------------------
+#             # Save data
+# #            self.mark_from_index = from_index
+# #            self.mark_to_index = to_index
+#             self.mark_index = index
+#             self.mark_from_value = mark_from_value
+#             self.value_list = value_list
+#             self.mark_to_value = mark_to_value
+#
+#             #----------------------------------------------------------------------
+#             # Plot
+#             if mark_to_value > mark_from_value:
+#                 if bottom_top:
+#                     self.ax.plot([x_min, x_max], [from_value, from_value], color=self.mark_color, linestyle='-', zorder=20, label='marked_min')
+#                     self.ax.plot([x_min, x_max], [to_value, to_value], color=self.mark_color, linestyle='-', zorder=21, label='marked_max')
+#                     self.span = ax_span_function(from_value, to_value, facecolor=self.mark_color, alpha=alpha, label='marked_span')
+#         #            self.span = self.ax.axhspan(value_list[top_index], value_list[bottom_index], facecolor=self.mark_color, alpha=alpha, label='marked_span')
+#                 else:
+#                     self.ax.plot([from_value, from_value], [y_min, y_max], color=self.mark_color, linestyle='-', zorder=20, label='marked_min')
+#                     self.ax.plot([to_value, to_value], [y_min, y_max], color=self.mark_color, linestyle='-', zorder=21, label='marked_max')
+#                     self.span = ax_span_function(from_value, to_value, facecolor=self.mark_color, alpha=alpha, label='marked_span')
 
-    #===========================================================================
+
     def delete_all_data(self):
         for line_id in self.x_data:
             self.set_data([], [], line_id)
@@ -1415,7 +1439,31 @@ class Ax():
         self.set_y_limits(call_targets=False)
         if call_targets:
             self.parent.call_targets()
-        
+
+    def _set_date_ticks(self):
+        start_date, end_date = self.get_xlim()
+        start_date = datetime.datetime.fromordinal(int(start_date))
+        end_date = datetime.datetime.fromordinal(int(end_date))
+        dt = end_date - start_date
+        nr_days = dt.days
+
+        if nr_days <= 30:
+            loc = mdates.DayLocator()
+            fmt = mdates.DateFormatter('%Y-%m-%d')
+        elif nr_days <= 100:
+            loc = mdates.DayLocator(bymonthday=[1, 15])
+            fmt = mdates.DateFormatter('%Y-%m-%d')
+        elif nr_days <= 365:
+            loc = mdates.MonthLocator()
+            fmt = mdates.DateFormatter('%Y-%m-%d')
+        else:
+            loc = mdates.MonthLocator(bymonthday=2)
+            fmt = mdates.DateFormatter('%Y-%m-%d')
+
+        self.ax.xaxis.set_major_locator(loc)
+        self.ax.xaxis.set_major_formatter(fmt)
+
+
     #===========================================================================
     def set_x_limits(self, limits=[], call_targets=True):
         if self.p:
@@ -1430,7 +1478,7 @@ class Ax():
                     # Time series
                     mi_list = [min(self.x_data[key]) for key in self.x_data if self.x_data[key].size]
                     ma_list = [max(self.x_data[key]) for key in self.x_data if self.x_data[key].size]
-                
+
                 if not mi_list:
                     return
                 
@@ -1457,9 +1505,17 @@ class Ax():
                 
                 
             self.ax.set_xlim([x_min, x_max])
+
+            # self._set_date_ticks()
+            try:
+                self._set_date_ticks()
+            except:
+                pass
+
             if call_targets:
-                self.parent.call_targets()  
-            
+                self.parent.call_targets()
+
+
     #===========================================================================
     def set_y_limits(self, limits=[], call_targets=True):
         if self.p:
@@ -1481,12 +1537,12 @@ class Ax():
                 y_min = mi - margin
                 y_max = ma + margin
                 
-#                 print('='*30
-#                 print('margin', margin
-#                 print('mi', mi
-#                 print('ma', ma
-#                 print('y_min', y_min
-#                 print('y_max', y_max
+                print('='*30)
+                print('margin', margin)
+                print('mi', mi)
+                print('ma', ma)
+                print('y_min', y_min)
+                print('y_max', y_max)
                 
             self.ax.set_ylim([y_min, y_max])
             if call_targets:

@@ -7,10 +7,15 @@
 import os
 import shutil
 
+import numpy as np
+import logging
+import datetime
+import pandas as pd
+
 from .gismo import GISMOqc
 from .exceptions import *
 
-# from . import IOCFTP_QC
+from .qc import IOCFTP_QC
 
 """
 ========================================================================
@@ -95,75 +100,97 @@ class QCiocftp(GISMOqc):
     Class handles quality control based on QC from IOCFTP.
     """
 
-    def __init__(self,
-                 local_config_directory=None,
-                 source_config_directory=None,
-                 log_directory=None,
-                 *args, **kwargs):
+    def __init__(self, *args, **kwargs):
 
         super().__init__(*args, **kwargs)
 
-        if not local_config_directory:
-            raise GISMOExceptionMissingPath('Local directory for qc not given.')
-        if not log_directory:
-            raise GISMOExceptionMissingPath('Log directory for qc not given.')
+        gismo_root_path = os.path.dirname(os.path.abspath(__file__))
+        self.cfg_directory = os.path.join(gismo_root_path, 'qc/iocftp/cfg')
+        self.qc_directory = os.path.join(gismo_root_path, 'qc/iocftp/qc')
+        self.log_directory = kwargs.get('log_directory', os.path.join(gismo_root_path, 'qc/iocftp/log'))
+        if not os.path.exists(self.log_directory):
+            os.mkdir(self.log_directory)
 
-        self.local_config_directory = local_config_directory
-        self.source_config_directory = source_config_directory
-        self.log_directory = log_directory
-
-        if not os.path.exists(self.local_config_directory):
-            os.mkdir(self.local_config_directory)
-
-    def update_config_files(self):
-        """ Call to update config files needed to run qc """
-        pass
-
-    def run_qc(self, gismo_object):
-        """ Call to run qc on GISMO-object """
-        pass
-
-    # ==================================================================
-    def copy_config_files(self, **kwargs):
-        """
-        Created 20181001     
-
-        Copies qc config files from source to local directory.
-        """
-        if not self.local_config_directory:
-            raise GISMOExceptionMissingPath('Local directory for qc not given.')
-
-        if not self.source_config_directory:
-            raise GISMOExceptionMissingPath('Source directories not given for qc config and/or scripts.')
-
-        if not os.path.exists(self.source_config_directory):
-            raise GISMOExceptionInvalidPath
-
-        try:
-            for file_name in os.listdir(self.source_config_directory):
-                source_path = os.path.join(self.source_config_directory, file_name)
-                local_path = os.path.join(self.local_config_directory, file_name)
-                shutil.copy(source_path, local_path)
-        except:
-            raise GISMOExceptionCopyFiles('Could not copy all qc config files from source "{}" to local "{}"'.format(self.source_config_directory,
-                                                                                                                     self.local_config_directory))
+    def _set_config_paths(self):
         # Set global path to config files
-        IOCFTP_QC.set_config_path(self.local_config_directory)
+        IOCFTP_QC.set_config_path(self.cfg_directory)
+        IOCFTP_QC.set_qc_path(self.qc_directory)
 
     # ==================================================================
     def run_qc(self, gismo_object):
         """
-        Created 20181001     
-
-        Copies qc config files from source to local directory.
+        Run QC. gismo_object must have attribute df for qc to work.
         """
-        print('QC_FILE_PATH', IOCFTP_QC.QC_FILE_PATH)
-        print('CFG_FILE_PATH', IOCFTP_QC.CFG_FILE_PATH)
+        if not hasattr(gismo_object, 'df'):
+            raise GISMOExceptionInvalidInputArgument
 
+        self._set_config_paths()
 
-        if gismo_object.sameling_type != 'ferrybox':
-            return
+        # Setup log
+        log = logging.getLogger("QC_check_file.py")
+        log.setLevel(logging.DEBUG)
+        log_path = os.path.join(self.log_directory, 'LOG_QC_check_file_' + datetime.datetime.now().strftime('%Y%m%d_%H%M%S') + '.log')
 
+        handler = logging.FileHandler(log_path)
+        formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+        handler.setFormatter(formatter)
+        log.addHandler(handler)
+        log.debug('Test debug')
+
+        # Create copy of df so we can compare later
+        df = gismo_object.df.copy(deep=True)
+
+        columns = []
+        add_columns = []  # last columns in df, not used in qc, separate them in this loop
+        for item in df.columns:
+            if not item:
+                continue
+            if item in gismo_object.original_columns:
+                columns.append(item)
+            else:
+                add_columns.append(item)
+
+        columns = np.asarray(columns)  # header: converting list to nd array
+
+        df_to_np = df[columns]  # choose original cols (no '' or non-string)
+        data_matrix_in = df_to_np.astype('float')  # converting to df with float
+        data_matrix_in = data_matrix_in.values  # headers lost in conversion to array
+        columns = np.asfarray(columns, float)  # converting columns to float
+        columns = np.array([int(item) for item in columns])  # and then to integer
+
+        # running qc script ===========================================================
+
+        station_name = str(gismo_object.internal_station_name)
+        station_nr = str(gismo_object.external_station_name)
+
+        data_matrix_out = IOCFTP_QC.QC_CHECK_FERRYBOX(station_name,
+                                                      station_nr,
+                                                      data_matrix_in,
+                                                      columns,
+                                                      "QC_check_file.py",
+                                                      '')
+
+        # converting qc-out nparray to dataframe =======================================
+
+        df_out = pd.DataFrame(data_matrix_out, columns=columns)
+
+        for x in add_columns:  # adding back last columns from original dataframe
+            df_out[x] = df[x]
+
+        # Create final df and replace qf columns
+        df_final = df.copy(deep=True)
+        for par in columns:
+            qpar = gismo_object.get_qpar(par)
+            if qpar:
+                df_final[qpar] = df_out[qpar].astype(int).astype(str)
+
+        # Print diff as a test
+        for col in df.columns:
+            array_before = df[col].values
+            array_after = df_final[col].values
+            diff = np.where(array_before != array_after)[0]
+            if len(diff):
+                print(col, diff)
 
 
 

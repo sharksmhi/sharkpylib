@@ -170,3 +170,10 @@ class GISMOExceptionFileExcists(GISMOException):
     """
     code = ''
     message = ''
+
+# ==============================================================================
+class GISMOExceptionInvalidQCroutine(GISMOException):
+    """
+    """
+    code = ''
+    message = ''

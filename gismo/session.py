@@ -292,7 +292,6 @@ class GISMOsession(object):
         """
         self.data_manager.flag_data(file_id, flag, *args, **kwargs)
 
-
     # ==========================================================================
     def get_sampling_types(self):
         return self.sampling_types_factory.get_list()
@@ -300,6 +299,9 @@ class GISMOsession(object):
     # ==========================================================================
     def get_qc_routines(self):
         return self.qc_routines_factory.get_list()
+
+    def get_valid_qc_routines(self, file_id):
+        return self.data_manager.get_valid_qc_routines(file_id)
 
     # ==========================================================================
     def get_sampling_type_requirements(self, sampling_type):
@@ -452,28 +454,7 @@ class GISMOsession(object):
     
         return gismo_object
 
-    # ==========================================================================
-    def old_load_qc_object(self,
-                       local_config_directory=None,
-                       source_config_directory=None):
-        """
-        Created 20181001       
 
-        Loads a GISMOqc object.
-        """
-        self.qc = GISMOqc(local_config_directory=local_config_directory,
-                          source_config_directory=source_config_directory)
-
-    # ==========================================================================
-    def old_update_qc_files(self, **kwargs):
-        """
-        Created 20181001       
-
-        Updated qc files in qc object (self.qc) if loaded.
-        """
-        if not self.qc:
-            raise GISMOException('No QC object loaded. Run load_qc_object and try again.')
-        self.qc.copy_config_files(**kwargs)
 
     def save_file(self, file_id, **kwargs):
         """
@@ -484,40 +465,6 @@ class GISMOsession(object):
         :return: None
         """
         self.data_manager.save_file(file_id, **kwargs)
-
-    #==========================================================================
-    def old_save_file(self,
-                  file_path='', 
-                  sampling_type='', 
-                  file_id=None,
-                  overwrite=False):
-        """
-        Created 20180628        
-        Updated 20180713       
-        
-        If file_id is not given the file_path basename without ending is used 
-        as key to identify the gismo object. 
-        
-        Set overwirte=True to allow overwriting existing file
-        """ 
-        if not file_id:
-            file_name = os.path.basename(file_path) 
-            file_id, ending = os.path.splitext(file_name) 
-            
-        gismo_object = self.get_gismo_object(file_id=file_id, 
-                                             sampling_type=sampling_type)
-        
-        if gismo_object is False:
-            return False 
-
-        if not os.path.exists(file_path) or overwrite==True:
-            if file_path[-4:] == '.pkl':
-                with open(file_path, "wb") as fid:
-                    pickle.dump(gismo_object, fid)
-            else:
-                gismo_object.write_to_file(file_path)
-            return True
-        return False
 
     # ==========================================================================
     def get_file_id_list(self, sampling_type):
@@ -539,15 +486,18 @@ class GISMOsession(object):
         """
         if not file_id:
             raise GISMOExceptionMissingInputArgument
-
         return self.data_manager.get_data_object(file_id)
 
     # ==========================================================================
     def get_parameter_list(self, file_id='', **kwargs):
         if not file_id:
             raise GISMOExceptionMissingInputArgument
-
         return self.data_manager.get_parameter_list(file_id, **kwargs)
+
+    def get_unit(self, file_id='', unit='', **kwargs):
+        if not file_id:
+            raise GISMOExceptionMissingInputArgument
+        return self.data_manager.get_unit(file_id, unit, **kwargs)
 
     # ==========================================================================
     def print_list_of_gismo_objects(self):
@@ -563,7 +513,16 @@ class GISMOsession(object):
                 print('   {}'.format(file_id))
 
 
-
+    def run_automatic_qc(self, file_id, qc_routines=[], **kwargs):
+        """
+        Runs automatic qc controls on the given gismo object. All routines in qc_routines ar run.
+        :param qismo_object:
+        :param qc_routines:
+        :param kwargs:
+        :return:
+        """
+        qismo_object = self.get_gismo_object(file_id)
+        self.qc_manager.run_automatic_qc(qismo_object, qc_routines, **kwargs)
 
 
 

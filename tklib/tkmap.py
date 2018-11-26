@@ -8,7 +8,7 @@ Created on Thu Mar 16 15:37:10 2017
 import numpy as np
 import random
 
-
+from . import tkinter_widgets as tkw
 
 import matplotlib
 import matplotlib.pyplot as plt
@@ -19,11 +19,304 @@ from matplotlib.text import Text
 
 import tkinter as tk 
 
-matplotlib.use(u'TkAgg')
+# matplotlib.use(u'TkAgg')
 from mpl_toolkits.basemap import Basemap
 from matplotlib.figure import Figure
 from matplotlib.backends.backend_pdf import PdfPages
-from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg, NavigationToolbar2TkAgg
+from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg, NavigationToolbar2Tk
+
+
+# class MapWidget(tk.Frame):
+#     """
+#         Class to display a basemap-map in figure or tkinter window.
+#         Options in constructor are:
+#             parent          give tkinter frame (optional)
+#             figure_size     set figure size in inches
+#             map_reslution   set map resolution
+#             ..._space       set size of area aroundthe map.
+#             toolbar         Set True to adds standard toolbar under the map.
+#                 Map coordinates can be given in three ways:
+#                 series_object_list    if given, map dimensions are taken from including series position
+#                 map_area_name         name matching predefined areas in stb_core.Settings() settings.ini
+#                 coordinates           coordinates as [min_lon, max_lon, min_lat, max_lat]
+#         """
+#     def __init__(self,
+#                  parent,
+#                  figsize=(2, 2),
+#                  map_options={},
+#                  map_resolution=u'l',
+#                  toolbar=False,
+#                  coordinates=[9, 31, 53, 66],
+#                  continent_color=[0.8, 0.8, 0.8],
+#                  ocean_color=None,
+#                  projection=u'merc',
+#                  dpi=100,
+#                  user=None,
+#                  **kwargs):
+#         self.parent = parent
+#
+#         #        self.frame = tk.Frame(parent)
+#         #        self.frame.grid(row=row, column=column)
+#         self.figsize = figsize
+#         self.map_options = map_options
+#         self.dpi = dpi
+#         self.map_resolution = map_resolution
+#         self.toolbar = toolbar
+#         self.user = user
+#
+#         self.grid_frame = {'row': 0,
+#                            'column': 0,
+#                            'sticky': 'w',
+#                            'rowspan': 1,
+#                            'columnspan': 1}
+#         self.grid_frame.update(kwargs)
+#
+#         self.marker_order = []
+#         self.markers = {}
+#         self.map_items = {}
+#         self.event_dict = {}
+#
+#         self.delete_legend()  # This will reset legend
+#
+#         self.continent_color = continent_color
+#         self.ocean_color = ocean_color
+#         self.projection = projection
+#
+#         self.title = self.map_options.get('title', '')
+#
+#         self.subplot_space = dict()
+#         self.subplot_space['left'] = self.map_options.get('space_left', 0.05)
+#         self.subplot_space['right'] = 1 - self.map_options.get('space_right', 0.05)
+#         self.subplot_space['top'] = 1 - self.map_options.get('space_top', 0.12)
+#         self.subplot_space['bottom'] = self.map_options.get('space_bottom', 0.05)
+#
+#
+#         self.coordinates = dict()
+#         self.coordinates['llcrnrlat'] = self.map_options.get('min_lat', 53)
+#         self.coordinates['urcrnrlat'] = self.map_options.get('max_lat', 66)
+#         self.coordinates['llcrnrlon'] = self.map_options.get('min_lon', 9)
+#         self.coordinates['urcrnrlon'] = self.map_options.get('max_lon', 31)
+#
+#         self.markers = dict()
+#
+#         tk.Frame.__init__(self, parent)
+#         self.grid(**self.grid_frame)
+#
+#         self._set_frame()
+#         self._draw_map()
+#         self._add_to_tkinter()
+#
+#     def _set_frame(self):
+#         self.frame = tk.Frame(self.parent)
+#         #                 self.frame.grid(row=0, column=0)
+#         self.frame.grid(row=0, column=0, sticky='nsew')
+#         tkw.grid_configure(self.frame)
+#
+#     def _draw_map(self):
+#         """
+#         Draw map. Some options for the layout (like projection continent filling etc.) are fixed here.
+#         """
+#         self.fig = Figure(figsize=self.figsize, dpi=self.dpi)
+#         self.ax = self.fig.add_subplot(111)
+#         self.fig.subplots_adjust(**self.subplot_space)
+#
+#         # Set title
+#         self.title_handle = self.fig.suptitle(self.title, fontsize=10, x=0.5, y=0.92)
+#
+#         self.m = Basemap(resolution=self.map_resolution,
+#                          projection=self.projection,
+#                          ax=self.ax,
+#                          **self.coordinates)
+#
+#         # self.m.etopo()
+#         # self.m.shadedrelief()
+#         # self.m.bluemarble()
+#
+#         self.m.drawcoastlines(linewidth=0.33)
+#         self.m.drawcountries(linewidth=0.2)
+#         self.m.fillcontinents(color=self.continent_color, zorder=3)
+#         self.m.drawmapboundary(fill_color=self.ocean_color)
+#
+#     # ==========================================================================
+#     def _add_to_tkinter(self):
+#         """
+#         Adds map and toolbar (if selected in constructor) to the given frame.
+#         """
+#         self.canvas = FigureCanvasTkAgg(self.fig, master=self.frame)
+#         # self.canvas.show()
+#         self.canvas.get_tk_widget().pack(side=tk.TOP, fill=tk.BOTH, expand=True)
+#         self.canvas._tkcanvas.pack(side=tk.TOP, fill=tk.BOTH, expand=True)
+#
+#         # tk_frame = self.canvas.get_tk_widget()
+#         # tk_frame.grid(row=0, column=0, sticky='nsew')
+#         # self.canvas._tkcanvas.grid(row=0, column=0, sticky='nsew')
+#         # tkw.grid_configure(tk_frame)
+#         # tkw.grid_configure(self.canvas._tkcanvas)
+#
+#     # ==========================================================================
+#     def _add_to_legend(self, legend_nr, marker_id, label):
+#         """
+#         Add legend text to marker for a potential legend.
+#         """
+#         try:
+#             handle = self.markers[marker_id]
+#             self.legend_items[legend_nr][u'handle'].append(handle)
+#             self.legend_items[legend_nr][u'label'].append(label)
+#         except:
+#             print(u'Could not add info to legend.')
+#
+#     # ==========================================================================
+#     def add_legend(self,
+#                    position=[0.88, 0.008],
+#                    color=None,
+#                    number_of_markers=1,
+#                    marker_color=u'white',
+#                    legend_nr=1,
+#                    fontsize=8):
+#
+#         if not position:
+#             axbox = self.ax.get_position()
+#             position = [axbox.x0 + 0.005, axbox.y0 + 0.005]
+#         loc = u'center'
+#
+#         self.legend_position = position
+#         self.legend = self.fig.legend(self.legend_items[legend_nr][u'handle'],
+#                                       self.legend_items[legend_nr][u'label'],
+#                                       ncol=len(self.legend_items[legend_nr][u'handle']),
+#                                       bbox_to_anchor=position,
+#                                       loc=loc,
+#                                       prop={'size': fontsize},
+#                                       scatterpoints=number_of_markers)
+#
+#         if not color:
+#             color = self.fig.get_facecolor()
+#         self.legend.get_frame().set_facecolor(color)
+#         self.legend.get_frame().set_edgecolor(color)
+#
+#         if marker_color:
+#             for marker in self.legend.legendHandles:
+#                 marker.set_facecolor(marker_color)
+#
+#         # self._reposition_items()
+#         self.canvas.draw()
+#
+#     def add_simple_line(self, lat, lon, marker_id='simple_line', title='', **kwargs):
+#         """
+#         Adds a line to the map. lat and lon are lists or arrays.
+#         :param lat:
+#         :param lon:
+#         :return:
+#         """
+#         try:
+#             self.delete_handle(marker_id)
+#         except:
+#             pass
+#
+#         x, y = self.m(lon, lat)
+#         handle = self.m.plot(x, y, zorder=10, **kwargs)
+#
+#         self.markers[marker_id] = handle
+#
+#         self.title_handle.set_text(title)
+#
+#         self.canvas.draw()
+#
+#     def add_position_marker(self, lat, lon, marker_id='position_marker', **kwargs):
+#         """
+#         Typically used for tracking.
+#
+#         :param lat:
+#         :param lon:
+#         :param marker_id:
+#         :param kwargs:
+#         :return:
+#         """
+#         self.delete_marker(marker_id)
+#         x, y = self.m(lon, lat)
+#         # print('=' * 50)
+#         # print(lon)
+#         # print('-' * 50)
+#         plot_prop = dict(marker='o', color='red', markersize=8)
+#         plot_prop.update(kwargs)
+#         handle = self.m.plot(x, y, zorder=10, **plot_prop)
+#         self.markers[marker_id] = handle
+#         self.canvas.draw()
+#
+#         # ==========================================================================
+#     def add_scatter_data(self, lat=[], lon=[], values=[],
+#                          marker_size=100, color_map=u'jet', marker_type='o',
+#                          edge_color=None,  marker_id='', title='', **kwargs):
+#         """
+#         Method to add scatter plot.
+#         Possible inputs are:
+#         divide: is evalueated with eval() (e.i. "<=10" can be given)
+#         """
+#         self.delete_marker(marker_id)
+#         x, y = self.m(lon, lat)
+#
+#         handle = self.m.scatter(x, y, c=values,
+#                                 s=marker_size, cmap=color_map, marker=marker_type,
+#                                 picker=True, edgecolors=edge_color, label='', **kwargs)
+#
+#         self.markers[marker_id] = handle
+#
+#         # Title
+#         self.title_handle.set_text(title)
+#
+#         # Legend
+#         self.delete_legend()
+#         self._add_to_legend(1, marker_id, 'test')
+#         self.add_legend()
+#
+#         # if self.legend:
+#         #     self.legend.set_visible(False)
+#         #     self.legend = None
+#         # self.legend = self.fig.legend([handle])
+#         # # self.legend = self.fig.legend()
+#         #
+#         #                               # self.legend_items[legend_nr][u'label'],
+#         #                               # ncol=len(self.legend_items[legend_nr][u'handle']),
+#         #                               # bbox_to_anchor=position,
+#         #                               # loc=loc,
+#         #                               # prop={'size': fontsize},
+#         #                               # scatterpoints=number_of_markers)
+#
+#         self.canvas.draw()
+#
+#     # ==========================================================================
+#     def delete_legend(self):
+#         if hasattr(self, 'legend') and self.legend:
+#             self.legend.set_visible(False)
+#             #             self.ax.legend_.remove()
+#             self.legend = None
+#             self.canvas.draw()
+#         self.legend_items = {1: {'handle': [], 'label': []},
+#                              2: {'handle': [], 'label': []},
+#                              3: {'handle': [], 'label': []}}
+#
+#     def delete_marker(self, marker_id, redraw=True):
+#         if marker_id in self.markers:
+#             try:
+#                 self.markers[marker_id].pop(0).remove()
+#             except:
+#                 try:
+#                     self.markers[marker_id].remove()
+#                 except:
+#                     pass
+#             if redraw:
+#                 self.canvas.draw()
+#
+#     # ==========================================================================
+#     def delete_all_markers(self):
+#
+#         for marker_id in self.markers:
+#             self.delete_marker(marker_id, redraw=False)
+#         # if self.marker_order:
+#         #     for marker in self.marker_order[:]:
+#         #         self.delete_marker(marker)
+#
+#         self.canvas.draw()
+
 
 """
 ================================================================================
@@ -45,8 +338,8 @@ class TkMap(object):
             coordinates           coordinates as [min_lon, max_lon, min_lat, max_lat]    
     """
      
-    def __init__(self, 
-                 parent, 
+    def __init__(self,
+                 targets,
                  figsize=(2,2), 
                  map_resolution=u'i', 
                  left_space=0.05, 
@@ -54,12 +347,16 @@ class TkMap(object):
                  top_space=0.12, 
                  bottom_space=0.05, 
                  toolbar=False,  
-                 boundries=None, 
+                 boundaries=None, 
                  continent_color=[0.8, 0.8, 0.8], 
                  projection=u'merc', 
                  dpi=100):
-                 
-        self.parent = parent
+
+        self.targets = {}
+        if type(targets) != list:
+            targets = [targets]
+        for target in targets:
+            self.targets[target] = {}
         
 #        self.frame = tk.Frame(parent)
 #        self.frame.grid(row=row, column=column)
@@ -76,7 +373,7 @@ class TkMap(object):
         self.markers = {}
         self.map_items = {}
         self.event_dict = {}
-        self.boundries = None
+        self.boundaries = None
         self.continent_color = continent_color
         self.projection = projection
         
@@ -84,16 +381,16 @@ class TkMap(object):
         
         self._load_attributes()
         
-        self.update_page(boundries, self.map_resolution)
+        self.update_page(boundaries, self.map_resolution)
         
        
     #==========================================================================
-    def update_page(self, boundries, resolution):
+    def update_page(self, boundaries, resolution):
         
-        # Check existent boundries
-        if boundries != self.boundries or all([resolution != self.map_resolution, resolution]):
-            self.boundries = boundries
-            self._get_boundries_from_coordinates(boundries)
+        # Check existent boundaries
+        if boundaries != self.boundaries or all([resolution != self.map_resolution, resolution]):
+            self.boundaries = boundaries
+            self._get_boundaries_from_coordinates(boundaries)
             self.map_resolution = resolution
             
             # Destroy old frame
@@ -104,27 +401,81 @@ class TkMap(object):
                 pass
         
             # create new frame and add fig
-            self.frame = tk.Frame(self.parent)
-#            self.frame.pack(side=tk.TOP, fill=tk.BOTH, expand=True)
-            self.frame.grid(row=0, column=0, sticky='nsew')
-            self.frame_toolbar = tk.Frame(self.parent)
-            self.frame_toolbar.grid(row=1, column=0, sticky='nsew')
-#            grid_configure(self.parent)
+#             self.frame = tk.Frame(self.parent)
+# #            self.frame.pack(side=tk.TOP, fill=tk.BOTH, expand=True)
+#             self.frame.grid(row=0, column=0, sticky='nsew')
+#             self.frame_toolbar = tk.Frame(self.parent)
+#             self.frame_toolbar.grid(row=1, column=0, sticky='nsew')
+# #            grid_configure(self.parent)
+#             self.fig = Figure(figsize=self.figsize, dpi=self.dpi)
             self.fig = Figure(figsize=self.figsize, dpi=self.dpi)
-            self._add_to_tkinter()
 
-                
-            self.delete_all_map_items()
+            self._add_targets()
+
             self._draw_map()
+            # self._add_to_tkinter()
+            self.delete_all_map_items()
             
         self._update_markers()
         
+        # # Add event bindings
+        # self.fig.canvas.mpl_connect('resize_event', self._on_resize)
+        # for event_type in self.event_dict:
+        #     self.fig.canvas.mpl_connect(self.event_dict[event_type][u'event_type'],
+        #                                 self.event_dict[event_type][u'event_function'])
+
+    def _add_targets(self):
+        # self.frames = []
+        # self.toolbar_frames = []
+        for target in self.targets:
+            self.add_target(target)
+            # frame = tk.Frame(target)
+            # #            self.frame.pack(side=tk.TOP, fill=tk.BOTH, expand=True)
+            # frame.grid(row=0, column=0, sticky='nsew')
+            # frame_toolbar = tk.Frame(target)
+            # frame_toolbar.grid(row=1, column=0, sticky='nsew')
+            # #            grid_configure(self.parent)
+            # self.frames.append(frame)
+            # self.toolbar_frames.append(frame_toolbar)
+
+    def add_target(self, target):
+        self.targets[target] = {}
+        frame = tk.Frame(target)
+        #            self.frame.pack(side=tk.TOP, fill=tk.BOTH, expand=True)
+        frame.grid(row=0, column=0, sticky='nsew')
+        frame_toolbar = tk.Frame(target)
+        frame_toolbar.grid(row=1, column=0, sticky='nsew')
+        #            grid_configure(self.parent)
+        self.targets[target]['frame'] = frame
+        self.targets[target]['toolbar_frames'] = frame_toolbar
+
+        canvas = FigureCanvasTkAgg(self.fig, master=frame)
+        # self.canvas.show()
+        canvas.get_tk_widget().pack(side=tk.TOP, fill=tk.BOTH, expand=True)
+        canvas._tkcanvas.pack(side=tk.TOP, fill=tk.BOTH, expand=True)
+        self.targets[target]['canvas'] = canvas
+
         # Add event bindings
         self.fig.canvas.mpl_connect('resize_event', self._on_resize)
         for event_type in self.event_dict:
-            self.fig.canvas.mpl_connect(self.event_dict[event_type][u'event_type'], 
+            self.fig.canvas.mpl_connect(self.event_dict[event_type][u'event_type'],
                                         self.event_dict[event_type][u'event_function'])
-    
+
+        # Add toolbar
+        if self.toolbar:
+            print('toolbar')
+            map_toolbar = NavigationToolbar2Tk(canvas, frame_toolbar)
+            map_toolbar.update()
+            map_toolbar.pack(side=tk.BOTTOM, fill=tk.BOTH, expand=True)
+            self.ax.format_coord = lambda x, y: ""
+            self.ax.format_coord = lambda x, y: ""
+
+    def delete_target(self, target):
+        if target in self.targets:
+            self.targets[target]['frame'].destroy()
+            self.targets.pop(target)
+
+
     #==========================================================================
     def _load_attributes(self):   
         self.legend_items = {1: {u'handle':[], u'label':[]}, 
@@ -234,17 +585,27 @@ class TkMap(object):
                                                   va=self.markers[marker_name][u'va'])
                     
         self.redraw()
-            
-    #==========================================================================
+
+    # ==========================================================================
+    # def redraw(self):
+    #     if self.parent:
+    #         self.canvas.draw()
+    #     else:
+    #         self.fig.show()
+
+    # ==========================================================================
     def redraw(self):
-        if self.parent:
-            self.canvas.draw()
-        else:
-            self.fig.show()
+        if self.targets:
+            for target in self.targets:
+                self.targets[target]['canvas'].draw()
+            # for canvas in self.canvases:
+            #     canvas.draw()
+        # else:
+        #     self.fig.show()
 
  
     #==========================================================================
-    def _get_boundries_from_coordinates(self, coordinates):
+    def _get_boundaries_from_coordinates(self, coordinates):
         
         self.min_lon = coordinates[0]
         self.max_lon = coordinates[1]
@@ -279,26 +640,51 @@ class TkMap(object):
         self.m.drawcoastlines(linewidth = 0.33)
         self.m.drawcountries(linewidth = 0.2)
         self.m.fillcontinents(color=self.continent_color, zorder=3)
-        
 
-    #========================================================================== 
-    def _add_to_tkinter(self):
-        """
-        Adds map and toolbar (if selected in constructor) to the given frame. 
-        """
-        self.canvas = FigureCanvasTkAgg(self.fig, master=self.frame)
-        self.canvas.show()
-        self.canvas.get_tk_widget().pack(side=tk.TOP, fill=tk.BOTH, expand=True)
-        self.canvas._tkcanvas.pack(side=tk.TOP, fill=tk.BOTH, expand=True)
-        
-#         self.frame.grid_columnconfigure(0, weight=1)
-        
-        # Add toolbar
-        if self.toolbar: 
-            print('toolbar')
-            self.map_toolbar = NavigationToolbar2TkAgg(self.canvas, self.frame_toolbar)
-            self.map_toolbar.update()
-            self.map_toolbar.pack(side=tk.BOTTOM, fill=tk.BOTH, expand=True)
+    # # ==========================================================================
+    # def _add_to_tkinter(self):
+    #     """
+    #     Adds map and toolbar (if selected in constructor) to the given targets.
+    #     """
+    #     for target in self.targets:
+    #
+    #         canvas = FigureCanvasTkAgg(self.fig, master=self.targets[target]['frame'])
+    #         # self.canvas.show()
+    #         canvas.get_tk_widget().pack(side=tk.TOP, fill=tk.BOTH, expand=True)
+    #         canvas._tkcanvas.pack(side=tk.TOP, fill=tk.BOTH, expand=True)
+    #         self.canvases.append(canvas)
+    #
+    #         #         self.frame.grid_columnconfigure(0, weight=1)
+    #
+    #         # Add toolbar
+    #         if self.toolbar:
+    #             print('toolbar')
+    #             map_toolbar = NavigationToolbar2Tk(canvas, self.toolbar_frames[k])
+    #             map_toolbar.update()
+    #             map_toolbar.pack(side=tk.BOTTOM, fill=tk.BOTH, expand=True)
+    #             self.ax.format_coord = lambda x, y: ""
+    #             self.ax.format_coord = lambda x, y: ""
+
+#     #==========================================================================
+#     def _add_to_tkinter(self):
+#         """
+#         Adds map and toolbar (if selected in constructor) to the given frame.
+#         """
+#         self.canvas = FigureCanvasTkAgg(self.fig, master=self.frame)
+#         # self.canvas.show()
+#         self.canvas.get_tk_widget().pack(side=tk.TOP, fill=tk.BOTH, expand=True)
+#         self.canvas._tkcanvas.pack(side=tk.TOP, fill=tk.BOTH, expand=True)
+#
+# #         self.frame.grid_columnconfigure(0, weight=1)
+#
+#         # Add toolbar
+#         if self.toolbar:
+#             print('toolbar')
+#             self.map_toolbar = NavigationToolbar2Tk(self.canvas, self.frame_toolbar)
+#             self.map_toolbar.update()
+#             self.map_toolbar.pack(side=tk.BOTTOM, fill=tk.BOTH, expand=True)
+#             self.ax.format_coord = lambda x, y: ""
+#             self.ax.format_coord = lambda x, y: ""
             
 #        self.frame.rowconfigure(0, weight=100)
 #        self.frame.rowconfigure(1, weight=1)
@@ -306,7 +692,8 @@ class TkMap(object):
     #========================================================================== 
     def _reposition_items(self):
         
-        ax_pos = self.ax.get_position()
+        # ax_pos = self.ax.get_position()
+        ax_pos = self.fig.get_axes()[0].get_position()
         
         # Title
         if hasattr(self, u'title') and self.title:
@@ -327,6 +714,9 @@ class TkMap(object):
         
         mx, my, mw, mh = ax_pos.x0, ax_pos.y0, ax_pos.width, ax_pos.height
         x, y, w, h = item_pos
+        # print('-'*50)
+        # print('=', mx, my, mw, mh)
+        # print('-', x, y, w, h)
         
         new_x = mx + mw * x
         new_y = my + mh * y
@@ -340,8 +730,6 @@ class TkMap(object):
     def _on_resize(self, event):
         self._reposition_items()
 
-
-        
     #========================================================================== 
     def enable_movable_text(self):
         if not hasattr(self, 'movable_text'):
@@ -370,44 +758,39 @@ class TkMap(object):
         self.redraw()
  
     #==========================================================================
-    def add_line(self, 
-                 series_list=None, 
+    def add_line(self,
                  lat=None, 
                  lon=None,   
                  color='black', 
-                 marker_id=u'', 
+                 marker_id='',
                  fill_color=None,  
                  **kwargs):
             
-        marker_name = '%s_line_%s' % (color, marker_id)
-        marker_name_fill = marker_name + u'_fill'
+        marker_name = '{}_line_{}'.format(color, marker_id)
+        marker_name_fill = marker_name + '_fill'
         if marker_name in self.marker_order:
             self.delete_marker(marker_name)
             self.delete_marker(marker_name_fill)
-             
-        if series_list:
-            lat, lon, statn = self._get_latit_longit_from_series(series_list)
-          
+
         x, y = self.m(lon, lat)
         
-        # Fill ploygon
+        # Fill polygon
         if fill_color:
             self._fill_line(x, y, fill_color, marker_name_fill)
         
         # Line color
         handle = self.m.plot(x, y, color=color, zorder=50, **kwargs)
-        
 
         self.redraw()
          
         self.marker_order.append(marker_name)
         self.markers[marker_name] = {}
-        self.markers[marker_name][u'handle'] = handle
-        self.markers[marker_name][u'lat'] = lat
-        self.markers[marker_name][u'lon'] = lon
-        self.markers[marker_name][u'color'] = color
-        self.markers[marker_name][u'fill_color'] = fill_color
-        self.markers[marker_name][u'kwargs'] = kwargs
+        self.markers[marker_name]['handle'] = handle
+        self.markers[marker_name]['lat'] = lat
+        self.markers[marker_name]['lon'] = lon
+        self.markers[marker_name]['color'] = color
+        self.markers[marker_name]['fill_color'] = fill_color
+        self.markers[marker_name]['kwargs'] = kwargs
 
         
     #==========================================================================
@@ -423,16 +806,12 @@ class TkMap(object):
         
     
     #==========================================================================
-    def add_markers(self, 
-                    series_list=None, 
+    def add_markers(self,
                     lat=None, 
                     lon=None, 
-                    marker_id=u'', 
-                    marker=u'*',
+                    marker_id='',
+                    marker='*',
                     **kwargs):
- 
-        if series_list != None:
-            lat, lon, statn = self._get_latit_longit_from_series(series_list)
         
         marker_name = 'marker_%s' % marker_id
         
@@ -455,17 +834,12 @@ class TkMap(object):
         self.markers[marker_name]['lat'] = lat
         self.markers[marker_name]['lon'] = lon
         self.markers[marker_name]['kwargs'] = kwargs
-        if series_list:
-            self.markers[marker_name]['series_list'] = series_list
-        else:
-            self.markers[marker_name]['series_list'] = [None]*len(lat)
-       
     
     #==========================================================================
     def add_scatter(self, lat=[], lon=[], values=[], 
-                    divide=[], index=[], marker_size=100, color_map=u'jet', marker_type=[u'*'], 
-                    labels=None, edge_color=u'black', line_width=1, 
-                    marker_id=u'', legend_nr=1, **kwargs):
+                    divide=[], index=[], marker_size=100, color_map='jet', marker_type=[u'*'],
+                    labels=None, edge_color='black', line_width=1,
+                    marker_id='', legend_nr=1, **kwargs):
         """
         Method to add scatter plot. 
         Possible inputs are: 
@@ -729,7 +1103,7 @@ class TkMap(object):
                       marker_id=u'working_indicator', 
                       ha=u'center', 
                       va=u'center')
-        
+
         
     #==========================================================================
     def add_binding_key(self, binding_string, callback_function):
@@ -885,7 +1259,8 @@ class TkMap(object):
                                               fontsize=fontsize, 
                                               fmt=fmt_string, 
                                               **kwargs)
-        self.canvas.draw()
+        self.redraw()
+        # self.canvas.draw()
         self.map_items[u'parallels'] = parallels            
  
     
@@ -929,7 +1304,8 @@ class TkMap(object):
                                               fontsize=fontsize, 
                                               fmt=fmt_string, 
                                               **kwargs)
-        self.canvas.draw()
+        self.redraw()
+        # self.canvas.draw()
         self.map_items[u'meridians'] = meridians            
         
         
@@ -941,7 +1317,8 @@ class TkMap(object):
     def delete_all_map_items(self):
         for item in self.map_items.keys():
             self.delete_map_item(item, update_canvas=False)
-        self.canvas.draw()
+        self.redraw()
+        # self.canvas.draw()
         
     #==========================================================================
     def delete_map_item(self, map_item, update_canvas=True):
@@ -955,7 +1332,8 @@ class TkMap(object):
                             pass
             self.map_items.pop(map_item)
             if update_canvas:
-                self.canvas.draw()
+                self.redraw()
+                # self.canvas.draw()
   
             
     #==========================================================================
@@ -973,7 +1351,7 @@ class TkMap(object):
     #==========================================================================
     def delete_marker(self, marker_name=None, marker_id=None):
         """ 
-        if marker_name: marker with the exakt name is removed 
+        if marker_name: marker with the exact name is removed
         if marker_id: All markers containing the given marker_id are removed
         """
         matching_markers = []
@@ -1004,10 +1382,12 @@ class TkMap(object):
                         self.markers[marker_name][u'handle'].remove()
                     except:
                         pass
-                
+
+            print(self.marker_order)
             self.marker_order.pop(self.marker_order.index(marker_name))
             self.markers.pop(marker_name)
-            self.canvas.draw()
+            self.redraw()
+            # self.canvas.draw()
             
     
     #==========================================================================
@@ -1015,7 +1395,8 @@ class TkMap(object):
         if hasattr(self, u'cbar') and self.cbar:
             self.fig.delaxes(self.fig.axes[1])
             self.cbar = None
-            self.canvas.draw()
+            self.redraw()
+            # self.canvas.draw())
 
     #==========================================================================
     def delete_legend(self):
@@ -1025,9 +1406,10 @@ class TkMap(object):
             self.legend = None
             self.legend_items = {1: {u'handle':[], u'label':[]}, 
                                  2: {u'handle':[], u'label':[]}, 
-                                 3: {u'handle':[], u'label':[]}}   
-            
-            self.canvas.draw()
+                                 3: {u'handle':[], u'label':[]}}
+
+            self.redraw()
+            # self.canvas.draw()
             
     #==========================================================================
     def delete_all_markers(self):
@@ -1038,8 +1420,8 @@ class TkMap(object):
                 
         self.delete_colorbar()
         self.delete_legend()
-
-        self.canvas.draw()
+        self.redraw()
+        # self.canvas.draw()
         
     #==========================================================================
     def reset_map(self):
