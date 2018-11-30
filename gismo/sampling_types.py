@@ -20,23 +20,23 @@ from .exceptions import *
 
 class PluginFactory(object):
     """
-    Created 20181003     
-    Updated 20181004
-
     Class hold information about active classes in module.
     Also contains method to return an object of a mapped class.
 
+    New class in module is activated by adding class name to self.classes.
+
+    Also make sure to add required input arguments (for __init__) to self.required_arguments.
     """
     def __init__(self):
         # Add key and class to dict if you want to activate it
         self.classes = {'Ferrybox CMEMS': FERRYBOXfile,
-                        'Bouy CMEMS': BOUYfile,
-                        'SHARK PhysicalChemical': SHARKfilePhysicalChemichal,
-                        'SHARK CTD': CTDfile}
+                        'Fixed platforms CMEMS': BOUYfile,
+                        'PhysicalChemical SHARK': SHARKfilePhysicalChemichal,
+                        'CTD SHARK': CTDfile}
 
         gismo_requirements = ['data_file_path', 'settings_file_path', 'root_directory']
-        self.required_arguments = {'ferrybox_cmems': gismo_requirements,
-                                   'ctd_gismo': gismo_requirements}
+        self.required_arguments = {'Ferrybox CMEMS': gismo_requirements,
+                                   'Fixed platforms CMEMS': gismo_requirements}
 
 
 
@@ -217,10 +217,8 @@ class GISMOfile(GISMOdata):
     # ==========================================================================
     def _do_import_changes(self):
         self._add_columns()
-
-        if self.missing_value:
-            self.missing_value = float(self.missing_value)
-        self.df.replace(self.missing_value, np.nan, inplace=True)
+        print('self.missing_value', self.missing_value)
+        self.df.replace(self.missing_value, '', inplace=True)
 
     # ==========================================================================
     def _prepare_export(self):
@@ -319,14 +317,17 @@ class GISMOfile(GISMOdata):
         self.df['lon'] = self.df[lon_par]
 
         # ----------------------------------------------------------------------
-        # Depth
-        depth_par = self.parameter_mapping.get_external(self.settings.column.depth)
-        self.df['depth'] = self.df[depth_par]
-
-        # ----------------------------------------------------------------------
         # Station ID
         self.df['visit_id'] = self.df['lat'].astype(str) + self.df['lon'].astype(str) + self.df['time'].astype(str)
-        self.df['visit_depth_id'] = self.df['lat'].astype(str) + self.df['lon'].astype(str) + self.df['time'].astype(str) + self.df['depth'].astype(str)
+
+        try:
+            # ----------------------------------------------------------------------
+            # Depth: For fixed platforms there are several parameters for depth.
+            depth_par = self.parameter_mapping.get_external(self.settings.column.depth)
+            self.df['depth'] = self.df[depth_par]
+            self.df['visit_depth_id'] = self.df['lat'].astype(str) + self.df['lon'].astype(str) + self.df['time'].astype(str) + self.df['depth'].astype(str)
+        except:
+            pass
 
 
     def flag_data(self, flag, *args, **kwargs):
@@ -692,6 +693,8 @@ class BOUYfile(GISMOfile):
                            settings_file_path=settings_file_path,
                            root_directory=root_directory))
         GISMOfile.__init__(self, **kwargs)
+
+        self.parameter_list = ['time', 'lat', 'lon'] + self.qpar_list
 
         self.filter_data_options = self.filter_data_options + ['time', 'time_start', 'time_end']
         self.flag_data_options = self.flag_data_options + ['time', 'time_start', 'time_end']

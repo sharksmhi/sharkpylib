@@ -186,8 +186,7 @@ class ModifyODVfile(object):
 
         index = self.df.keys().get_loc(current_column_name)
 
-        # check if the new column doesn't already exist!
-        if self.df.keys()[index + position][0] != new_column:
+        if self.df.keys()[index + position] != new_column:
             if type(data) == list:
                 new_data = data
             else:
@@ -208,14 +207,14 @@ class ModifyODVfile(object):
         if 'convert_to_timeseries' in self.modifications_made:
             return
 
-        primary_par = 'time_ISO8601'
+        primary_par = 'time_ISO8601 [yyyy-mm-dd]'
         primary_semantic = '//<subject>SDN:LOCAL:time_ISO8601</subject><object>SDN:P01::DTUT8601</object><units>SDN:P06::TISO</units>\n'
 
         # Check if file already has time as primary variable
         odv_file = odvfile.ODVfile(self.file_path)
         primary_variable = odv_file.get_primary_variable()
         # print('primary_variable', primary_variable)
-        if primary_par in primary_variable:
+        if primary_par in primary_variable: # Might be with unit in "primary_variable", hence "in".
             return
 
         # Add sematic header line
@@ -232,6 +231,10 @@ class ModifyODVfile(object):
         self.add_column(current_column_name=primary_par, new_column='QV:SEADATANET', data='1', position=1)
 
         self.modifications_made.append('convert_to_timeseries')
+
+    def rename_column(self, **kwargs):
+        self.df.rename(index=str, columns=kwargs, inplace=True)
+
 
     def replace_string_in_metadata(self, from_string, to_string):
         """
@@ -257,6 +260,28 @@ class ModifyODVfile(object):
                 continue
             self.df[col] = self.df[col].apply(lambda x: x.replace(from_string, to_string))
 
+    def set_qf_for_column(self, column, flag, replace_flag=None):
+        """
+        Sets the 'QV:SEADATANET' column to flag for the given column.
+        If replace_flag is given only this flag is changed
+        :param column:
+        :param flag:
+        :return:
+        """
+        if column not in self.df:
+            print('Column {} not in file {}'.format(column, self.file_path))
+            return
+        qf_index = list(self.df.columns).index(column) + 1
+        if replace_flag is not None:
+            self.df.iloc[np.where(self.df.iloc[:, qf_index] == replace_flag)[0], qf_index] = str(flag)
+        else:
+            self.df.iloc[:, qf_index] = flag
+
+        # Replace with flag 9 if missing value
+        index = np.where(self.df.iloc[:, qf_index-1] == '')[0]
+        self.df.iloc[index, qf_index] = '9'
+
+
 
 
     def replace_values_in_col(self, df=False, column_name='Bot. Depth [m]', old_val = 'None', new_val = '', **kwargs):
@@ -277,7 +302,8 @@ class ModifyODVfile(object):
 
     def write_new_odv(self, output_dir='D:/temp', file_name=False, df=False, metadata=False, **kwargs):
         """
-        Write data and metadata to file
+        Write data and metadata to file.
+        NEW: Removed empty rows in metadata
 
         :param self:
         :param output_dir: directory to store the new ODV-file
@@ -304,11 +330,24 @@ class ModifyODVfile(object):
         with codecs.open(os.path.join(output_dir, file_name), 'w',
                          encoding=kwargs.get('encoding_out', kwargs.get('encoding', 'cp1252'))) as fid_out:
 
-            fid_out.write('\n'.join(self.metadata)+'\n')
+            for line in self.metadata:
+                line = line.strip()
+                if line:
+                    fid_out.write(line + '\n')
 
             data_dict = self.df.to_dict('split')
 
             fid_out.write('\t'.join(list(self.df))+'\n')
 
+            # if file_name == 'Perca_fluviatilis_6719_20090817.txt':
+            #     print('=' * 50)
+            #     print('=' * 50)
+            #     print('=' * 50)
+            #     print('=' * 50)
+            #     print('=' * 50)
+            #     print('=' * 50)
+            #     print('\n'.join(self.metadata))
+            #     print(self.metadata)
             for item in data_dict['data']:
+
                 fid_out.write('\t'.join(item)+'\n')

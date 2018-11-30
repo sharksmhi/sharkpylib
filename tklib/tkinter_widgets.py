@@ -225,7 +225,8 @@ class ComboboxWidget(tk.Frame):
     """
     def __init__(self, 
                  parent=False, 
-                 title='', 
+                 title='',
+                 align='vertical',
                  items=[], 
                  default_item=None, 
                  prop_frame={}, 
@@ -236,6 +237,7 @@ class ComboboxWidget(tk.Frame):
         
         self.parent = parent
         self.title = title
+        self.align = align
         
         self.selected_item = None
         
@@ -273,17 +275,21 @@ class ComboboxWidget(tk.Frame):
         """
         Updated 20180825    
         """
-        r=0
+        r = 0
+        c = 0
         if self.title:
-            tk.Label(self, text=self.title).grid(row=r, column=0, **self.grid_items)
-            r+=1
+            tk.Label(self, text=self.title).grid(row=r, column=c, **self.grid_items)
+            if self.align == 'vertical':
+                r += 1
+            else:
+                c += 1
         self.stringvar = tk.StringVar()
-        self.combobox = ttk.Combobox(self, 
+        self.combobox = ttk.Combobox(self,
                                      textvariable=self.stringvar, 
                                      **self.prop_combobox)
-        self.combobox.grid(row=r, column=0, **self.grid_items) 
+        self.combobox.grid(row=r, column=c, **self.grid_items)
         
-        grid_configure(self, nr_rows=r+1)
+        grid_configure(self, nr_rows=r+1, nr_columns=c+1)
         
         if self.callback_targets:
             self.combobox.bind('<<ComboboxSelected>>', self._on_select)
@@ -319,7 +325,11 @@ class ComboboxWidget(tk.Frame):
         """
         if value in self.items:
             self.stringvar.set(value) 
-            
+
+    # def set_background_color(self, color):
+    #     style = ttk.Style()
+    #     style.map('TCombobox', fieldbackground=[('readonly', color)])
+    #     self.combobox.update_idletasks()
         
     #===========================================================================
     def update_items(self, items=[], default_item=None, default_match=None):
@@ -1992,6 +2002,7 @@ class NotebookWidget(ttk.Notebook):
             self.add(notebook_frame, text=frame)
             self.frame_dict[frame] = notebook_frame
 #            grid_configure(self.frame_dict[frame]) # Done when setting frame content
+            grid_configure(notebook_frame)
 
         grid_configure(self)          
     

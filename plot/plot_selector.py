@@ -310,7 +310,8 @@ class Plot():
     
     #===========================================================================
     def __init__(self, sync_colors=True, 
-                 allow_two_axis=True, 
+                 allow_two_axis=True,
+                 allow_selection=True,
                  orientation='vertical', 
                  time_axis=None,
                  hover_target=None,
@@ -318,6 +319,7 @@ class Plot():
         
         self.sync_colors = sync_colors
         self.allow_two_axis = allow_two_axis
+        self.allow_selection = allow_selection
         
         if orientation in ['v', 'vertical']:
             self.vertical_orientation = True
@@ -326,6 +328,8 @@ class Plot():
             
         self.time_axis = time_axis
         self.hover_target = hover_target
+
+        self.legend = None
 
         self.prop_fig = kwargs
         self._get_default_settings()
@@ -369,6 +373,10 @@ class Plot():
     def add_lasso_target(self, target):
         if target not in self.lasso_targets:
             self.lasso_targets.append(target)
+
+    def add_legend(self):
+        self.legend = self.fig.legend()
+        self.fig.draw()
         
     #==========================================================================
     def add_event(self, event_type, event_function): 
@@ -456,6 +464,8 @@ class Plot():
     #===========================================================================
     def mark_range_from_bottom(self, line_id='default'):
         """ Marks min range in plot by movement """
+        if not self.allow_selection:
+            return
         if self.mark_range_orientation == 'horizontal':
             self.clear_all_marked()
         self.mark_line_id = line_id
@@ -465,6 +475,8 @@ class Plot():
     #===========================================================================
     def mark_range_from_top(self, line_id='default'):
         """ Marks max range in plot by movement """
+        if not self.allow_selection:
+            return
         if self.mark_range_orientation == 'horizontal':
             self.clear_all_marked()
         self.mark_line_id = line_id
@@ -473,6 +485,8 @@ class Plot():
         
     #===========================================================================
     def mark_range_from_left(self, line_id='default'):
+        if not self.allow_selection:
+            return
         """ Marks min range in plot by movement """
         if self.mark_range_orientation == 'vertical':
             self.clear_all_marked()
@@ -482,6 +496,8 @@ class Plot():
         
     #===========================================================================
     def mark_range_from_right(self, line_id='default'):
+        if not self.allow_selection:
+            return
         """ Marks max range in plot by movement """
         if self.mark_range_orientation == 'vertical':
             self.clear_all_marked()
@@ -491,6 +507,8 @@ class Plot():
         
     #===========================================================================
     def mark_points(self, line_id='default'):
+        if not self.allow_selection:
+            return
         if not self.mark_ax:
             return
         # print('mark_ax', self.mark_ax)
@@ -501,7 +519,8 @@ class Plot():
     
     #===========================================================================
     def mark_lasso(self, line_id='default'):
-        
+        if not self.allow_selection:
+            return
         print('This methods is not yet functional because it is linked to a scatter plot object' )
         
         self.mark_line_id = line_id
@@ -902,17 +921,18 @@ class Plot():
             ax.set_prop(line_id=line_id, **kwargs)
             
     #===========================================================================
-    def set_data(self, x=False, y=False, line_id='default', exclude_index=[], ax='first', call_targets=True, **kwargs):
+    def set_data(self, x=False, y=False, z=None, line_id='default', exclude_index=[], ax='first', call_targets=True, **kwargs):
         ax = self._get_ax_object(ax)
         if ax:
-#             print('='*20
-#             print('x:', x[0]
-#             print('y:', y[0]
             try:
                 x = [pd.to_datetime(item) for item in x]
             except:
                 pass
-            ax.set_data(x=x, y=y, line_id=line_id, exclude_index=exclude_index, call_targets=call_targets, **kwargs)
+
+            if kwargs.get('contour_plot'):
+                x, y = np.meshgrid(x, y)
+
+            ax.set_data(x=x, y=y, z=z, line_id=line_id, exclude_index=exclude_index, call_targets=call_targets, **kwargs)
 
         if self.hover_target:
             self._add_event_hover()
@@ -1358,62 +1378,53 @@ class Ax():
         self.reset_ax()
         
     #===========================================================================
-    def set_data(self, x=False, y=False, line_id='default', exclude_index=[], call_targets=True, **kwargs):
-        
-#        print('='*30
-#        print('BEFORE'
-#        print('='*30
-#        for key, value_list in self.x_data.iteritems(): 
-#            print(key, len(value_list), value_list
-#        print('='*30
-#        print('='*30
-        
-        # Create new prop dict if not in self.prop
-        if line_id not in self.prop:
-            self.prop[line_id] = self.default_prop.copy()
-        
-        # Update current prop dict
-        self.prop[line_id].update(**kwargs)
-            
-        if not isinstance(x, bool) and not isinstance(y, bool):
-            x = np.array(x)
-            y = np.array(y)
-            if exclude_index:
-                self.x_data[line_id] = []
-                for k, value in enumerate(x):
-                    if k in exclude_index:
-                        self.x_data[line_id].append(np.nan)
-                    else:
-                        self.x_data[line_id].append(value)
-                self.y_data[line_id] = y
-            
-            else:
-                self.x_data[line_id] = x
-                self.y_data[line_id] = y
-        elif line_id not in self.x_data:
-            print('No data to plot!')
-            return
+    def set_data(self, x=False, y=False, z=None, line_id='default', exclude_index=[], call_targets=True, **kwargs):
+        if kwargs.get('contour_plot'):
+            cid = 'contour_plot'
+            if 'contour_plot' not in self.p:
+                self.p[cid] = None
+            self.p[cid] = self.ax.contourf(x, y, z, kwargs.get('nr_levels', 50))
 
-        self.reset_all_marked()
-        self.visual_index = range(len(self.y_data[line_id]))
-        
-        if line_id not in self.p:
-            self.p[line_id] = None
-        if not self.p[line_id]:
-            self.p[line_id], = self.ax.plot(self.x_data[line_id], self.y_data[line_id], **self.prop[line_id])
+
         else:
-            self.p[line_id].set_data(self.x_data[line_id], self.y_data[line_id])
-            self.p[line_id].set(**self.prop[line_id])
-#             self.kw = self.prop[line_id]
-            
-            
-#        print('='*30
-#        print('AFTER'
-#        print('='*30
-#        for key, value_list in self.x_data.iteritems(): 
-#            print(key, len(value_list), value_list
-#        print('='*30
-#        print('='*30
+            # Create new prop dict if not in self.prop
+            if line_id not in self.prop:
+                self.prop[line_id] = self.default_prop.copy()
+
+            # Update current prop dict
+            self.prop[line_id].update(**kwargs)
+
+            if not isinstance(x, bool) and not isinstance(y, bool):
+                x = np.array(x)
+                y = np.array(y)
+                if exclude_index:
+                    self.x_data[line_id] = []
+                    for k, value in enumerate(x):
+                        if k in exclude_index:
+                            self.x_data[line_id].append(np.nan)
+                        else:
+                            self.x_data[line_id].append(value)
+                    self.y_data[line_id] = y
+
+                else:
+                    self.x_data[line_id] = x
+                    self.y_data[line_id] = y
+            elif line_id not in self.x_data:
+                print('No data to plot!')
+                return
+
+            self.reset_all_marked()
+            self.visual_index = range(len(self.y_data[line_id]))
+
+            if line_id not in self.p:
+                self.p[line_id] = None
+            if not self.p[line_id]:
+                self.p[line_id], = self.ax.plot(self.x_data[line_id], self.y_data[line_id], **self.prop[line_id])
+            else:
+                self.p[line_id].set_data(self.x_data[line_id], self.y_data[line_id])
+                self.p[line_id].set(**self.prop[line_id])
+
+
         if call_targets:
             self.parent.call_targets()
 
