@@ -355,9 +355,11 @@ class ComboboxWidget(tk.Frame):
             
         # Update combobox
         self.combobox['values'] = self.items
-        
+
         if self.default_item:
             self.stringvar.set(self.default_item)
+        else:
+            self.stringvar.set('')
             
         self.selected_item = self.stringvar.get()
         
@@ -1060,7 +1062,8 @@ class ListboxWidget(tk.Frame):
                  prop_listbox={},
                  items=[], 
                  only_unique_items=True, 
-                 include_delete_button=True, 
+                 include_delete_button=True,
+                 callback_delete_button=None,  # returns at the removed item
                  title=u'', 
                  **kwargs):
         
@@ -1083,6 +1086,7 @@ class ListboxWidget(tk.Frame):
         self.items = items
         self.only_unique_items = only_unique_items 
         self.include_delete_button = include_delete_button
+        self.callback_delete_button = callback_delete_button
 
         
         #---------------------------------------------------------------------------------------
@@ -1139,8 +1143,11 @@ class ListboxWidget(tk.Frame):
         selection = self.listbox.curselection()
         if selection:
             index_to_pop = int(selection[0])
+            item = self.items[index_to_pop]
             self.items.pop(index_to_pop) 
             self._update_items()
+            if self.callback_delete_button:
+                self.callback_delete_button(item)
         
     #===========================================================================
     def update_items(self, items):

@@ -467,8 +467,8 @@ class TkMap(object):
             map_toolbar = NavigationToolbar2Tk(canvas, frame_toolbar)
             map_toolbar.update()
             map_toolbar.pack(side=tk.BOTTOM, fill=tk.BOTH, expand=True)
-            self.ax.format_coord = lambda x, y: ""
-            self.ax.format_coord = lambda x, y: ""
+            # self.ax.format_coord = lambda x, y: ""
+            # self.ax.format_coord = lambda x, y: ""
 
     def delete_target(self, target):
         if target in self.targets:
@@ -779,7 +779,7 @@ class TkMap(object):
             self._fill_line(x, y, fill_color, marker_name_fill)
         
         # Line color
-        handle = self.m.plot(x, y, color=color, zorder=50, **kwargs)
+        handle = self.m.plot(x, y, color=color, **kwargs)
 
         self.redraw()
          
