@@ -105,9 +105,10 @@ class QCiocftp(GISMOqc):
         super().__init__(*args, **kwargs)
 
         gismo_root_path = os.path.dirname(os.path.abspath(__file__))
-        self.cfg_directory = os.path.join(gismo_root_path, 'qc/iocftp/cfg')
-        self.qc_directory = os.path.join(gismo_root_path, 'qc/iocftp/qc')
-        self.log_directory = kwargs.get('log_directory', os.path.join(gismo_root_path, 'qc/iocftp/log'))
+        # Paths must end with /
+        self.cfg_directory = os.path.join(gismo_root_path, 'qc/iocftp/cfg/')
+        self.qc_directory = os.path.join(gismo_root_path, 'qc/iocftp/qc/')
+        self.log_directory = kwargs.get('log_directory', os.path.join(gismo_root_path, 'qc/iocftp/log/'))
         if not os.path.exists(self.log_directory):
             os.mkdir(self.log_directory)
 
@@ -121,6 +122,14 @@ class QCiocftp(GISMOqc):
         """
         Run QC. gismo_object must have attribute df for qc to work.
         """
+
+        def _to_float(value):
+            try:
+                return float(value)
+            except:
+                # print('value is "{}" of type {}'.format(value, type(value)))
+                return np.nan
+
         if not hasattr(gismo_object, 'df'):
             raise GISMOExceptionInvalidInputArgument
 
@@ -141,20 +150,38 @@ class QCiocftp(GISMOqc):
         df = gismo_object.df.copy(deep=True)
 
         columns = []
-        add_columns = []  # last columns in df, not used in qc, separate them in this loop
+        # add_columns = []  # last columns in df, not used in qc, separate them in this loop
         for item in df.columns:
             if not item:
                 continue
             if item in gismo_object.original_columns:
                 columns.append(item)
-            else:
-                add_columns.append(item)
+                # if item in [8181, '8181']:
+                #     # print('TYPE', type(df[item].values[0]))
+                #     df[item].astype(float)
+                # try:
+                #     # df[item].astype(float)
+                #     columns.append(item)
+                # except:
+                #     print('ITEM', item)
+            # else:
+            #     add_columns.append(item)
 
         columns = np.asarray(columns)  # header: converting list to nd array
-
+        # print()
+        # print('='*50)
+        # print('COLUMNS')
+        # print('-' * 50)
+        # for col in columns:
+        #     print(col, type(col))
+        # print('-' * 50)
         df_to_np = df[columns]  # choose original cols (no '' or non-string)
-        data_matrix_in = df_to_np.astype('float')  # converting to df with float
-        data_matrix_in = data_matrix_in.values  # headers lost in conversion to array
+        # data_matrix_in = df_to_np.astype('float')  # converting to df with float
+        # data_matrix_in = data_matrix_in.values  # headers lost in conversion to array
+        for col in df_to_np.columns:
+            df_to_np[col] = df_to_np[col].apply(_to_float)
+        data_matrix_in = df_to_np.values  # headers lost in conversion to array
+
         columns = np.asfarray(columns, float)  # converting columns to float
         columns = np.array([int(item) for item in columns])  # and then to integer
 
@@ -163,19 +190,22 @@ class QCiocftp(GISMOqc):
         station_name = str(gismo_object.internal_station_name)
         station_nr = str(gismo_object.external_station_name)
 
-        data_matrix_out = IOCFTP_QC.QC_CHECK_FERRYBOX(station_name,
-                                                      station_nr,
-                                                      data_matrix_in,
-                                                      columns,
-                                                      "QC_check_file.py",
-                                                      '')
+        try:
+            data_matrix_out = IOCFTP_QC.QC_CHECK_FERRYBOX(station_name,
+                                                          station_nr,
+                                                          data_matrix_in,
+                                                          columns,
+                                                          "QC_check_file.py",
+                                                          '')
+        except NameError as e:
+            raise
 
         # converting qc-out nparray to dataframe =======================================
 
         df_out = pd.DataFrame(data_matrix_out, columns=columns)
 
-        for x in add_columns:  # adding back last columns from original dataframe
-            df_out[x] = df[x]
+        # for x in add_columns:  # adding back last columns from original dataframe
+        #     df_out[x] = df[x]
 
         # Create final df and replace qf columns
         df_final = df.copy(deep=True)

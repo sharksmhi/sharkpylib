@@ -29,14 +29,16 @@ class PluginFactory(object):
     """
     def __init__(self):
         # Add key and class to dict if you want to activate it
-        self.classes = {'Ferrybox CMEMS': FERRYBOXfile,
-                        'Fixed platforms CMEMS': BOUYfile,
+        self.classes = {'Ferrybox CMEMS': CMEMSferrybox,
+                        'Fixed platforms CMEMS': CMEMSFixedPlatform,
                         'PhysicalChemical SHARK': SHARKfilePhysicalChemichal,
                         'CTD SHARK': CTDfile}
 
-        gismo_requirements = ['data_file_path', 'settings_file_path', 'root_directory']
-        self.required_arguments = {'Ferrybox CMEMS': gismo_requirements,
-                                   'Fixed platforms CMEMS': gismo_requirements}
+        # ferrybox_requirements = ['data_file_path', 'settings_file_path', 'root_directory']
+        ferrybox_requirements = ['data_file_path', 'settings_file_path']
+        fixed_platform_requirements = ferrybox_requirements + ['depth']
+        self.required_arguments = {'Ferrybox CMEMS': ferrybox_requirements,
+                                   'Fixed platforms CMEMS': fixed_platform_requirements}
 
 
 
@@ -94,7 +96,7 @@ class GISMOfile(GISMOdata):
         self._load_settings_file()
         self._load_station_mapping()
         self._load_parameter_mapping()
-        #        return
+
         self._load_data()
         self._do_import_changes()
 
@@ -645,7 +647,7 @@ class GISMOfile(GISMOdata):
 
 # ==============================================================================
 # ==============================================================================
-class FERRYBOXfile(GISMOfile):
+class CMEMSferrybox(GISMOfile):
     """
     A GISMO-file only has data from one platform.
     """
@@ -673,13 +675,13 @@ class FERRYBOXfile(GISMOfile):
 
 
 # ==============================================================================
-class BOUYfile(GISMOfile):
+class CMEMSFixedPlatform(GISMOfile):
     """
     A GISMO-file only has data from one platform.
     """
 
     # ==========================================================================
-    def __init__(self, data_file_path=None, settings_file_path=None, root_directory=None, **kwargs):
+    def __init__(self, data_file_path=None, settings_file_path=None, root_directory=None, depth=None, **kwargs):
         """
         Updated 20181022
         B
@@ -694,12 +696,20 @@ class BOUYfile(GISMOfile):
                            root_directory=root_directory))
         GISMOfile.__init__(self, **kwargs)
 
-        self.parameter_list = ['time', 'lat', 'lon'] + self.qpar_list
+        # Add depth
+        self.df['depth'] = depth
+
+        self.parameter_list = ['time', 'lat', 'lon', 'depth'] + self.qpar_list
 
         self.filter_data_options = self.filter_data_options + ['time', 'time_start', 'time_end']
         self.flag_data_options = self.flag_data_options + ['time', 'time_start', 'time_end']
         self.mask_data_options = self.mask_data_options + []
 
+    def get_station_name(self, external=False):
+        if external:
+            return self.df.columns[0]
+        else:
+            return self.station_mapping.get_internal(self.df.columns[0])
 
 # ==============================================================================
 # ==============================================================================
@@ -959,7 +969,7 @@ class SamplingTypeSettings(dict):
 
         for line in fid:
             line = line.strip()
-            # Balnk line or comment line
+            # Blank line or comment line
             if not line or line.startswith('#'):
                 continue
 

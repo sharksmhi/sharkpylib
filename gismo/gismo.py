@@ -63,6 +63,15 @@ class GISMOdataManager(object):
         self.objects[gismo_object.file_id] = gismo_object
         self.objects_by_sampling_type[sampling_type][gismo_object.file_id] = gismo_object
 
+    def remove_file(self, file_id):
+        if file_id in self.objects:
+            self.objects.pop(file_id)
+            for sampling_type in self.objects_by_sampling_type.keys():
+                if file_id in self.objects_by_sampling_type[sampling_type]:
+                    self.objects_by_sampling_type[sampling_type].pop(file_id)
+                    break
+
+
     def flag_data(self, file_id, flag, *args, **kwargs):
         """
         Created 20181004     
@@ -188,7 +197,8 @@ class GISMOdataManager(object):
             raise GISMOExceptionInvalidInputArgument
 
         self.match_objects.setdefault(main_file_id, {})
-        self.match_objects[main_file_id][match_file_id] = MatchGISMOdata(self.objects.get(main_file_id), self.objects.get(match_file_id), **kwargs)
+        self.match_objects[main_file_id][match_file_id] = MatchGISMOdata(self.objects.get(main_file_id),
+                                                                         self.objects.get(match_file_id), **kwargs)
 
     def save_file(self, file_id, **kwargs):
         for key in kwargs:
@@ -267,6 +277,13 @@ class GISMOdata(object):
         :return: list of valid qc routines
         """
         return sorted(self.valid_qc_routines)
+
+    def get_station_name(self, **kwargs):
+        """
+
+        :return: the station name if possible
+        """
+        raise GISMOExceptionMethodNotImplemented
 
     def save_file(self, **kwargs):
         """
@@ -413,11 +430,11 @@ class MatchGISMOdata(object):
         print(self.tolerance_time)
 
         # Run steps
-        self._limit_data_scope()
-        self._find_match()
+        self._limit_data_scope(**kwargs)
+        self._find_match(**kwargs)
 
 
-    def _limit_data_scope(self):
+    def _limit_data_scope(self, **kwargs):
         """
         Narrow the data scope. Data outside the the tollerance is removed.
         :return:
@@ -434,6 +451,11 @@ class MatchGISMOdata(object):
                 match_df['time'] <= (max(main_df['time']) + self.tolerance_time))
 
 
+        # if 'depth' not in self.main_object.parameter_list:
+        #     if kwargs.get('main_sampling_depth'):
+        #         main_df['depth'] = kwargs.get('main_sampling_depth')
+        #     else:
+        #         raise GISMOExceptionMissingInputArgument('No depth in main data and no sampling depth provided.')
 
         # Pos
         main_data = self.main_object.get_data('lat', 'lon', 'depth', type_float=True)
@@ -473,7 +495,7 @@ class MatchGISMOdata(object):
         # self.match_df.columns = [item + '_match' for item in self.match_df.columns]
 
 
-    def _find_match(self):
+    def _find_match(self, **kwargs):
         """
         Look for match for all rows in seld.match_df
         :return:

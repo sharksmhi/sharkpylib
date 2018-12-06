@@ -257,7 +257,6 @@ class GISMOsession(object):
 
         self.compare_objects = {}
 
-        
         self._startup_session()
 
     
@@ -376,33 +375,45 @@ class GISMOsession(object):
 
     # ==========================================================================
     def load_file(self,
-                 sampling_type='',
-                 file_path='',
-                 settings_file_path='', 
-                 reload=False, 
-                 **kwargs):
+                  sampling_type='',
+                  data_file_path='',
+                  settings_file_path='',
+                  **kwargs):
         """
         Created 20180628       
         Updated 20181004       
 
-        If reload==True the original file is reloaded regardless if a pkl file excists. 
+        If reload==True the original file is reloaded regardless if a pkl file exists.
         sampling_type refers to SMTYP in SMHI codelist
         
         kwargs can be:
             file_encoding
         """
-        if not all([sampling_type, file_path, settings_file_path]):
-            raise GISMOExceptionMissingInputArgument
-        
-        if not all([os.path.exists(file_path), os.path.exists(settings_file_path)]):
-            raise GISMOExceptionInvalidPath
-
         if sampling_type not in self.data_manager.sampling_type_list:
-            raise GISMOExceptionInvalidSamplingType
+            raise GISMOExceptionInvalidSamplingType(sampling_type)
+
+        kw = dict(data_file_path=data_file_path,
+                  settings_file_path=settings_file_path,
+                  root_directory=self.root_directory)
+        kw.update(kwargs)
+
+        # Check sampling type requirements
+        sampling_type_requirements = self.get_sampling_type_requirements(sampling_type)
+        for item in sampling_type_requirements:
+            if not kw.get(item):
+                raise GISMOExceptionMissingInputArgument(item)
+
+
+    # if not all([sampling_type, file_path, settings_file_path]):
+    #         raise GISMOExceptionMissingInputArgument
+        
+        # if not all([os.path.exists(file_path), os.path.exists(settings_file_path)]):
+        #     raise GISMOExceptionInvalidPath
+
 
         # Add file path to user info 
-        file_path = os.path.abspath(file_path)
-        settings_file_path = os.path.abspath(settings_file_path)
+        file_path = os.path.abspath(kw.get('data_file_path'))
+        settings_file_path = os.path.abspath(kw.get('settings_file_path'))
         file_paths = self.user_info.add_file(sampling_type=sampling_type, 
                                              file_path=file_path,
                                              settings_file_path=settings_file_path)
@@ -418,14 +429,15 @@ class GISMOsession(object):
             raise GISMOExceptionMissingKey
         
         # Check type of file and load
-        if reload or not os.path.exists(data_file_path_pkl): 
+        if kwargs.get('reload') or not os.path.exists(data_file_path_pkl):
             # Load original file 
             self.data_manager.load_file(data_file_path=data_file_path,
-                                       sampling_type=sampling_type,
-                                       settings_file_path=data_file_path_settings,
-                                       root_directory=self.root_directory,
-                                       save_pkl=self.save_pkl,
-                                       pkl_file_path=data_file_path_pkl)
+                                        sampling_type=sampling_type,
+                                        settings_file_path=data_file_path_settings,
+                                        root_directory=self.root_directory,
+                                        save_pkl=self.save_pkl,
+                                        pkl_file_path=data_file_path_pkl)
+
 
         else:
             # Check if sampling_type is correct 
@@ -440,6 +452,14 @@ class GISMOsession(object):
                                        pkl_file_path=data_file_path_pkl)
 
         return file_id
+
+    def remove_file(self, file_id):
+        """
+        Removes the given file_id from the session.
+        :param file_id:
+        :return:
+        """
+        self.data_manager.remove_file(file_id)
     
     #==========================================================================
     def _load_pickle_file(self, data_file_path_pkl):
@@ -488,7 +508,7 @@ class GISMOsession(object):
             raise GISMOExceptionMissingInputArgument
         return self.data_manager.get_data_object(file_id)
 
-    # ==========================================================================
+        # ==========================================================================
     def get_parameter_list(self, file_id='', **kwargs):
         if not file_id:
             raise GISMOExceptionMissingInputArgument

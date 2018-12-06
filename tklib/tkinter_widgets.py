@@ -433,7 +433,7 @@ class EntryWidget(tk.Entry):
         
         self.stringvar = tk.StringVar()
         
-        self.prop_entry = {'font':'Helvetica 10'}
+        self.prop_entry = {'font': 'Helvetica 10'}
         self.prop_entry.update(prop_entry)
         
         self.grid_entry = {}
@@ -594,8 +594,14 @@ class EntryWidget(tk.Entry):
     def set_state(self, state):
         self.config(state=state) 
         self.entry_state = state
-           
-    #===========================================================================
+
+    def disable_widget(self):
+        self.set_state('disabled')
+
+    def enable_widget(self):
+        self.set_state('normal')
+
+        #===========================================================================
     def set_fg_color(self, color='black'):  
         self.configure(fg=color)
     

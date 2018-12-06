@@ -528,7 +528,10 @@ class Plot():
         
         for ax in self.mark_ax:
             ax.mark_lasso(line_id=self.mark_line_id)
-        
+
+    def save_fig(self, file_path, **kwargs):
+        self.fig.savefig(file_path, **kwargs)
+
     #===========================================================================
     def set_bottom_range(self, bottom_value, diconnect_events=False, ax='first', line_id='default'):
         """ 
@@ -606,7 +609,7 @@ class Plot():
     def clear_all_marked(self ,color='r'):
         self.clear_marked_range(call_targets=False)
         self.clear_marked_points(call_targets=False)
-        self.clear_marked_lasso(call_targets=False)
+        # self.clear_marked_lasso(call_targets=False)
 
         try:
             if self.hover_target:
@@ -943,6 +946,17 @@ class Plot():
             self.first_ax.set_y_label(label)
         else:
             self.first_ax.set_x_label(label)
+
+    def set_x_label(self, label):
+        self.first_ax.set_x_label(label)
+
+    def set_y_label(self, label):
+        self.first_ax.set_y_label(label)
+
+    def set_title(self, title):
+        self.first_ax.set_title(title)
+        self.fig.tight_layout()
+        self.call_targets()
             
     #===========================================================================
     def set_first_label(self, label):
@@ -1048,7 +1062,7 @@ class Ax():
     def reset_all_marked(self):
         self.reset_marked_range()
         self.reset_marked_points()
-        self.reset_marked_lasso()
+        # self.reset_marked_lasso()
         
     #===========================================================================
     def get_marked_index(self):
@@ -1125,7 +1139,7 @@ class Ax():
                          zorder=20, label='marked_points')
             
     #===========================================================================
-    def mark_lasso(self, line_id):
+    def old_mark_lasso(self, line_id):
         collection = self.p[line_id]
         self.lasso_object = SelectFromCollection(self.ax, collection, alpha_other=0.3, target=self._callback_lasso)
         
@@ -1501,12 +1515,12 @@ class Ax():
                     x_min = mi - margin
                     x_max = ma + margin
                     
-#                     print('='*30
-#                     print('margin', margin
-#                     print('mi', mi
-#                     print('ma', ma
-#                     print('x_min', x_min
-#                     print('x_max', x_max
+                    print('='*30)
+                    print('margin', margin)
+                    print('mi', mi)
+                    print('ma', ma)
+                    print('x_min', x_min)
+                    print('x_max', x_max)
                     
                 except:
                     # Time series
@@ -1601,6 +1615,9 @@ class Ax():
                 self.ax.grid(grid_on, axis='y', linestyle=':') 
             self.parent.call_targets()
 
+    def set_title(self, title):
+        if self.ax:
+            self.ax.set_title(title)
 
 #===========================================================================
 #===========================================================================

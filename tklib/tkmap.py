@@ -19,7 +19,7 @@ from matplotlib.text import Text
 
 import tkinter as tk 
 
-# matplotlib.use(u'TkAgg')
+matplotlib.use(u'TkAgg')
 from mpl_toolkits.basemap import Basemap
 from matplotlib.figure import Figure
 from matplotlib.backends.backend_pdf import PdfPages
@@ -597,7 +597,11 @@ class TkMap(object):
     def redraw(self):
         if self.targets:
             for target in self.targets:
-                self.targets[target]['canvas'].draw()
+                try:
+                    self.targets[target]['canvas'].draw()
+                except Exception as e:
+                    print(e)
+                    raise
             # for canvas in self.canvases:
             #     canvas.draw()
         # else:
@@ -1392,7 +1396,7 @@ class TkMap(object):
     
     #==========================================================================
     def delete_colorbar(self):
-        if hasattr(self, u'cbar') and self.cbar:
+        if hasattr(self, 'cbar') and self.cbar:
             self.fig.delaxes(self.fig.axes[1])
             self.cbar = None
             self.redraw()
@@ -1400,13 +1404,13 @@ class TkMap(object):
 
     #==========================================================================
     def delete_legend(self):
-        if hasattr(self, u'legend') and self.legend:
+        if hasattr(self, 'legend') and self.legend:
             self.legend.set_visible(False)
 #             self.ax.legend_.remove()  
             self.legend = None
-            self.legend_items = {1: {u'handle':[], u'label':[]}, 
-                                 2: {u'handle':[], u'label':[]}, 
-                                 3: {u'handle':[], u'label':[]}}
+            self.legend_items = {1: {'handle': [], 'label': []},
+                                 2: {'handle': [], 'label': []},
+                                 3: {'handle': [], 'label': []}}
 
             self.redraw()
             # self.canvas.draw()
@@ -1421,7 +1425,6 @@ class TkMap(object):
         self.delete_colorbar()
         self.delete_legend()
         self.redraw()
-        # self.canvas.draw()
         
     #==========================================================================
     def reset_map(self):
