@@ -37,8 +37,10 @@ class PluginFactory(object):
         # ferrybox_requirements = ['data_file_path', 'settings_file_path', 'root_directory']
         ferrybox_requirements = ['data_file_path', 'settings_file_path']
         fixed_platform_requirements = ferrybox_requirements + ['depth']
+        shark_requirements = ferrybox_requirements
         self.required_arguments = {'Ferrybox CMEMS': ferrybox_requirements,
-                                   'Fixed platforms CMEMS': fixed_platform_requirements}
+                                   'Fixed platforms CMEMS': fixed_platform_requirements,
+                                   'PhysicalChemical SHARK': shark_requirements}
 
 
 
@@ -98,12 +100,12 @@ class GISMOfile(GISMOdata):
         self._load_parameter_mapping()
 
         self._load_data()
-        self._do_import_changes()
+        self._do_import_changes(**kwargs)
 
         self.parameter_list = []
 
-        # self.parameter_list = ['time', 'lat', 'lon', 'depth', 'visit_id', 'visit_depth_id'] + self.qpar_list
-        self.parameter_list = ['time', 'lat', 'lon', 'depth'] + self.qpar_list
+        self.parameter_list = ['time', 'lat', 'lon', 'depth', 'visit_id', 'visit_depth_id'] + self.qpar_list
+        # self.parameter_list = ['time', 'lat', 'lon', 'depth'] + self.qpar_list
         self.filter_data_options = []
         self.flag_data_options = []
         self.mask_data_options = ['include_flags', 'exclude_flags']
@@ -217,8 +219,8 @@ class GISMOfile(GISMOdata):
 #            self.df[qpar] = self.df[qpar].astype(str)
 
     # ==========================================================================
-    def _do_import_changes(self):
-        self._add_columns()
+    def _do_import_changes(self, **kwargs):
+        self._add_columns(**kwargs)
         print('self.missing_value', self.missing_value)
         self.df.replace(self.missing_value, '', inplace=True)
 
@@ -258,7 +260,7 @@ class GISMOfile(GISMOdata):
 
 
     # ==========================================================================
-    def _add_columns(self):
+    def _add_columns(self, **kwargs):
         """
         Add columns for time, lat, lon and depth.
         Information about parameter name should be in settings.
@@ -321,15 +323,15 @@ class GISMOfile(GISMOdata):
         # ----------------------------------------------------------------------
         # Station ID
         self.df['visit_id'] = self.df['lat'].astype(str) + self.df['lon'].astype(str) + self.df['time'].astype(str)
+        print(kwargs.get('depth'))
 
-        try:
-            # ----------------------------------------------------------------------
-            # Depth: For fixed platforms there are several parameters for depth.
+        if kwargs.get('depth', None) is not None:
+            self.df['depth'] = kwargs.get('depth')
+        else:
             depth_par = self.parameter_mapping.get_external(self.settings.column.depth)
             self.df['depth'] = self.df[depth_par]
-            self.df['visit_depth_id'] = self.df['lat'].astype(str) + self.df['lon'].astype(str) + self.df['time'].astype(str) + self.df['depth'].astype(str)
-        except:
-            pass
+        self.df['visit_depth_id'] = self.df['lat'].astype(str) + self.df['lon'].astype(str) + self.df['time'].astype(
+            str) + self.df['depth'].astype(str)
 
 
     def flag_data(self, flag, *args, **kwargs):
@@ -448,7 +450,7 @@ class GISMOfile(GISMOdata):
         # Create filter boolean
         boolean = self._get_pandas_series(True)
         for key, value in kwargs.get('filter_options', {}).items():
-            if not value:
+            if value in [None, False]:
                 continue
             if key not in self.filter_data_options:
                 raise GISMOExceptionInvalidOption('{} not in {}'.format(key, self.filter_data_options))
@@ -550,6 +552,20 @@ class GISMOfile(GISMOdata):
             par_list = sorted([self.parameter_mapping.get_internal(par) for par in self.parameter_list])
 
         return par_list
+
+    def get_internal_parameter_name(self, parameter):
+        """
+        :param parameter:
+        :return: internal name of the given parameter.
+        """
+        return self.parameter_mapping.get_internal(parameter)
+
+    def get_external_parameter_name(self, parameter):
+        """
+        :param parameter:
+        :return: external name of the given parameter.
+        """
+        return self.parameter_mapping.get_external(parameter)
 
     def get_unit(self, par='', **kwargs):
         """
@@ -693,13 +709,11 @@ class CMEMSFixedPlatform(GISMOfile):
         """
         kwargs.update(dict(data_file_path=data_file_path,
                            settings_file_path=settings_file_path,
-                           root_directory=root_directory))
+                           root_directory=root_directory,
+                           depth=depth))
         GISMOfile.__init__(self, **kwargs)
 
-        # Add depth
-        self.df['depth'] = depth
-
-        self.parameter_list = ['time', 'lat', 'lon', 'depth'] + self.qpar_list
+        # self.parameter_list = ['time', 'lat', 'lon', 'depth'] + self.qpar_list
 
         self.filter_data_options = self.filter_data_options + ['time', 'time_start', 'time_end']
         self.flag_data_options = self.flag_data_options + ['time', 'time_start', 'time_end']

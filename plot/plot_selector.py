@@ -927,10 +927,11 @@ class Plot():
     def set_data(self, x=False, y=False, z=None, line_id='default', exclude_index=[], ax='first', call_targets=True, **kwargs):
         ax = self._get_ax_object(ax)
         if ax:
-            try:
-                x = [pd.to_datetime(item) for item in x]
-            except:
-                pass
+            if self.time_axis == 'x':
+                try:
+                    x = [pd.to_datetime(item) for item in x]
+                except:
+                    pass
 
             if kwargs.get('contour_plot'):
                 x, y = np.meshgrid(x, y)

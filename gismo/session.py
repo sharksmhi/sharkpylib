@@ -370,6 +370,13 @@ class GISMOsession(object):
     def get_match_data(self, main_file_id, match_file_id, *args, **kwargs):
         return self.data_manager.get_match_data(main_file_id, match_file_id, *args, **kwargs)
 
+    def get_merge_data(self, main_file_id, match_file_id, *args, **kwargs):
+        return self.data_manager.get_merge_data(main_file_id, match_file_id, *args, **kwargs)
+
+    def get_match_object(self, main_file_id, match_file_id, *args, **kwargs):
+        return self.data_manager.get_match_object(main_file_id, match_file_id, *args, **kwargs)
+
+
     def match_files(self, main_file_id, match_file_id, **kwargs):
         self.data_manager.match_files(main_file_id, match_file_id, **kwargs)
 
@@ -434,9 +441,10 @@ class GISMOsession(object):
             self.data_manager.load_file(data_file_path=data_file_path,
                                         sampling_type=sampling_type,
                                         settings_file_path=data_file_path_settings,
-                                        root_directory=self.root_directory,
+                                        # root_directory=self.root_directory, # Given in kwargs
                                         save_pkl=self.save_pkl,
-                                        pkl_file_path=data_file_path_pkl)
+                                        pkl_file_path=data_file_path_pkl,
+                                        **kwargs)
 
 
         else:
