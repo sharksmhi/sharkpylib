@@ -3086,6 +3086,75 @@ class FlagWidget(tk.Frame):
         return self.selection
     
 
+class DirectoryWidget(ttk.LabelFrame):
+
+    def __init__(self,
+                 parent,
+                 label='',
+                 prop_frame={},
+                 prop_entry={},
+                 callback=None,
+                 user=None,
+                 **kwargs):
+        self.prop_frame = {}
+        self.prop_frame.update(prop_frame)
+
+        self.prop_entry = {'width': 50}
+        self.prop_entry.update(prop_entry)
+
+        self.grid_frame = {'padx': 5,
+                           'pady': 5,
+                           'sticky': 'nsew'}
+        self.grid_frame.update(kwargs)
+
+        ttk.LabelFrame.__init__(self, parent, text=label, **self.prop_frame)
+        self.grid(**self.grid_frame)
+
+        self.callback = callback
+        self.user = user
+
+        self._set_frame()
+
+
+    # ===========================================================================
+    def _set_frame(self):
+        padx = 5
+        pady = 5
+
+        frame = tk.Frame(self)
+        frame.grid(row=0, column=0, padx=padx, pady=pady, sticky='w')
+        grid_configure(self)
+
+        r = 0
+        c = 0
+
+        tk.Label(frame, text='Directory:').grid(row=r, column=c, padx=padx, pady=pady, sticky='nw')
+        self.stringvar_directory = tk.StringVar()
+        self.entry_directory = tk.Entry(frame, textvariable=self.stringvar_directory, **self.prop_entry)
+        self.entry_directory.grid(row=r, column=c + 1, padx=padx, pady=pady, sticky='nw')
+        self.stringvar_directory.trace("w",
+                                       lambda name, index, mode, sv=self.stringvar_directory: check_path_entry(sv))
+
+        ttk.Button(frame, text='Get directory', command=self._get_directory).grid(row=r, column=c + 2, columnspan=2,
+                                                                                  padx=padx,
+                                                                                  pady=pady, sticky='se')
+        r += 1
+
+        grid_configure(frame, nr_rows=r)
+
+    def _get_directory(self):
+        directory = tk.filedialog.askdirectory()
+        if directory:
+            self.stringvar_directory.set(directory)
+
+    def get_directory(self):
+        return self.stringvar_directory.get()
+
+    def set_directory(self, directory):
+        self.stringvar_directory.set(directory)
+
+
+
 
 class Fonts():
     def __init__(self):

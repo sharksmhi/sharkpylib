@@ -34,9 +34,16 @@ class GISMOExceptionMissingPath(GISMOException):
 
 
 # ==============================================================================
+class GISMOExceptionNoMatchDataMade(GISMOException):
+    """
+    """
+    code = ''
+    message = ''
+
+# ==============================================================================
 class GISMOExceptionInvalidPath(GISMOException):
     """
-    Created     20181002     
+    Created     20181002
     """
     code = ''
     message = ''

@@ -10,7 +10,32 @@ import os
 import codecs
 import pandas as pd
 import numpy as np
+import datetime
 from . import odvfile
+
+
+class ModifyLog(object):
+    def __init__(self, file_path):
+        self.file_path = file_path
+        self.directory = os.path.dirname(self.file_path)
+        if not os.path.exists(self.directory):
+            os.makedirs(self.directory)
+
+        self.all_strings = {}
+
+    def add_warning(self, file_name, text):
+        string = 'WARNING\t{}\t{}\n'.format(file_name, text)
+        if not self.all_strings.get(string):
+            with codecs.open(self.file_path, 'a') as fid:
+                fid.write(string)
+            self.all_strings[string] = True
+
+    def add_info(self, file_name, text):
+        string = 'INFO\t{}\t{}\n'.format(file_name, text)
+        if not self.all_strings.get(string):
+            with codecs.open(self.file_path, 'a') as fid:
+                fid.write(string)
+            self.all_strings[string] = True
 
 
 class ModifyODVfile_old(object):
@@ -106,7 +131,7 @@ class ModifyODVfile_old(object):
 
 class ModifyODVfile(object):
 
-    def __init__(self, file_path):
+    def __init__(self, file_path, **kwargs):
         if not os.path.exists(file_path):
             raise IOError
         self.file_path = file_path
@@ -117,6 +142,10 @@ class ModifyODVfile(object):
         self.df = []
 
         self.modifications_made = []
+
+        self.log = None
+        if kwargs.get('log_path'):
+            self.log = ModifyLog(kwargs.get('log_path'))
 
 
     def load_metadata(self, breakpoint='Cruise', **kwargs):
@@ -131,6 +160,8 @@ class ModifyODVfile(object):
         with codecs.open(self.file_path, encoding=kwargs.get('encoding_in', kwargs.get('encoding', 'cp1252'))) as fid_in:
             for line in fid_in:
                 line = line.strip('\n\r')
+                if not line.strip():
+                    continue
                 if line.startswith(breakpoint):
                     break
                 else:
@@ -150,14 +181,30 @@ class ModifyODVfile(object):
         with codecs.open(self.file_path, encoding=kwargs.get('encoding_in', kwargs.get('encoding', 'cp1252'))) as fid_in:
             for line in fid_in:
                 line = line.strip('\n\r')
+                if not line.strip():
+                    continue
                 if line.startswith(comment_prefix):
                     continue
                 else:
+                    split_line = line.split('\t')
                     if line.startswith(header_locator):
-                        self.header = line.split('\t')
+                        self.header = split_line
                     else:
-                        self.data.append(line.split('\t'))
-            self.df = pd.DataFrame.from_records(data=self.data, columns=self.header)
+                        if kwargs.get('match_nr_columns_with_header'):
+                            if len(self.header) != len(split_line):
+                                # print('Length of header and data is not the same in file: {}'.format(os.path.basename(self.file_path)))
+                                if self.log:
+                                    self.log.add_warning(self.file_path, 'Header not the same length as data line')
+                            self.data.append(split_line[:len(self.header)])
+
+                        else:
+                            self.data.append(split_line)
+            try:
+                self.df = pd.DataFrame.from_records(data=self.data, columns=self.header)
+            except:
+                print('='*50)
+                print(self.file_path)
+                raise Exception
 
     def add_column(self, df=False, current_column_name='', new_column='QV:SEADATANET', data='1', position=1, **kwargs):
         """
@@ -184,6 +231,8 @@ class ModifyODVfile(object):
         #    else:
         #        raise ValueError('Missing pandas dataframe! Use _load_data() or supply your own dataframe as input')
 
+        if current_column_name not in self.df.columns:
+            return
         index = self.df.keys().get_loc(current_column_name)
 
         if self.df.keys()[index + position] != new_column:
@@ -192,6 +241,10 @@ class ModifyODVfile(object):
             else:
                 new_data = [data] * len(self.df[current_column_name])
             self.df.insert(loc=index + position, column=new_column, value=new_data, allow_duplicates=True)
+            if self.log:
+                self.log.add_info(self.file_path, 'Column {} added {} positions after current column name {}'.format(new_column,
+                                                                                                                     position,
+                                                                                                                     current_column_name))
         else:
             if not kwargs.get('silent', False):
                 print('WARNING! The column you want to insert is already present in your file: %s' % self.file_path)
@@ -246,6 +299,9 @@ class ModifyODVfile(object):
             print('No metadata loaded for file {}'.format(self.file_path))
             return
         for k, line in enumerate(self.metadata):
+            if self.log:
+                if from_string in line:
+                    self.log.add_info(self.file_path, 'String "{}" replaced with "{}'.format(from_string, to_string))
             self.metadata[k] = line.replace(from_string, to_string)
 
     def replace_string_in_column(self, from_string, to_string, *args):
@@ -355,5 +411,10 @@ class ModifyODVfile(object):
             #     print('\n'.join(self.metadata))
             #     print(self.metadata)
             for item in data_dict['data']:
-
-                fid_out.write('\t'.join(item)+'\n')
+                try:
+                    fid_out.write('\t'.join(item)+'\n')
+                except:
+                    print('='*50)
+                    print(file_name)
+                    print(item)
+                    raise Exception
