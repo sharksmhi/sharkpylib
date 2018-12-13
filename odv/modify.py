@@ -193,7 +193,8 @@ class ModifyODVfile(object):
                 new_data = [data] * len(self.df[current_column_name])
             self.df.insert(loc=index + position, column=new_column, value=new_data, allow_duplicates=True)
         else:
-            print('WARNING! The column you want to insert is already present in your file: %s' % self.file_path)
+            if not kwargs.get('silent', False):
+                print('WARNING! The column you want to insert is already present in your file: %s' % self.file_path)
 
     def convert_to_timeseries(self, **kwargs):
         """
@@ -298,7 +299,12 @@ class ModifyODVfile(object):
         if df:
             self.df = df
 
-        self.df.loc[self.df[column_name] == old_val, column_name] = new_val
+        if kwargs.get('first', False):
+            #print(self.df[column_name][0])
+            if self.df[column_name][0] == old_val:
+                self.df.loc[self.df.index == 0, column_name] = new_val
+        else:
+            self.df.loc[self.df[column_name] == old_val, column_name] = new_val
 
     def write_new_odv(self, output_dir='D:/temp', file_name=False, df=False, metadata=False, **kwargs):
         """
