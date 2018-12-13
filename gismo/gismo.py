@@ -33,6 +33,12 @@ class GISMOdataManager(object):
 
         self.match_objects = {}
 
+    def has_file_id(self, file_id):
+        try:
+            self._check_file_id()
+            return True
+        except:
+            return False
 
     def _check_file_id(self, file_id):
         """

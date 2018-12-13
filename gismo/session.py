@@ -446,7 +446,6 @@ class GISMOsession(object):
                                         pkl_file_path=data_file_path_pkl,
                                         **kwargs)
 
-
         else:
             # Check if sampling_type is correct 
             # file_name = os.path.basename(file_path)
@@ -460,6 +459,9 @@ class GISMOsession(object):
                                        pkl_file_path=data_file_path_pkl)
 
         return file_id
+
+    def has_file_id(self, file_id):
+        return self.data_manager.has_file_id(file_id)
 
     def remove_file(self, file_id):
         """

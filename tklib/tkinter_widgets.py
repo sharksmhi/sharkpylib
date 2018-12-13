@@ -1070,7 +1070,7 @@ class ListboxWidget(tk.Frame):
                  only_unique_items=True, 
                  include_delete_button=True,
                  callback_delete_button=None,  # returns at the removed item
-                 title=u'', 
+                 title='',
                  **kwargs):
         
         # Update kwargs dict
@@ -1106,8 +1106,8 @@ class ListboxWidget(tk.Frame):
     #===========================================================================
     def _set_frame(self):
         
-        padx = 5
-        pady = 5
+        padx = 2
+        pady = 2
         frame = tk.Frame(self)
         frame.grid(row=0, column=0, padx=padx, pady=pady, sticky='nsew')
         grid_configure(self) 
@@ -2747,10 +2747,12 @@ class TimeWidget(ttk.Labelframe):
 #            
             
     #===========================================================================
-    def set_time(self, time_string=None, datenumber=None, first=False, last=False):
+    def set_time(self, time_string=None, datenumber=None, datetime_object=None, first=False, last=False):
         
         time_object = None
-        if time_string:
+        if datetime_object:
+            time_object = datetime_object
+        elif time_string:
             for time_format in self.time_formats:
                 try:
                     time_object = datetime.datetime.strptime(time_string, time_format)
@@ -2768,6 +2770,7 @@ class TimeWidget(ttk.Labelframe):
             time_object = self.to_time
         
         if not time_object:
+            print('RETURN')
             return
         self.current_time = time_object
         
@@ -2816,7 +2819,7 @@ class FlagWidget(tk.Frame):
         def __init__(self):
             self.flag = None
             self.selected_descriptions = []
-            self.selected_flags= []
+            self.selected_flags = []
             self.colors = {}
             self.markersize = {}
             self.edge = True
