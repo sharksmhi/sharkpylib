@@ -102,7 +102,7 @@ class CheckbuttonWidget(tk.Frame):
             if not r%self.nr_rows_per_column:
                 c+=1
                 r=0
-        
+
         
         if self.include_select_all:
             prop = dict((k, v) for k, v in self.prop_cbuttons.items() if k in ['padx', 'pady'])
@@ -147,7 +147,8 @@ class CheckbuttonWidget(tk.Frame):
           
     #===========================================================================
     def _add_to_disabled(self, item):
-        self.disabled_list.append(item)
+        if item not in self.disabled_list:
+            self.disabled_list.append(item)
         self._check_disable_list()
         
     #===========================================================================
@@ -158,8 +159,13 @@ class CheckbuttonWidget(tk.Frame):
     
     #===========================================================================
     def _check_disable_list(self):
+        print('%%'*50)
+        print(sorted(self.disabled_list))
+        print(sorted(self.items))
         try:
-            if sorted(self.disabled_list) == sorted(self.items):
+            if not self.disabled_list:
+                self.cbutton_select_all.config(state=u'normal')
+            elif sorted(self.disabled_list) == sorted(self.items):
                 self.cbutton_select_all.config(state=u'disabled')
             else:
                 self.cbutton_select_all.config(state=u'normal')
@@ -2584,7 +2590,7 @@ class TimeWidget(ttk.Labelframe):
         self.show_header = show_header
         
         self.lowest_time_resolution = lowest_time_resolution
-        time_res = ['year', 'month','day', 'hour', 'minute', 'seconds']
+        time_res = ['year', 'month','day', 'hour', 'minute', 'second']
         self.time_resolution = []
         for tr in time_res:
             self.time_resolution.append(tr)
@@ -2857,7 +2863,8 @@ class FlagWidget(tk.Frame):
                  edge_checkbutton=False, 
                  callback_flag_data=None, 
                  callback_update=None, 
-                 callback_prop_change=None, 
+                 callback_prop_change=None,
+                 text='',
                  **kwargs):
         
         self.flags = flags
@@ -2869,6 +2876,7 @@ class FlagWidget(tk.Frame):
         self.default_colors = default_colors
         self.colors = colors
         self.markersize = markersize
+        self.text = text
         
         if not self.colors:
             self.colors = ['blue', 'red', 'darkgreen', 'yellow', 'magenta', 'cyan', 'black', 'gray']
@@ -2916,10 +2924,22 @@ class FlagWidget(tk.Frame):
     def _set_frame(self):
         padx = 5
         pady = 5
+
+        rr = 0
+        if self.text:
+            text_frame = tk.Frame(self)
+            text_frame.grid(row=rr, column=0, padx=padx, pady=pady, sticky='w')
+            self.text_widget = tk.Text(text_frame, wrap=tk.WORD, height=5, bg='lightgray')
+            self.text_widget.grid(row=0, column=0, padx=padx, pady=pady, sticky='w')
+            self.text_widget.insert('end', self.text)
+            grid_configure(text_frame)
+            self.text_widget.config(state='disabled')
+            # self.label_text = WrappedLabel(text_frame, text=self.text)
+            rr+=1
         
         frame = tk.Frame(self)
-        frame.grid(row=0, column=0, padx=padx, pady=pady, sticky='w')
-        grid_configure(self) 
+        frame.grid(row=rr, column=0, padx=padx, pady=pady, sticky='w')
+        grid_configure(self, nr_rows=rr+1)
         
         r=0
         c=0
@@ -2928,7 +2948,7 @@ class FlagWidget(tk.Frame):
         
         self.stringvar_color = {}
         self.stringvar_marker_size = {}
-        
+
         if self.include_flagging:
             # Radiobutton to select which flag to use
             color_dict = {flag: col for flag, col in zip(self.flags, self.default_colors)}
@@ -3009,11 +3029,11 @@ class FlagWidget(tk.Frame):
         c=0
         # Buttons
         if self.include_flagging:
-            self.button_flag = ttk.Button(frame, text=u'Flag', command=self._on_buttonpress_flag) 
+            self.button_flag = ttk.Button(frame, text='Flag selected data', command=self._on_buttonpress_flag)
             self.button_flag.grid(row=r, column=c, columnspan=1, padx=padx, pady=pady, sticky='w')
             c+=1
         
-        self.button_update_flags = ttk.Button(frame, text=u'Update', command=self._on_buttonpress_update) 
+        self.button_update_flags = ttk.Button(frame, text='Update flags to show', command=self._on_buttonpress_update)
         self.button_update_flags.grid(row=r, column=c, columnspan=1, padx=padx, pady=pady, sticky='w')
         
         c+=1
@@ -3157,6 +3177,35 @@ class DirectoryWidget(ttk.LabelFrame):
         self.stringvar_directory.set(directory)
 
 
+class WrappedLabel(tk.Label):
+    def __init__(self,
+                 parent,
+                 text='',
+                 prop_frame={},
+                 prop_label={},
+                 callback=None,
+                 user=None,
+                 **kwargs):
+
+        self.frame = tk.Frame(parent)
+        self.frame.grid(row=0, column=0, sticky='nsew')
+        grid_configure(self.frame)
+
+        self.prop_label = {}
+        self.prop_label.update(prop_label)
+
+        self.grid_frame = {'padx': 5,
+                           'pady': 5,
+                           'sticky': 'nsew'}
+        self.grid_frame.update(kwargs)
+
+        tk.Label.__init__(self, parent, text=text, **self.prop_label)
+        self.grid(**self.grid_frame)
+
+        self.bind('<Configure>', self._update_wrap)
+
+    def _update_wrap(self, event):
+        self.config(wraplength=self.frame.winfo_width())
 
 
 class Fonts():
@@ -3276,7 +3325,8 @@ class TestApp(tk.Tk):
                             return_col = 0
                             
                 entries[row][col].return_entry = entries[return_row][return_col]
-                    
+
+
 
 def disable_widgets(*args):
     for arg in args:

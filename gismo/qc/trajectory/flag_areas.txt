@@ -1,0 +1,2 @@
+name	lat_min	lat_max	lon_min	lon_max	lat pos
+test	60.0	67.0	9.0	20.0

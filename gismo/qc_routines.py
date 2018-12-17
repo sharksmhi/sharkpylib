@@ -16,6 +16,7 @@ from .gismo import GISMOqc
 from .exceptions import *
 
 from .qc import IOCFTP_QC
+from .qc_trajectory import FlagAreas
 
 """
 ========================================================================
@@ -35,12 +36,14 @@ class PluginFactory(object):
     """
     def __init__(self):
         # Add key and class to dict if you want to activate it
-        self.classes = {'iocftp_qc0': QCiocftp,
-                        'ferrybox_test': TestQCFerrybox}
+        self.classes = {'Mask areas': QCmaskArea}
 
-        self.required_arguments = {'iocftp_qc0': [],
-                                   'ferrybox_test': ['local_config_directory',
-                                                     'source_config_directory']}
+        self.required_arguments = {'Mask areas': ['file_path', 'par_to_flag']}
+
+
+#        self.classes = {'iocftp_qc0': QCiocftp,
+#                        'Mask areas': QCmaskArea}
+#        self.required_arguments = {'iocftp_qc0': []}
 
     def get_list(self):
         return sorted(self.classes)
@@ -72,25 +75,110 @@ class PluginFactory(object):
         return self.required_arguments.get(routine)
 
 
-class TestQCFerrybox(GISMOqc):
+class QCmaskArea(GISMOqc):
     """
-    Created 20181005     
 
-    Class to perform QC on gismo ferrybox data
+    Class to perform masking within areas
     """
-    def __init__(self,
-                 local_config_directory=None,
-                 source_config_directory=None,):
-        pass
+    def __init__(self, file_path=None, par_to_flag='all'):
 
-    def update_config_files(self):
-        """ Call to update config files needed to run qc """
-        pass
+        super().__init__()
+        self.name = 'Mask areas'
+        self.file_path = file_path
+        self.par_to_flag = par_to_flag
+        if not self.file_path:
+            gismo_root_path = os.path.dirname(os.path.abspath(__file__))
+            self.file_path = os.path.join(gismo_root_path, 'qc/trajectory/flag_areas.txt')
 
-    def run_qc(self, gismo_object):
-        """ Call to run qc on GISMO-object """
-        pass
+        if not os.path.exists(self.file_path):
+            raise GISMOExceptionInvalidPath
 
+        self.flag_areas_object = FlagAreas(self.file_path)
+        self.flag = '4'
+
+    def get_information(self):
+        info_dict = dict()
+        info_dict['Name'] = self.name
+        info_dict['file_path'] = self.file_path
+        info_dict['par_to_flag'] = self.par_to_flag
+        info_dict['areas'] = self.flag_areas_object.get_areas()
+        return info_dict
+
+    def run_qc(self, gismo_object, **kwargs):
+        """
+        Call to run qc on a gismo_object. If return_copy=True a copy of the dataframe is returnd and no data is changed
+        in the gismo_object.
+
+        :param gismo_object:
+        :param return_copy:
+        :return:
+        """
+        if self.flag not in gismo_object.valid_flags:
+            raise GISMOExceptionInvalidFlag('Invalid flag {} in QC routine "{}" '
+                                            'for file with id "{}"'.format(self.flag, self.name, gismo_object.file_id))
+
+        # All parameters with flags should be flagged
+        if self.par_to_flag == 'all':
+            par_list = []
+            for par in gismo_object.get_parameter_list():
+                qpar = gismo_object.get_qf_par(par)
+                if qpar:
+                    par_list.append(par)
+
+        self.flag_areas_object.run_qc(gismo_object, par_list=par_list, flag=self.flag)
+
+
+class QCmaskArea(GISMOqc):
+    """
+
+    Class to perform masking within areas
+    """
+    def __init__(self, file_path=None, par_to_flag='all'):
+
+        super().__init__()
+        self.name = 'Mask areas'
+        self.file_path = file_path
+        self.par_to_flag = par_to_flag
+        if not self.file_path:
+            gismo_root_path = os.path.dirname(os.path.abspath(__file__))
+            self.file_path = os.path.join(gismo_root_path, 'qc/trajectory/flag_areas.txt')
+
+        if not os.path.exists(self.file_path):
+            raise GISMOExceptionInvalidPath
+
+        self.flag_areas_object = FlagAreas(self.file_path)
+        self.flag = '4'
+
+    def get_information(self):
+        info_dict = dict()
+        info_dict['Name'] = self.name
+        info_dict['file_path'] = self.file_path
+        info_dict['par_to_flag'] = self.par_to_flag
+        info_dict['areas'] = self.flag_areas_object.get_areas()
+        return info_dict
+
+    def run_qc(self, gismo_object, **kwargs):
+        """
+        Call to run qc on a gismo_object. If return_copy=True a copy of the dataframe is returnd and no data is changed
+        in the gismo_object.
+
+        :param gismo_object:
+        :param return_copy:
+        :return:
+        """
+        if self.flag not in gismo_object.valid_flags:
+            raise GISMOExceptionInvalidFlag('Invalid flag {} in QC routine "{}" '
+                                            'for file with id "{}"'.format(self.flag, self.name, gismo_object.file_id))
+
+        # All parameters with flags should be flagged
+        if self.par_to_flag == 'all':
+            par_list = []
+            for par in gismo_object.get_parameter_list():
+                qpar = gismo_object.get_qf_par(par)
+                if qpar:
+                    par_list.append(par)
+
+        self.flag_areas_object.run_qc(gismo_object, par_list=par_list, flag=self.flag)
 
 class QCiocftp(GISMOqc):
     """
@@ -101,8 +189,8 @@ class QCiocftp(GISMOqc):
     """
 
     def __init__(self, *args, **kwargs):
-
         super().__init__(*args, **kwargs)
+        self.name = 'iocftp_qc0'
 
         gismo_root_path = os.path.dirname(os.path.abspath(__file__))
         # Paths must end with /
@@ -111,6 +199,8 @@ class QCiocftp(GISMOqc):
         self.log_directory = kwargs.get('log_directory', os.path.join(gismo_root_path, 'qc/iocftp/log/'))
         if not os.path.exists(self.log_directory):
             os.mkdir(self.log_directory)
+
+        self._set_config_paths()
 
     def _set_config_paths(self):
         # Set global path to config files
@@ -133,7 +223,6 @@ class QCiocftp(GISMOqc):
         if not hasattr(gismo_object, 'df'):
             raise GISMOExceptionInvalidInputArgument
 
-        self._set_config_paths()
 
         # Setup log
         log = logging.getLogger("QC_check_file.py")

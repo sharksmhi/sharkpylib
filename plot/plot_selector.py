@@ -1211,9 +1211,12 @@ class Ax():
             pass
         else:
 
-            # Save data
-            self.mark_from_value = mark_from_value
-            self.mark_to_value = mark_to_value
+            try:
+                # Save data
+                self.mark_from_value = mark_from_value
+                self.mark_to_value = mark_to_value
+            except:
+                return
 
             # print('From: {}, To: {}'.format(self.mark_from_value, self.mark_to_value))
 

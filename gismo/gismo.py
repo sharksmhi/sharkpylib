@@ -418,14 +418,7 @@ class GISMOqc(object):
     """
 
     def __init__(self, *args, **kwargs):
-        self.qc_routines = []
-
-    def update_config_files(self):
-        """
-        Call to update config files needed to run qc
-        :return:
-        """
-        raise GISMOExceptionMethodNotImplemented
+        self.name = ''
 
     def run_qc(self, gismo_object, **kwargs):
         """
@@ -434,6 +427,13 @@ class GISMOqc(object):
         Make sure self.name is in gismo_object.valid_qc_routines
 
         :param gismo_object:
+        :return:
+        """
+        raise GISMOExceptionMethodNotImplemented
+
+    def get_information(self):
+        """
+        Should return a dict with information about the QC routine.
         :return:
         """
         raise GISMOExceptionMethodNotImplemented

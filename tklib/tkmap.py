@@ -822,12 +822,12 @@ class TkMap(object):
         if marker_name in self.marker_order:
             self.delete_marker(marker_name)
         
-        if type(lat) != list:
+        if type(lat) in [int, float]:
             lat = [lat]
             lon = [lon]
 
-        if not lat:
-            return
+        # if not lat:
+        #     return
         x, y = self.m(lon, lat)
         handle = self.m.plot(x, y, marker=marker, **kwargs)
         self.redraw()

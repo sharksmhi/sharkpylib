@@ -184,3 +184,18 @@ class GISMOExceptionInvalidQCroutine(GISMOException):
     """
     code = ''
     message = ''
+
+# ==============================================================================
+class GISMOExceptionQCfailed(GISMOException):
+    """
+    """
+    code = ''
+    message = ''
+
+# ==============================================================================
+class GISMOExceptionInvalidFlag(GISMOException):
+    """
+    """
+    code = ''
+    message = ''
+

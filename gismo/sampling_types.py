@@ -687,7 +687,7 @@ class CMEMSferrybox(GISMOfile):
         self.flag_data_options = self.flag_data_options + ['time', 'time_start', 'time_end']
         self.mask_data_options = self.mask_data_options + []
 
-        self.valid_qc_routines = ['iocftp_qc0']
+        self.valid_qc_routines = ['Mask areas']
 
 
 # ==============================================================================
