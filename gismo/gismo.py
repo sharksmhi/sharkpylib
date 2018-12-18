@@ -476,7 +476,7 @@ class MatchGISMOdata(object):
 
     def _limit_data_scope(self, **kwargs):
         """
-        Narrow the data scope. Data outside the the tollerance is removed.
+        Narrow the data scope. Data outside the the tolerance is removed.
         :return:
         """
 
@@ -590,7 +590,7 @@ class MatchGISMOdata(object):
         """
 
         # Use the result from self._find_match to only include data that is in the valid tolerance.
-        match_df = self.match_df.loc[self.match_df['visit_depth_id'].isin(self.matching_match_id_list), :]
+        match_df = self.match_df.loc[self.match_df['visit_depth_id'].isin(self.matching_match_id_list), :].copy(deep=True)
 
         self.suffix_main = '_{}'.format(self.main_object.file_id)
         self.suffix_match = '_{}'.format(self.match_object.file_id)

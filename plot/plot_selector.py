@@ -927,7 +927,18 @@ class Plot():
             ax.set_prop(line_id=line_id, **kwargs)
             
     #===========================================================================
-    def set_data(self, x=False, y=False, z=None, c=None, line_id='default', exclude_index=[], ax='first', call_targets=True, **kwargs):
+    def set_data(self,
+                 x=False,
+                 y=False,
+                 z=None,
+                 c=None,
+                 line_id='default',
+                 exclude_index=[],
+                 ax='first',
+                 call_targets=True,
+                 colorbar_title='',
+                 **kwargs):
+
         ax = self._get_ax_object(ax)
         if ax:
             if self.time_axis == 'x':
@@ -939,7 +950,8 @@ class Plot():
             if kwargs.get('contour_plot'):
                 x, y = np.meshgrid(x, y)
 
-            ax.set_data(x=x, y=y, z=z, c=c, line_id=line_id, exclude_index=exclude_index, call_targets=call_targets, **kwargs)
+            ax.set_data(x=x, y=y, z=z, c=c, line_id=line_id, exclude_index=exclude_index,
+                        call_targets=call_targets, colorbar_title=colorbar_title, **kwargs)
 
         if self.hover_target:
             self._add_event_hover()
@@ -1400,7 +1412,7 @@ class Ax():
         self.reset_ax()
         
     #===========================================================================
-    def set_data(self, x=False, y=False, z=None, c=None, line_id='default', exclude_index=[], call_targets=True, **kwargs):
+    def set_data(self, x=False, y=False, z=None, c=None, line_id='default', exclude_index=[], call_targets=True, colorbar_title='', **kwargs):
 
         try:
             self.p['scatter_plot'].remove()
@@ -1431,10 +1443,14 @@ class Ax():
                                       # cmap=kwargs.get('cmap', None),
                                       # vmin=kwargs.get('vmin', None),
                                       # vmax=kwargs.get('vmax', None))
-
-            self.cbaxes = inset_axes(self.ax, width="5%", height="30%", loc=2)
-            self.cbar = self.parent.fig.colorbar(self.p[cid], cax=self.cbaxes, orientation='vertical')
-            # self.cbar = self.parent.fig.colorbar(self.p[cid])
+            if colorbar_title:
+                self.cbaxes = inset_axes(self.ax, width="5%", height="30%", loc=4)
+                self.cbar = self.parent.fig.colorbar(self.p[cid], cax=self.cbaxes, orientation='vertical')
+                self.cbaxes.yaxis.set_ticks_position('left')
+                self.cbar.ax.set_title(colorbar_title)
+                font = matplotlib.font_manager.FontProperties(family='times new roman', style='italic', size=10)
+                text = self.cbaxes.title
+                text.set_font_properties(font)
 
         else:
             # Create new prop dict if not in self.prop

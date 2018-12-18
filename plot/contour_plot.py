@@ -75,8 +75,8 @@ class PlotContour(object):
         if target not in self.targets:
             self.targets.append(target)
 
-    def add_legend(self):
-        self.legend = self.fig.legend()
+    def add_legend(self, **kwargs):
+        self.legend = self.fig.legend(**kwargs)
         self.call_targets()
 
     #==========================================================================
