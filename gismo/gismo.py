@@ -464,9 +464,9 @@ class MatchGISMOdata(object):
         self.tolerance_depth = int(kwargs.get('depth', tolerance_depth))
         self.tolerance_time = pd.Timedelta(days=kwargs.get('days', 0), hours=kwargs.get('hours', tolerance_hour))
 
-        print(self.tolerance_dist)
-        print(self.tolerance_depth)
-        print(self.tolerance_time)
+        # print(self.tolerance_dist)
+        # print(self.tolerance_depth)
+        # print(self.tolerance_time)
 
         # Run steps
         self._limit_data_scope(**kwargs)

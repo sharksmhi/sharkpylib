@@ -80,21 +80,24 @@ class GISMOfile(GISMOdata):
     """
     # TODO: filter_data, flag_options, flag_data
     # ==========================================================================
-    def __init__(self, data_file_path=None, settings_file_path=None, root_directory=None, **kwargs):
+    def __init__(self, data_file_path=None, settings_file_path=None, root_directory=None, mapping_files_directory=None, **kwargs):
 
-        super().__init__()
+        GISMOdata.__init__(self, **kwargs)
+        # super().__init__()
 
         self.file_path = data_file_path
         self.file_id, ending = os.path.splitext(os.path.basename(data_file_path))
         self.settings_file_path = settings_file_path
         self.export_df = None
         self.root_directory = root_directory
+        self.mapping_files_directory = mapping_files_directory
 
         self.comment_id = kwargs.get('comment_id', None)
 
         self.file_encoding = kwargs.get('file_encoding', 'cp1252')
         self.sampling_type = kwargs.get('sampling_type', '')
 
+        self._find_mapping_files()
         self._load_settings_file()
         self._load_station_mapping()
         self._load_parameter_mapping()
@@ -128,13 +131,25 @@ class GISMOfile(GISMOdata):
         else:
             self.nr_decimals = None
 
+    def _find_mapping_files(self):
+        # Mapping files
+        if not os.path.exists(self.mapping_files_directory):
+            os.makedirs(self.mapping_files_directory)
+        self.mapping_files = {}
+        for file_name in os.listdir(self.mapping_files_directory):
+            if not file_name.endswith('txt'):
+                continue
+            self.mapping_files[file_name] = os.path.join(self.mapping_files_directory, file_name)
+
     # ==========================================================================
     def _load_station_mapping(self):
-        self.station_mapping = StationMapping(settings_object=self.settings)
+        self.station_mapping = StationMapping(settings_object=self.settings,
+                                              mapping_files=self.mapping_files)
 
     # ==========================================================================
     def _load_parameter_mapping(self):
-        self.parameter_mapping = ParameterMapping(settings_object=self.settings)
+        self.parameter_mapping = ParameterMapping(settings_object=self.settings,
+                                                  mapping_files=self.mapping_files)
 
 
     # ==========================================================================
@@ -689,6 +704,10 @@ class CMEMSferrybox(GISMOfile):
         kwargs.update(dict(data_file_path=data_file_path,
                            settings_file_path=settings_file_path,
                            root_directory=root_directory))
+
+        for key in sorted(kwargs):
+            print(key, kwargs[key])
+
         GISMOfile.__init__(self, **kwargs)
 
         self.filter_data_options = self.filter_data_options + ['time', 'time_start', 'time_end']

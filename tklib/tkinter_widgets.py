@@ -423,7 +423,8 @@ class EntryWidget(tk.Entry):
                  entry_type='general',
                  entry_id='', 
                  callback_on_focus_out=None, 
-                 callback_on_return_new_row=None, 
+                 callback_on_return_new_row=None,
+                 callback_on_change_value=None,
                  prop_entry={}, 
                  **kwargs):
         
@@ -436,6 +437,7 @@ class EntryWidget(tk.Entry):
         self.entry_type = entry_type
         self.callback_on_focus_out = callback_on_focus_out
         self.callback_on_return_new_row = callback_on_return_new_row
+        self.callback_on_change_value = callback_on_change_value
         
         self.stringvar = tk.StringVar()
         
@@ -562,14 +564,16 @@ class EntryWidget(tk.Entry):
         string = self.stringvar.get().strip()
         
         if not string:
-            return
-        if self.entry_type == 'int':
+            pass
+        elif self.entry_type == 'int':
             string = re.sub('\D', '', string)
         elif self.entry_type == 'float':
             string = string.replace(',', '.')
             split_value = [re.sub('\D', '', v) for v in string.split('.')]
             string = '.'.join(split_value)
         self.stringvar.set(string)
+        if self.callback_on_change_value:
+            self.callback_on_change_value()
     
     #===========================================================================
     def focus_entry(self):
@@ -1040,7 +1044,6 @@ class LabelFrameLabel(tk.LabelFrame):
     #===========================================================================
     def set_text(self, value, **kwargs): 
         """
-        Created     20180822     
         """
         self.reset()
         self.stringvar.set(value)
@@ -1051,7 +1054,6 @@ class LabelFrameLabel(tk.LabelFrame):
     #===========================================================================
     def reset(self):
         """
-        Created     20180822     
         """ 
         self.stringvar.set('')
         self.label.configure(bg=None, fg='black')
@@ -2811,6 +2813,14 @@ class TimeWidget(ttk.Labelframe):
         # Remove values and current value in comboboxes
         for part in self.time_resolution:
             self.combobox[part]['values'] = []
+            self.stringvar[part].set('')
+
+    def clear_widget(self):
+        """
+        Clears selection (sets all entries to "blanc")
+        :return:
+        """
+        for part in self.time_resolution:
             self.stringvar[part].set('')
 """
 ================================================================================

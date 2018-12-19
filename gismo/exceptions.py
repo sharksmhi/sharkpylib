@@ -199,3 +199,12 @@ class GISMOExceptionInvalidFlag(GISMOException):
     code = ''
     message = ''
 
+
+# ==============================================================================
+class GISMOExceptionMissingSettingsFile(GISMOException):
+    """
+    """
+    code = ''
+    message = ''
+
+

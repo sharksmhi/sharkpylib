@@ -223,6 +223,8 @@ class GISMOsession(object):
     def __init__(self,
                  root_directory='',
                  users_directory='',
+                 mapping_files_directory='',
+                 settings_files_directory='',
                  log_directory='',
                  user='default',
                  sampling_types_factory=None,
@@ -238,13 +240,15 @@ class GISMOsession(object):
         kwargs can include:
             save_pkl
         """
-        if not all([users_directory, user, sampling_types_factory]):
+        if not all([users_directory, user, sampling_types_factory, mapping_files_directory, settings_files_directory]):
             raise GISMOExceptionMissingInputArgument
 
         self.root_directory = root_directory
         self.users_directory = users_directory
         self.log_directory = log_directory
         self.save_pkl = kwargs.get('save_pkl', False)
+        self.mapping_files_directory = mapping_files_directory
+        self.settings_files_directory = settings_files_directory
 
         self.sampling_types_factory = sampling_types_factory
         self.qc_routines_factory = qc_routines_factory
@@ -257,8 +261,28 @@ class GISMOsession(object):
 
         self.compare_objects = {}
 
+        self._load_attributes()
+
         self._startup_session()
 
+    def _load_attributes(self):
+        # Settings files
+        if not os.path.exists(self.settings_files_directory):
+            os.makedirs(self.settings_files_directory)
+        self.settings_files = {}
+        for file_name in os.listdir(self.settings_files_directory):
+            if not file_name.endswith('ini'):
+                continue
+            self.settings_files[file_name] = os.path.join(self.settings_files_directory, file_name)
+
+        # Mapping files
+        if not os.path.exists(self.mapping_files_directory):
+            os.makedirs(self.mapping_files_directory)
+        self.mapping_files = {}
+        for file_name in os.listdir(self.mapping_files_directory):
+            if not file_name.endswith('txt'):
+                continue
+            self.mapping_files[file_name] = os.path.join(self.mapping_files_directory, file_name)
     
     # ==========================================================================
     def _startup_session(self):
@@ -376,7 +400,6 @@ class GISMOsession(object):
     def get_match_object(self, main_file_id, match_file_id, *args, **kwargs):
         return self.data_manager.get_match_object(main_file_id, match_file_id, *args, **kwargs)
 
-
     def match_files(self, main_file_id, match_file_id, **kwargs):
         self.data_manager.match_files(main_file_id, match_file_id, **kwargs)
 
@@ -384,24 +407,42 @@ class GISMOsession(object):
     def load_file(self,
                   sampling_type='',
                   data_file_path='',
-                  settings_file_path='',
+                  settings_file='',
+                  # settings_file_path='',
                   **kwargs):
+        """
+        :param sampling_type:
+        :param data_file_path:
+        :param settings_file: must be found in self.settings_files_path
+        :param settings_file_path:
+        :param kwargs:
+        :return:
+        """
         """
         Created 20180628       
         Updated 20181004       
-
+        
         If reload==True the original file is reloaded regardless if a pkl file exists.
         sampling_type refers to SMTYP in SMHI codelist
         
         kwargs can be:
             file_encoding
         """
+
         if sampling_type not in self.data_manager.sampling_type_list:
             raise GISMOExceptionInvalidSamplingType(sampling_type)
+        # print('=', self.settings_files)
+        # print('-', settings_file)
+        if not settings_file.endswith('.ini'):
+            settings_file = settings_file + '.ini'
+        settings_file_path = self.settings_files.get(settings_file, None)
+        if not settings_file_path:
+            raise GISMOExceptionMissingSettingsFile
 
         kw = dict(data_file_path=data_file_path,
                   settings_file_path=settings_file_path,
-                  root_directory=self.root_directory)
+                  # root_directory=self.root_directory,
+                  mapping_files_directory=self.mapping_files_directory)
         kw.update(kwargs)
 
         # Check sampling type requirements
@@ -434,7 +475,10 @@ class GISMOsession(object):
         file_id = file_paths.get('data_file', {}).get('file_id', '')
         if not file_id:
             raise GISMOExceptionMissingKey
-        
+
+        print(data_file_path)
+        print(data_file_path_settings)
+
         # Check type of file and load
         if kwargs.get('reload') or not os.path.exists(data_file_path_pkl):
             # Load original file 
@@ -444,6 +488,7 @@ class GISMOsession(object):
                                         # root_directory=self.root_directory, # Given in kwargs
                                         save_pkl=self.save_pkl,
                                         pkl_file_path=data_file_path_pkl,
+                                        mapping_files_directory=self.mapping_files_directory,
                                         **kwargs)
 
         else:
