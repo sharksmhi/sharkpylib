@@ -352,7 +352,17 @@ class Plot():
         self.first_ax = None
         self.second_ax = None
         self.mark_line_id = 'default'
-    
+
+    # ==========================================================================
+    def delete_data(self, marker_id=None, ax='first'):
+        """
+        if marker_name: marker with the exact name is removed
+        if marker_id: All markers containing the given marker_id are removed
+        """
+        ax = self._get_ax_object(ax)
+        ax.delete_data(marker_id)
+        self.call_targets()
+
     #===========================================================================
     def reset_plot(self):
         if self.first_ax:
@@ -1061,6 +1071,14 @@ class Ax():
         # How to modify this is several polygons are added to the plot
         if self.ax.patches:
             self.ax.patches.pop(0)
+
+    # ===========================================================================
+    def delete_data(self, marker_id):
+        if marker_id in self.ax.lines:
+            self.ax.lines.pop(self.ax.lines.index(marker_id))
+            self.p.pop(marker_id)
+            self.x_data[marker_id] = []
+            self.y_data[marker_id] = []
         
     #===========================================================================
     def reset_marked_points(self, reset_list=True):
