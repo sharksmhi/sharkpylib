@@ -159,9 +159,9 @@ class CheckbuttonWidget(tk.Frame):
     
     #===========================================================================
     def _check_disable_list(self):
-        print('%%'*50)
-        print(sorted(self.disabled_list))
-        print(sorted(self.items))
+        # print('%%'*50)
+        # print(sorted(self.disabled_list))
+        # print(sorted(self.items))
         try:
             if not self.disabled_list:
                 self.cbutton_select_all.config(state=u'normal')
@@ -212,7 +212,6 @@ class CheckbuttonWidget(tk.Frame):
     
     #===========================================================================
     def change_color(self, item, new_color):
-        print('change_color')
         self.cbutton[item].config(fg=new_color)
         self.cbutton[item].update_idletasks()
         self.cbutton[item].update()
@@ -344,7 +343,7 @@ class ComboboxWidget(tk.Frame):
         if not default_item and self.items:
             if default_match:
                 for k, item in enumerate(self.items):
-                    print('default_match', item())
+                    # print('default_match', item())
                     if default_match.lower() in item.lower():
                         self.default_item = self.items[k]
                         break
@@ -699,8 +698,6 @@ class EntryGridWidget(tk.Frame):
                 self.width = np.round(self.parent.winfo_width()*3/4)
             if not self.height:
                 self.height = self.parent.winfo_height()*.9
-                
-            print(self.width, self.height)
     
     #         self.canvas_info = tk.Canvas(self)
             self.canvas_info = tk.Canvas(self, width=self.width, height=self.height)
@@ -1557,7 +1554,7 @@ class ListboxSelectionWidget(tk.Frame):
         if update_targets:
             if self.targets:
                 for target in self.targets:
-                    print(target)
+                    # print(target)
                     target()
             
             if self.target_select and self.last_move_is_selected:
@@ -1635,7 +1632,6 @@ class ListboxSelectionWidget(tk.Frame):
     #===========================================================================
     def _on_click_items(self, event):
         selection = self.listbox_items.curselection()
-        print('selection', selection)
         if selection:
             self.stringvar_items.set(self.listbox_items.get(selection[0]))
             
@@ -2720,8 +2716,7 @@ class TimeWidget(ttk.Labelframe):
         to_month = to_time.month
         to_day = to_time.day
         to_hour = to_time.hour
-        
-        print(self)
+
         for part in self.time_resolution:
             if part == 'year':
                 self.time_lists[part] = map(str, range(from_year, to_year+1))
@@ -2778,7 +2773,6 @@ class TimeWidget(ttk.Labelframe):
             time_object = self.to_time
         
         if not time_object:
-            print('RETURN')
             return
         self.current_time = time_object
         
@@ -2796,8 +2790,6 @@ class TimeWidget(ttk.Labelframe):
                 time_string = self.stringvar[part].get()
             else:
                 time_string = time_string + ', ' + str(int(self.stringvar[part].get()))
-        print('type(time_string)', type(time_string), time_string)
-        print('*eval(time_string)', eval(time_string))
         datetime_object = datetime.datetime(*eval(time_string))
         return datetime_object
         

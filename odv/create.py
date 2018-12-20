@@ -527,7 +527,7 @@ class CreateODVfileRow(object):
             if not os.path.exists(self.odv_output_directory):
                 os.makedirs(self.odv_output_directory)
             self.file_path = os.path.join(self.odv_output_directory, '{}.txt'.format(series['_local_cdi_id']))
-            print(self.file_path)
+            # print(self.file_path)
             with codecs.open(self.file_path, 'w', encoding='utf8') as fid:
                 fid.write(self.text)
 

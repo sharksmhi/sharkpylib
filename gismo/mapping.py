@@ -268,34 +268,36 @@ class StationMapping():
             split_line = [item.strip() for item in line.split('\t')]
             if not line:
                 continue
-            if '=' not in line and line.startswith(self.header_starts_with):
+            if line.startswith('#'):
+                continue
+            if line.startswith(self.header_starts_with):
                 self.header = split_line
             elif self.header:
                 line_dict = dict(zip(self.header, split_line))
                 
                 external = line_dict[self.external_column]
                 internal = line_dict[self.internal_column]
-                platform_type = line_dict[self.platform_type_column]
+                # platform_type = line_dict[self.platform_type_column]
                 
                 self.internal_to_external[internal] = external
-                self.internal_to_type[internal] = platform_type
+                # self.internal_to_type[internal] = platform_type
                 
                 self.external_to_internal[external] = internal
-                self.external_to_type[external] = platform_type
+                # self.external_to_type[external] = platform_type
                 
-                if platform_type not in self.internal_by_type:
-                    self.internal_by_type[platform_type] = []
-                self.internal_by_type[platform_type].append(internal)
-                
-                if platform_type not in self.external_by_type:
-                    self.external_by_type[platform_type] = []
-                self.external_by_type[platform_type].append(external)
+                # if platform_type not in self.internal_by_type:
+                #     self.internal_by_type[platform_type] = []
+                # self.internal_by_type[platform_type].append(internal)
+                #
+                # if platform_type not in self.external_by_type:
+                #     self.external_by_type[platform_type] = []
+                # self.external_by_type[platform_type].append(external)
                 
         fid.close()
 
-    #===========================================================================
-    def get_ferybox_list(self):
-        return sorted(self.internal_by_type['FB'])
+    # #===========================================================================
+    # def get_ferrybox_list(self):
+    #     return sorted(self.internal_by_type['FB'])
     
     #===========================================================================
     def get_platform_type(self, item):

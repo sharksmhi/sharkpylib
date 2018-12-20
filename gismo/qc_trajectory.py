@@ -42,7 +42,7 @@ class FlagAreas(object):
                       (df['lat'].astype(float) <= lat_max) & \
                       (df['lon'].astype(float) >= lon_min) & \
                       (df['lon'].astype(float) <= lon_max)
-            print(len(np.where(boolean)))
+            # print(len(np.where(boolean)))
             combined_boolean = combined_boolean | boolean
         # Flag data
         time_list = df.loc[combined_boolean, 'time'].values

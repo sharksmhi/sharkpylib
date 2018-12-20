@@ -369,13 +369,14 @@ class GISMOfile(GISMOdata):
             all_args.append(arg)
             all_args.extend(self.get_dependent_parameters(arg))
 
+        print('===================len(args)', len(all_args))
+        print(all_args)
         # Work on external column names
         args = [self.internal_to_external.get(arg, arg) for arg in all_args]
         # args = dict((self.internal_to_external.get(key, key), key) for key in args)
 
-        if not all([arg in self.df.columns for arg in args]):
-            raise GISMOExceptionInvalidInputArgument
-
+        # if not all([arg in self.df.columns for arg in args]):
+        #     raise GISMOExceptionInvalidInputArgument
 
 
         # kwargs contains conditions for flagging. Options are listed in self.flag_data_options.
@@ -397,6 +398,8 @@ class GISMOfile(GISMOdata):
 
         # Flag data
         for par in args:
+            if par not in self.df.columns:
+                continue
             qf_par = self.get_qf_par(par)
             if not qf_par:
                 raise GISMOExceptionMissingQualityParameter('for parameter "{}"'.format(par))
@@ -566,6 +569,7 @@ class GISMOfile(GISMOdata):
             return None
 
         par = self.parameter_mapping.get_external(par)
+        # print('FLAG, dependent', par, type(par))
         return self.settings['dependencies'].get(par, [])
 
     def get_parameter_list(self, **kwargs):
@@ -1052,10 +1056,21 @@ class SamplingTypeSettings(dict):
                 self['dependencies'] = {}
                 for line in self.data[key]:
                     split_line = [item.strip() for item in line.split(';')]
+                    primary_parameter = split_line[0]
+                    dependent_parameters = []
+                    for item in split_line[1:]:
+                        if ':' in item:
+                            # Range of integers
+                            from_par, to_par = [int(par.strip()) for par in item.split(':')]
+                            dependent_parameters.extend(list(map(str, range(from_par, to_par+1))))
+                        else:
+                            dependent_parameters.append(item)
+
                     #                    # Map parameters
                     #                    split_line = [CMEMSparameters().get_smhi_code(par) for par in split_line]
-
-                    self['dependencies'][split_line[0]] = split_line[1:]
+                    # print(primary_parameter, type(primary_parameter))
+                    # print('dependent_parameters'.upper(), dependent_parameters)
+                    self['dependencies'][primary_parameter] = dependent_parameters
 
             # ------------------------------------------------------------------
             elif key.lower() == 'ranges':
@@ -1109,29 +1124,29 @@ class SamplingTypeSettings(dict):
     def get_flag_description_list(self):
         return [self.get_flag_description(flag) for flag in self.flag_list]
 
-    # ==================================================================
-    def get_flag_color(self, flag):
-        return self['flags'][flag]['color']
-
-    # ==================================================================
-    def get_flag_color_list(self):
-        return [self.get_flag_color(flag) for flag in self.flag_list]
-
-    # ==================================================================
-    def get_flag_markersize(self, flag):
-        return self['flags'][flag]['markersize']
-
-    # ==================================================================
-    def get_flag_markersize_list(self):
-        return [self.get_flag_markersize(flag) for flag in self.flag_list]
-
-    # ==================================================================
-    def get_flag_marker(self, flag):
-        return self['flags'][flag]['marker']
-
-    # ==================================================================
-    def get_flag_marker_list(self):
-        return [self.get_flag_marker(flag) for flag in self.flag_list]
+    # # ==================================================================
+    # def get_flag_color(self, flag):
+    #     return self['flags'][flag]['color']
+    #
+    # # ==================================================================
+    # def get_flag_color_list(self):
+    #     return [self.get_flag_color(flag) for flag in self.flag_list]
+    #
+    # # ==================================================================
+    # def get_flag_markersize(self, flag):
+    #     return self['flags'][flag]['markersize']
+    #
+    # # ==================================================================
+    # def get_flag_markersize_list(self):
+    #     return [self.get_flag_markersize(flag) for flag in self.flag_list]
+    #
+    # # ==================================================================
+    # def get_flag_marker(self, flag):
+    #     return self['flags'][flag]['marker']
+    #
+    # # ==================================================================
+    # def get_flag_marker_list(self):
+    #     return [self.get_flag_marker(flag) for flag in self.flag_list]
 
     # ==================================================================
     def get_flag_from_description(self, description):
