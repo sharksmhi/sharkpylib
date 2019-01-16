@@ -33,6 +33,12 @@ class GISMOdataManager(object):
 
         self.match_objects = {}
 
+    def has_file_id(self, file_id):
+        try:
+            self._check_file_id()
+            return True
+        except:
+            return False
 
     def _check_file_id(self, file_id):
         """
@@ -140,6 +146,8 @@ class GISMOdataManager(object):
         self._check_file_id(file_id)
         return self.objects.get(file_id).save_data_options
 
+    def get_file_id_list(self):
+        return sorted(self.objects.keys())
 
     def get_match_object(self, main_file_id, match_file_id, *args, **kwargs):
         self._check_file_id(main_file_id)
@@ -412,14 +420,7 @@ class GISMOqc(object):
     """
 
     def __init__(self, *args, **kwargs):
-        self.qc_routines = []
-
-    def update_config_files(self):
-        """
-        Call to update config files needed to run qc
-        :return:
-        """
-        raise GISMOExceptionMethodNotImplemented
+        self.name = ''
 
     def run_qc(self, gismo_object, **kwargs):
         """
@@ -432,8 +433,218 @@ class GISMOqc(object):
         """
         raise GISMOExceptionMethodNotImplemented
 
+    def get_information(self):
+        """
+        Should return a dict with information about the QC routine.
+        :return:
+        """
+        raise GISMOExceptionMethodNotImplemented
+
 
 class MatchGISMOdata(object):
+    """
+    Class to matchs data from two GISMOdata objects.
+    """
+    def __init__(self,
+                 main_gismo_object,
+                 match_gismo_object,
+                 tolerance_dist=1,  # distance in deg
+                 tolerance_depth=1, # distance in meters
+                 tolerance_hour=0,
+                 **kwargs):
+
+        self.main_object = main_gismo_object
+        self.match_object = match_gismo_object
+        self.merge_df_main = pd.DataFrame()
+        self.merge_df_match = pd.DataFrame()
+
+        # Save tolearances
+        self.tolerance_dist = kwargs.get('dist', tolerance_dist)
+        self.tolerance_depth = int(kwargs.get('depth', tolerance_depth))
+        self.tolerance_time = pd.Timedelta(days=kwargs.get('days', 0), hours=kwargs.get('hours', tolerance_hour))
+
+        # Run steps
+        self._limit_data_scope(**kwargs)
+        self._find_match(**kwargs)
+        self._find_merge(**kwargs)
+
+
+    def _limit_data_scope(self, **kwargs):
+        """
+        Narrow the data scope. Data outside the the tolerance is removed.
+        :return:
+        """
+
+        main_df = self.main_object.df
+        match_df = self.match_object.df
+
+        # Time
+        main_time_boolean = (main_df['time'] >= (np.nanmin(match_df['time']) - self.tolerance_time)) & (
+                main_df['time'] <= (np.nanmax(match_df['time']) + self.tolerance_time))
+
+        match_time_boolean = (match_df['time'] >= (np.nanmin(main_df['time']) - self.tolerance_time)) & (
+                match_df['time'] <= (np.nanmax(main_df['time']) + self.tolerance_time))
+
+        # Pos
+        main_data = self.main_object.get_data('lat', 'lon', 'depth', type_float=True)
+        match_data = self.match_object.get_data('lat', 'lon', 'depth', type_float=True)
+#        print(type(self.tolerance_dist), type(self.tolerance_depth))
+        main_lat_boolean = (main_data['lat'] >= (np.nanmin(match_data['lat']) - self.tolerance_dist)) & (
+                main_data['lat'] <= (np.nanmax(match_data['lat']) + self.tolerance_dist))
+        main_lon_boolean = (main_data['lon'] >= (np.nanmin(match_data['lon']) - self.tolerance_dist)) & (
+                main_data['lon'] <= (np.nanmax(match_data['lon']) + self.tolerance_dist))
+
+        match_lat_boolean = (match_data['lat'] >= (np.nanmin(main_data['lat']) - self.tolerance_dist)) & (
+                match_data['lat'] <= (np.nanmax(main_data['lat']) + self.tolerance_dist))
+        match_lon_boolean = (match_data['lon'] >= (np.nanmin(main_data['lon']) - self.tolerance_dist)) & (
+                match_data['lon'] <= (np.nanmax(main_data['lon']) + self.tolerance_dist))
+
+        # Depth
+        main_depth_boolean = (main_data['depth'] >= (np.nanmin(match_data['depth']) - self.tolerance_depth)) & (
+                main_data['depth'] <= (np.nanmax(match_data['depth']) + self.tolerance_depth))
+
+        match_depth_boolean = (match_data['depth'] >= (np.nanmin(main_data['depth']) - self.tolerance_depth)) & (
+                match_data['depth'] <= (np.nanmax(main_data['depth']) + self.tolerance_depth))
+
+        self.main_time_boolean = main_time_boolean
+        self.main_lat_boolean = main_lat_boolean
+        self.main_lon_boolean = main_lon_boolean
+        self.main_depth_boolean = main_depth_boolean
+
+        self.match_time_boolean = match_time_boolean
+        self.match_lat_boolean = match_lat_boolean
+        self.match_lon_boolean = match_lon_boolean
+        self.match_depth_boolean = match_depth_boolean
+
+        # Extract limited scope
+        self.main_df = main_df.loc[main_time_boolean & main_lat_boolean & main_lon_boolean & main_depth_boolean].copy()
+        self.match_df = match_df.loc[match_time_boolean & match_lat_boolean & match_lon_boolean & match_depth_boolean].copy()
+
+        self.main_df.sort_values(['time', 'depth'], inplace=True)
+        self.match_df.sort_values(['time', 'depth'], inplace=True)
+        # self.main_df.columns = [item + '_main' for item in self.main_df.columns]
+        # self.match_df.columns = [item + '_match' for item in self.match_df.columns]
+
+
+    def _find_match(self, **kwargs):
+        """
+        Look for match for all rows in seld.match_df
+        :return:
+        """
+        main_lat_array = self.main_df['lat'].astype(float)
+        main_lon_array = self.main_df['lon'].astype(float)
+        main_depth_array = self.main_df['depth'].astype(float)
+
+
+        print('Finding match...')
+        self.matching_main_id_set = set()       # All matches in main frame
+        self.matching_match_id_list = []        # All matches in match frame
+        self.matching_main_id_for_match_id = {}
+        for time, lat, lon, depth, id in zip(self.match_df['time'],
+                                             self.match_df['lat'].astype(float),
+                                             self.match_df['lon'].astype(float),
+                                             self.match_df['depth'].astype(float),
+                                             self.match_df['visit_depth_id']):
+
+            # Time
+            time_boolean = (self.main_df['time'] >= (time-self.tolerance_time)) & (
+                    self.main_df['time'] <= (time+self.tolerance_time))
+
+            # Distance
+            # lat_array = np.array([float(item) if item else np.nan for item in self.main_df['lat']])
+            # lon_array = np.array([float(item) if item else np.nan for item in self.main_df['lon']])
+
+            dist_array = latlon_distance_array(lat, lon, main_lat_array, main_lon_array)
+            dist_boolean = (dist_array <= self.tolerance_dist)
+
+            # Depth
+            depth_boolean = (main_depth_array >= (depth - self.tolerance_depth)) & (
+                    main_depth_array <= (depth + self.tolerance_depth))
+
+
+            m_df = self.main_df.loc[time_boolean & dist_boolean & depth_boolean]
+            if len(m_df):
+                self.matching_match_id_list.append(id)
+                self.matching_main_id_set.update(m_df['visit_depth_id'].values)
+                self.matching_main_id_for_match_id[id] = m_df['visit_depth_id'].values
+
+    def _find_merge(self, **kwargs):
+        """
+        Saves merge between the two datasetsfirst:
+        Merge filters on tolerance in time, pos and depth then looks and links the closest match in time.
+        Matches both from main and match point of view.
+
+        :return:
+        """
+
+        # Use the result from self._find_match to only include data that is in the valid tolerance.
+        match_df = self.match_df.loc[self.match_df['visit_depth_id'].isin(self.matching_match_id_list), :].copy(deep=True)
+
+        self.suffix_main = '_{}'.format(self.main_object.file_id)
+        self.suffix_match = '_{}'.format(self.match_object.file_id)
+
+        self.main_df['time{}'.format(self.suffix_main)] = self.main_df['time']
+        match_df['time{}'.format(self.suffix_match)] = match_df['time']
+
+        # Merge on time and saves the matching dataframes
+        self.merge_df_main = pd.merge_asof(self.main_df,
+                                           match_df,
+                                           on='time',
+                                           tolerance=self.tolerance_time,
+                                           suffixes=[self.suffix_main, self.suffix_match],
+                                           direction='nearest')
+
+        self.merge_df_match = pd.merge_asof(match_df,
+                                            self.main_df,
+                                            on='time',
+                                            tolerance=self.tolerance_time,
+                                            suffixes=[self.suffix_match, self.suffix_main],
+                                            direction='nearest')
+
+        # Filter dataframes
+        self.merge_df_main = self.merge_df_main.loc[~self.merge_df_main['time{}'.format(self.suffix_match)].isnull()]
+        self.merge_df_match = self.merge_df_match.loc[~self.merge_df_match['time{}'.format(self.suffix_main)].isnull()]
+
+    def get_merge_parameter(self, parameter_file_id):
+        if not len(self.merge_df_main):
+            raise GISMOExceptionNoMatchDataMade
+
+        if parameter_file_id in self.merge_df_main.columns:
+            return parameter_file_id
+
+        par = parameter_file_id.replace(self.suffix_main, '').replace(self.suffix_match, '')
+        print(par)
+
+        # Check main parameter name
+        par = self.main_object.get_external_parameter_name(par)
+        if par in self.merge_df_main.columns:
+            return par
+
+        # Check match parameter name
+        par = self.match_object.get_external_parameter_name(par)
+        if par in self.merge_df_main.columns:
+            return par
+
+        raise GISMOExceptionInvalidInputArgument
+
+
+    def get_match_data(self, *args, **kwargs):
+        filter_options = kwargs.get('filter_options', {})
+        filter_options['visit_depth_id'] = self.matching_match_id_list
+        kwargs['filter_options'] = filter_options
+        print('kwargs', kwargs)
+        return self.match_object.get_data(*args, **kwargs)
+
+    def get_merge_data(self, *args, **kwargs):
+        if kwargs.get('inverted'):
+            return self.merge_df_match
+        else:
+            return self.merge_df_main
+
+    def get_main_id_for_match_id(self, match_id):
+        return self.matching_main_id_for_match_id.get(match_id)
+
+class old_MatchGISMOdata(object):
     """
     Class to matchs data from two GISMOdata objects.
     """
@@ -458,9 +669,9 @@ class MatchGISMOdata(object):
         self.tolerance_depth = int(kwargs.get('depth', tolerance_depth))
         self.tolerance_time = pd.Timedelta(days=kwargs.get('days', 0), hours=kwargs.get('hours', tolerance_hour))
 
-        print(self.tolerance_dist)
-        print(self.tolerance_depth)
-        print(self.tolerance_time)
+        # print(self.tolerance_dist)
+        # print(self.tolerance_depth)
+        # print(self.tolerance_time)
 
         # Run steps
         self._limit_data_scope(**kwargs)
@@ -470,7 +681,7 @@ class MatchGISMOdata(object):
 
     def _limit_data_scope(self, **kwargs):
         """
-        Narrow the data scope. Data outside the the tollerance is removed.
+        Narrow the data scope. Data outside the the tolerance is removed.
         :return:
         """
 
@@ -584,7 +795,7 @@ class MatchGISMOdata(object):
         """
 
         # Use the result from self._find_match to only include data that is in the valid tolerance.
-        match_df = self.match_df.loc[self.match_df['visit_depth_id'].isin(self.matching_match_id_list), :]
+        match_df = self.match_df.loc[self.match_df['visit_depth_id'].isin(self.matching_match_id_list), :].copy(deep=True)
 
         self.suffix_main = '_{}'.format(self.main_object.file_id)
         self.suffix_match = '_{}'.format(self.match_object.file_id)

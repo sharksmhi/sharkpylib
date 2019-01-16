@@ -167,7 +167,8 @@ class PlotlyPlot():
     #==========================================================================
     def plot_to_file(self, file_path): 
         fig =  self.get_figure()
-        # Plot to file 
+        # Plot to file
+        # file_path = file_path.replace('/', '_').replace('\\', '_')
         ply.plot(fig, filename=file_path) 
         
         

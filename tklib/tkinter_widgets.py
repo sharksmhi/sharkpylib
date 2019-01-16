@@ -102,7 +102,7 @@ class CheckbuttonWidget(tk.Frame):
             if not r%self.nr_rows_per_column:
                 c+=1
                 r=0
-        
+
         
         if self.include_select_all:
             prop = dict((k, v) for k, v in self.prop_cbuttons.items() if k in ['padx', 'pady'])
@@ -147,7 +147,8 @@ class CheckbuttonWidget(tk.Frame):
           
     #===========================================================================
     def _add_to_disabled(self, item):
-        self.disabled_list.append(item)
+        if item not in self.disabled_list:
+            self.disabled_list.append(item)
         self._check_disable_list()
         
     #===========================================================================
@@ -158,8 +159,13 @@ class CheckbuttonWidget(tk.Frame):
     
     #===========================================================================
     def _check_disable_list(self):
+        # print('%%'*50)
+        # print(sorted(self.disabled_list))
+        # print(sorted(self.items))
         try:
-            if sorted(self.disabled_list) == sorted(self.items):
+            if not self.disabled_list:
+                self.cbutton_select_all.config(state=u'normal')
+            elif sorted(self.disabled_list) == sorted(self.items):
                 self.cbutton_select_all.config(state=u'disabled')
             else:
                 self.cbutton_select_all.config(state=u'normal')
@@ -206,7 +212,6 @@ class CheckbuttonWidget(tk.Frame):
     
     #===========================================================================
     def change_color(self, item, new_color):
-        print('change_color')
         self.cbutton[item].config(fg=new_color)
         self.cbutton[item].update_idletasks()
         self.cbutton[item].update()
@@ -338,7 +343,7 @@ class ComboboxWidget(tk.Frame):
         if not default_item and self.items:
             if default_match:
                 for k, item in enumerate(self.items):
-                    print('default_match', item())
+                    # print('default_match', item())
                     if default_match.lower() in item.lower():
                         self.default_item = self.items[k]
                         break
@@ -417,7 +422,8 @@ class EntryWidget(tk.Entry):
                  entry_type='general',
                  entry_id='', 
                  callback_on_focus_out=None, 
-                 callback_on_return_new_row=None, 
+                 callback_on_return_new_row=None,
+                 callback_on_change_value=None,
                  prop_entry={}, 
                  **kwargs):
         
@@ -430,6 +436,7 @@ class EntryWidget(tk.Entry):
         self.entry_type = entry_type
         self.callback_on_focus_out = callback_on_focus_out
         self.callback_on_return_new_row = callback_on_return_new_row
+        self.callback_on_change_value = callback_on_change_value
         
         self.stringvar = tk.StringVar()
         
@@ -556,14 +563,16 @@ class EntryWidget(tk.Entry):
         string = self.stringvar.get().strip()
         
         if not string:
-            return
-        if self.entry_type == 'int':
+            pass
+        elif self.entry_type == 'int':
             string = re.sub('\D', '', string)
         elif self.entry_type == 'float':
             string = string.replace(',', '.')
             split_value = [re.sub('\D', '', v) for v in string.split('.')]
             string = '.'.join(split_value)
         self.stringvar.set(string)
+        if self.callback_on_change_value:
+            self.callback_on_change_value()
     
     #===========================================================================
     def focus_entry(self):
@@ -689,8 +698,6 @@ class EntryGridWidget(tk.Frame):
                 self.width = np.round(self.parent.winfo_width()*3/4)
             if not self.height:
                 self.height = self.parent.winfo_height()*.9
-                
-            print(self.width, self.height)
     
     #         self.canvas_info = tk.Canvas(self)
             self.canvas_info = tk.Canvas(self, width=self.width, height=self.height)
@@ -1034,7 +1041,6 @@ class LabelFrameLabel(tk.LabelFrame):
     #===========================================================================
     def set_text(self, value, **kwargs): 
         """
-        Created     20180822     
         """
         self.reset()
         self.stringvar.set(value)
@@ -1045,7 +1051,6 @@ class LabelFrameLabel(tk.LabelFrame):
     #===========================================================================
     def reset(self):
         """
-        Created     20180822     
         """ 
         self.stringvar.set('')
         self.label.configure(bg=None, fg='black')
@@ -1070,7 +1075,7 @@ class ListboxWidget(tk.Frame):
                  only_unique_items=True, 
                  include_delete_button=True,
                  callback_delete_button=None,  # returns at the removed item
-                 title=u'', 
+                 title='',
                  **kwargs):
         
         # Update kwargs dict
@@ -1106,8 +1111,8 @@ class ListboxWidget(tk.Frame):
     #===========================================================================
     def _set_frame(self):
         
-        padx = 5
-        pady = 5
+        padx = 2
+        pady = 2
         frame = tk.Frame(self)
         frame.grid(row=0, column=0, padx=padx, pady=pady, sticky='nsew')
         grid_configure(self) 
@@ -1549,7 +1554,7 @@ class ListboxSelectionWidget(tk.Frame):
         if update_targets:
             if self.targets:
                 for target in self.targets:
-                    print(target)
+                    # print(target)
                     target()
             
             if self.target_select and self.last_move_is_selected:
@@ -1627,7 +1632,6 @@ class ListboxSelectionWidget(tk.Frame):
     #===========================================================================
     def _on_click_items(self, event):
         selection = self.listbox_items.curselection()
-        print('selection', selection)
         if selection:
             self.stringvar_items.set(self.listbox_items.get(selection[0]))
             
@@ -2584,7 +2588,7 @@ class TimeWidget(ttk.Labelframe):
         self.show_header = show_header
         
         self.lowest_time_resolution = lowest_time_resolution
-        time_res = ['year', 'month','day', 'hour', 'minute', 'seconds']
+        time_res = ['year', 'month','day', 'hour', 'minute', 'second']
         self.time_resolution = []
         for tr in time_res:
             self.time_resolution.append(tr)
@@ -2712,8 +2716,7 @@ class TimeWidget(ttk.Labelframe):
         to_month = to_time.month
         to_day = to_time.day
         to_hour = to_time.hour
-        
-        print(self)
+
         for part in self.time_resolution:
             if part == 'year':
                 self.time_lists[part] = map(str, range(from_year, to_year+1))
@@ -2747,10 +2750,12 @@ class TimeWidget(ttk.Labelframe):
 #            
             
     #===========================================================================
-    def set_time(self, time_string=None, datenumber=None, first=False, last=False):
+    def set_time(self, time_string=None, datenumber=None, datetime_object=None, first=False, last=False):
         
         time_object = None
-        if time_string:
+        if datetime_object:
+            time_object = datetime_object
+        elif time_string:
             for time_format in self.time_formats:
                 try:
                     time_object = datetime.datetime.strptime(time_string, time_format)
@@ -2785,8 +2790,6 @@ class TimeWidget(ttk.Labelframe):
                 time_string = self.stringvar[part].get()
             else:
                 time_string = time_string + ', ' + str(int(self.stringvar[part].get()))
-        print('type(time_string)', type(time_string), time_string)
-        print('*eval(time_string)', eval(time_string))
         datetime_object = datetime.datetime(*eval(time_string))
         return datetime_object
         
@@ -2803,6 +2806,14 @@ class TimeWidget(ttk.Labelframe):
         for part in self.time_resolution:
             self.combobox[part]['values'] = []
             self.stringvar[part].set('')
+
+    def clear_widget(self):
+        """
+        Clears selection (sets all entries to "blanc")
+        :return:
+        """
+        for part in self.time_resolution:
+            self.stringvar[part].set('')
 """
 ================================================================================
 ================================================================================
@@ -2816,7 +2827,7 @@ class FlagWidget(tk.Frame):
         def __init__(self):
             self.flag = None
             self.selected_descriptions = []
-            self.selected_flags= []
+            self.selected_flags = []
             self.colors = {}
             self.markersize = {}
             self.edge = True
@@ -2854,7 +2865,8 @@ class FlagWidget(tk.Frame):
                  edge_checkbutton=False, 
                  callback_flag_data=None, 
                  callback_update=None, 
-                 callback_prop_change=None, 
+                 callback_prop_change=None,
+                 text='',
                  **kwargs):
         
         self.flags = flags
@@ -2866,6 +2878,7 @@ class FlagWidget(tk.Frame):
         self.default_colors = default_colors
         self.colors = colors
         self.markersize = markersize
+        self.text = text
         
         if not self.colors:
             self.colors = ['blue', 'red', 'darkgreen', 'yellow', 'magenta', 'cyan', 'black', 'gray']
@@ -2913,10 +2926,22 @@ class FlagWidget(tk.Frame):
     def _set_frame(self):
         padx = 5
         pady = 5
+
+        rr = 0
+        if self.text:
+            text_frame = tk.Frame(self)
+            text_frame.grid(row=rr, column=0, padx=padx, pady=pady, sticky='w')
+            self.text_widget = tk.Text(text_frame, wrap=tk.WORD, height=5, bg='lightgray')
+            self.text_widget.grid(row=0, column=0, padx=padx, pady=pady, sticky='w')
+            self.text_widget.insert('end', self.text)
+            grid_configure(text_frame)
+            self.text_widget.config(state='disabled')
+            # self.label_text = WrappedLabel(text_frame, text=self.text)
+            rr+=1
         
         frame = tk.Frame(self)
-        frame.grid(row=0, column=0, padx=padx, pady=pady, sticky='w')
-        grid_configure(self) 
+        frame.grid(row=rr, column=0, padx=padx, pady=pady, sticky='w')
+        grid_configure(self, nr_rows=rr+1)
         
         r=0
         c=0
@@ -2925,7 +2950,7 @@ class FlagWidget(tk.Frame):
         
         self.stringvar_color = {}
         self.stringvar_marker_size = {}
-        
+
         if self.include_flagging:
             # Radiobutton to select which flag to use
             color_dict = {flag: col for flag, col in zip(self.flags, self.default_colors)}
@@ -3006,11 +3031,11 @@ class FlagWidget(tk.Frame):
         c=0
         # Buttons
         if self.include_flagging:
-            self.button_flag = ttk.Button(frame, text=u'Flag', command=self._on_buttonpress_flag) 
+            self.button_flag = ttk.Button(frame, text='Flag selected data', command=self._on_buttonpress_flag)
             self.button_flag.grid(row=r, column=c, columnspan=1, padx=padx, pady=pady, sticky='w')
             c+=1
         
-        self.button_update_flags = ttk.Button(frame, text=u'Update', command=self._on_buttonpress_update) 
+        self.button_update_flags = ttk.Button(frame, text='Update flags to show', command=self._on_buttonpress_update)
         self.button_update_flags.grid(row=r, column=c, columnspan=1, padx=padx, pady=pady, sticky='w')
         
         c+=1
@@ -3154,6 +3179,35 @@ class DirectoryWidget(ttk.LabelFrame):
         self.stringvar_directory.set(directory)
 
 
+class WrappedLabel(tk.Label):
+    def __init__(self,
+                 parent,
+                 text='',
+                 prop_frame={},
+                 prop_label={},
+                 callback=None,
+                 user=None,
+                 **kwargs):
+
+        self.frame = tk.Frame(parent)
+        self.frame.grid(row=0, column=0, sticky='nsew')
+        grid_configure(self.frame)
+
+        self.prop_label = {}
+        self.prop_label.update(prop_label)
+
+        self.grid_frame = {'padx': 5,
+                           'pady': 5,
+                           'sticky': 'nsew'}
+        self.grid_frame.update(kwargs)
+
+        tk.Label.__init__(self, parent, text=text, **self.prop_label)
+        self.grid(**self.grid_frame)
+
+        self.bind('<Configure>', self._update_wrap)
+
+    def _update_wrap(self, event):
+        self.config(wraplength=self.frame.winfo_width())
 
 
 class Fonts():
@@ -3273,7 +3327,8 @@ class TestApp(tk.Tk):
                             return_col = 0
                             
                 entries[row][col].return_entry = entries[return_row][return_col]
-                    
+
+
 
 def disable_widgets(*args):
     for arg in args:

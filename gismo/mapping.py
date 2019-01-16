@@ -63,31 +63,33 @@ class ColumnMapping():
         
         self.encoding = encoding
         self.add_all_matches = add_all_matches
-        
-        self.update_file()
-        
-    #===========================================================================
-    def update_file(self):
-        """
-        Copies the current version of the file from the source. 
-        """
-        if os.path.exists(self.source_file_path):
-            self.source_file_path = self.source_file_path.replace('\\', '/')
-            self.local_file_path = self.local_file_path.replace('\\', '/')
-            
-            if not self.source_file_path:
-                pass
-            else:
-                try:
-                    if self.source_file_path != self.local_file_path:
-                        os.remove(self.local_file_path)
-                        shutil.copy2(self.source_file_path, self.local_file_path)
-                except:
-                    print('Could not copy file...')
-                    print('From: "%s"' % self.source_file_path)
-                    print('To: "%s"' % self.local_file_path)
-                
+
         self._load_data()
+
+    #     self.update_file()
+    #
+    # #===========================================================================
+    # def update_file(self):
+    #     """
+    #     Copies the current version of the file from the source.
+    #     """
+    #     if os.path.exists(self.source_file_path):
+    #         self.source_file_path = self.source_file_path.replace('\\', '/')
+    #         self.local_file_path = self.local_file_path.replace('\\', '/')
+    #
+    #         if not self.source_file_path:
+    #             pass
+    #         else:
+    #             try:
+    #                 if self.source_file_path != self.local_file_path:
+    #                     os.remove(self.local_file_path)
+    #                     shutil.copy2(self.source_file_path, self.local_file_path)
+    #             except:
+    #                 print('Could not copy file...')
+    #                 print('From: "%s"' % self.source_file_path)
+    #                 print('To: "%s"' % self.local_file_path)
+    #
+    #     self._load_data()
  
     #==========================================================================
     def _load_data(self):
@@ -154,11 +156,14 @@ class ColumnMapping():
 class ParameterMapping(ColumnMapping):
     
     #==========================================================================
-    def __init__(self, settings_object=None):
-                     
+    def __init__(self, settings_object=None, mapping_files=None):
+
+        self.mapping_files = mapping_files
+        local_file_path = self.mapping_files.get(settings_object.parameter_mapping.file_name)
         ColumnMapping.__init__(self,
-                               source_file_path=settings_object.parameter_mapping.source_file_path, 
-                               local_file_path=settings_object.parameter_mapping.local_file_path, 
+                               # source_file_path=settings_object.parameter_mapping.source_file_path,
+                               # local_file_path=settings_object.parameter_mapping.local_file_path,
+                               local_file_path=local_file_path,
                                internal_column=settings_object.parameter_mapping.internal_column, 
                                external_column=settings_object.parameter_mapping.external_column,
                                unit_column=settings_object.parameter_mapping.unit_column)
@@ -175,58 +180,67 @@ class StationMapping():
     #===========================================================================
     def __init__(self, 
                  settings_object=None, 
-                 source_file_path=None, 
+                 # source_file_path=None,
                  local_file_path=None, 
                  header_starts_with=None, 
                  external_column=None, 
                  internal_column=None,
                  platform_type_column=None, 
-                 encoding=None):
+                 encoding=None,
+                 mapping_files={}):
                      
         """
         kwargs is for arguments in codecs.open. 
         """
-        
-        if not settings_object or all([source_file_path, local_file_path, header_starts_with, external_column, internal_column]):
+        self.mapping_files = mapping_files
+        # if not settings_object or all(
+        #         [source_file_path, local_file_path, header_starts_with, external_column, internal_column]):
+        if not settings_object or all(
+                [local_file_path, header_starts_with, external_column, internal_column, mapping_files]):
             print('Not enyough input arguments to create ColumnMapping file')
             return
             
         if settings_object:
-            for item in ['source_file_path', 'local_file_path', 'header_starts_with', 'external_column', 'internal_column', 'platform_type_column', 'encoding']:
+            # for item in ['source_file_path', 'local_file_path', 'header_starts_with', 'external_column',
+            #              'internal_column', 'platform_type_column', 'encoding']:
+            for item in ['header_starts_with', 'external_column',
+                         'internal_column', 'platform_type_column', 'encoding']:
                 try:
                     setattr(self, item, getattr(settings_object.station_mapping, item))
                 except:
                     print('Could not add attribute: %s' % item)
+            self.local_file_path = self.mapping_files.get(settings_object.station_mapping.file_name)
         else:
-            self.source_file_path = source_file_path
+            # self.source_file_path = source_file_path
             self.local_file_path = local_file_path
             self.header_starts_with = header_starts_with
             self.external_column = external_column 
             self.internal_column = internal_column
             self.platform_type_column = platform_type_column
             self.encoding = encoding
-        
-        self.update_file()
-    
-    #===========================================================================
-    def update_file(self):
-        """
-        Copies the current version of the file from the source. 
-        """
-        if os.path.exists(self.source_file_path):
-            
-            if os.path.exists(self.local_file_path):
-                os.remove(self.local_file_path)
-            
-            try:
-                if self.source_file_path != self.local_file_path:
-                    shutil.copy2(self.source_file_path, self.local_file_path)
-            except:
-                print('Could not copy file...')
-                print('From: "%s"' % self.source_file_path)
-                print('To: "%s"' % self.local_file_path)
-                
+
         self._load_file()
+        # self.update_file()
+    
+    # #===========================================================================
+    # def update_file(self):
+    #     """
+    #     Copies the current version of the file from the source.
+    #     """
+    #     if os.path.exists(self.source_file_path):
+    #
+    #         if os.path.exists(self.local_file_path):
+    #             os.remove(self.local_file_path)
+    #
+    #         try:
+    #             if self.source_file_path != self.local_file_path:
+    #                 shutil.copy2(self.source_file_path, self.local_file_path)
+    #         except:
+    #             print('Could not copy file...')
+    #             print('From: "%s"' % self.source_file_path)
+    #             print('To: "%s"' % self.local_file_path)
+    #
+    #     self._load_file()
         
     #===========================================================================
     def _load_file(self):
@@ -254,34 +268,36 @@ class StationMapping():
             split_line = [item.strip() for item in line.split('\t')]
             if not line:
                 continue
-            if '=' not in line and line.startswith(self.header_starts_with):
+            if line.startswith('#'):
+                continue
+            if line.startswith(self.header_starts_with):
                 self.header = split_line
             elif self.header:
                 line_dict = dict(zip(self.header, split_line))
                 
                 external = line_dict[self.external_column]
                 internal = line_dict[self.internal_column]
-                platform_type = line_dict[self.platform_type_column]
+                # platform_type = line_dict[self.platform_type_column]
                 
                 self.internal_to_external[internal] = external
-                self.internal_to_type[internal] = platform_type
+                # self.internal_to_type[internal] = platform_type
                 
                 self.external_to_internal[external] = internal
-                self.external_to_type[external] = platform_type
+                # self.external_to_type[external] = platform_type
                 
-                if platform_type not in self.internal_by_type:
-                    self.internal_by_type[platform_type] = []
-                self.internal_by_type[platform_type].append(internal)
-                
-                if platform_type not in self.external_by_type:
-                    self.external_by_type[platform_type] = []
-                self.external_by_type[platform_type].append(external)
+                # if platform_type not in self.internal_by_type:
+                #     self.internal_by_type[platform_type] = []
+                # self.internal_by_type[platform_type].append(internal)
+                #
+                # if platform_type not in self.external_by_type:
+                #     self.external_by_type[platform_type] = []
+                # self.external_by_type[platform_type].append(external)
                 
         fid.close()
 
-    #===========================================================================
-    def get_ferybox_list(self):
-        return sorted(self.internal_by_type['FB'])
+    # #===========================================================================
+    # def get_ferrybox_list(self):
+    #     return sorted(self.internal_by_type['FB'])
     
     #===========================================================================
     def get_platform_type(self, item):

@@ -80,21 +80,24 @@ class GISMOfile(GISMOdata):
     """
     # TODO: filter_data, flag_options, flag_data
     # ==========================================================================
-    def __init__(self, data_file_path=None, settings_file_path=None, root_directory=None, **kwargs):
+    def __init__(self, data_file_path=None, settings_file_path=None, root_directory=None, mapping_files_directory=None, **kwargs):
 
-        super().__init__()
+        GISMOdata.__init__(self, **kwargs)
+        # super().__init__()
 
         self.file_path = data_file_path
         self.file_id, ending = os.path.splitext(os.path.basename(data_file_path))
         self.settings_file_path = settings_file_path
         self.export_df = None
         self.root_directory = root_directory
+        self.mapping_files_directory = mapping_files_directory
 
         self.comment_id = kwargs.get('comment_id', None)
 
         self.file_encoding = kwargs.get('file_encoding', 'cp1252')
         self.sampling_type = kwargs.get('sampling_type', '')
 
+        self._find_mapping_files()
         self._load_settings_file()
         self._load_station_mapping()
         self._load_parameter_mapping()
@@ -107,7 +110,7 @@ class GISMOfile(GISMOdata):
         self.parameter_list = ['time', 'lat', 'lon', 'depth', 'visit_id', 'visit_depth_id'] + self.qpar_list
         # self.parameter_list = ['time', 'lat', 'lon', 'depth'] + self.qpar_list
         self.filter_data_options = []
-        self.flag_data_options = []
+        self.flag_data_options = ['flags']
         self.mask_data_options = ['include_flags', 'exclude_flags']
 
         self.save_data_options = ['file_path', 'overwrite']
@@ -128,13 +131,25 @@ class GISMOfile(GISMOdata):
         else:
             self.nr_decimals = None
 
+    def _find_mapping_files(self):
+        # Mapping files
+        if not os.path.exists(self.mapping_files_directory):
+            os.makedirs(self.mapping_files_directory)
+        self.mapping_files = {}
+        for file_name in os.listdir(self.mapping_files_directory):
+            if not file_name.endswith('txt'):
+                continue
+            self.mapping_files[file_name] = os.path.join(self.mapping_files_directory, file_name)
+
     # ==========================================================================
     def _load_station_mapping(self):
-        self.station_mapping = StationMapping(settings_object=self.settings)
+        self.station_mapping = StationMapping(settings_object=self.settings,
+                                              mapping_files=self.mapping_files)
 
     # ==========================================================================
     def _load_parameter_mapping(self):
-        self.parameter_mapping = ParameterMapping(settings_object=self.settings)
+        self.parameter_mapping = ParameterMapping(settings_object=self.settings,
+                                                  mapping_files=self.mapping_files)
 
 
     # ==========================================================================
@@ -160,8 +175,9 @@ class GISMOfile(GISMOdata):
                     metadata_raw.append(line)
                 else:
                     split_line = line.strip('\n\r').split(kwargs.get('sep', '\t'))
+                    split_line = [item.strip() for item in split_line]
                     if not header:
-                        header = [item.strip() for item in split_line]
+                        header = split_line
                     else:
                         data.append(split_line)
 
@@ -353,13 +369,14 @@ class GISMOfile(GISMOdata):
             all_args.append(arg)
             all_args.extend(self.get_dependent_parameters(arg))
 
+        print('===================len(args)', len(all_args))
+        print(all_args)
         # Work on external column names
-        args = [self.internal_to_external.get(arg, arg) for arg in args]
+        args = [self.internal_to_external.get(arg, arg) for arg in all_args]
         # args = dict((self.internal_to_external.get(key, key), key) for key in args)
 
-        if not all([arg in self.df.columns for arg in args]):
-            raise GISMOExceptionInvalidInputArgument
-
+        # if not all([arg in self.df.columns for arg in args]):
+        #     raise GISMOExceptionInvalidInputArgument
 
 
         # kwargs contains conditions for flagging. Options are listed in self.flag_data_options.
@@ -371,8 +388,8 @@ class GISMOfile(GISMOdata):
                 raise GISMOExceptionInvalidOption
             if key == 'time':
                 value_list = self._get_argument_list(value)
-                print('type(value_list[0])', type(value_list[0]))
-                print(type(self.df.time.values[0]))
+                # print('type(value_list[0])', type(value_list[0]))
+                # print(type(self.df.time.values[0]))
                 boolean = boolean & (self.df.time.isin(value_list))
             elif key == 'time_start':
                 boolean = boolean & (self.df.time >= value)
@@ -381,10 +398,19 @@ class GISMOfile(GISMOdata):
 
         # Flag data
         for par in args:
+            if par not in self.df.columns:
+                continue
             qf_par = self.get_qf_par(par)
             if not qf_par:
                 raise GISMOExceptionMissingQualityParameter('for parameter "{}"'.format(par))
-            self.df.loc[boolean, qf_par] = flag
+            flag_list = kwargs.get('flags', None)
+            if flag_list:
+                if type(flag_list) != list:
+                    flag_list = [flag_list]
+                par_boolean = boolean & (self.df[qf_par].isin(flag_list))
+            else:
+                par_boolean = boolean.copy(deep=True)
+            self.df.loc[par_boolean, qf_par] = flag
 
     # ==========================================================================
     def old_get_boolean_for_time_span(self, start_time=None, end_time=None, invert=False):
@@ -543,6 +569,7 @@ class GISMOfile(GISMOdata):
             return None
 
         par = self.parameter_mapping.get_external(par)
+        # print('FLAG, dependent', par, type(par))
         return self.settings['dependencies'].get(par, [])
 
     def get_parameter_list(self, **kwargs):
@@ -681,13 +708,17 @@ class CMEMSferrybox(GISMOfile):
         kwargs.update(dict(data_file_path=data_file_path,
                            settings_file_path=settings_file_path,
                            root_directory=root_directory))
+
+        for key in sorted(kwargs):
+            print(key, kwargs[key])
+
         GISMOfile.__init__(self, **kwargs)
 
         self.filter_data_options = self.filter_data_options + ['time', 'time_start', 'time_end']
         self.flag_data_options = self.flag_data_options + ['time', 'time_start', 'time_end']
         self.mask_data_options = self.mask_data_options + []
 
-        self.valid_qc_routines = ['iocftp_qc0']
+        self.valid_qc_routines = ['Mask areas']
 
 
 # ==============================================================================
@@ -1025,10 +1056,21 @@ class SamplingTypeSettings(dict):
                 self['dependencies'] = {}
                 for line in self.data[key]:
                     split_line = [item.strip() for item in line.split(';')]
+                    primary_parameter = split_line[0]
+                    dependent_parameters = []
+                    for item in split_line[1:]:
+                        if ':' in item:
+                            # Range of integers
+                            from_par, to_par = [int(par.strip()) for par in item.split(':')]
+                            dependent_parameters.extend(list(map(str, range(from_par, to_par+1))))
+                        else:
+                            dependent_parameters.append(item)
+
                     #                    # Map parameters
                     #                    split_line = [CMEMSparameters().get_smhi_code(par) for par in split_line]
-
-                    self['dependencies'][split_line[0]] = split_line[1:]
+                    # print(primary_parameter, type(primary_parameter))
+                    # print('dependent_parameters'.upper(), dependent_parameters)
+                    self['dependencies'][primary_parameter] = dependent_parameters
 
             # ------------------------------------------------------------------
             elif key.lower() == 'ranges':
@@ -1082,29 +1124,29 @@ class SamplingTypeSettings(dict):
     def get_flag_description_list(self):
         return [self.get_flag_description(flag) for flag in self.flag_list]
 
-    # ==================================================================
-    def get_flag_color(self, flag):
-        return self['flags'][flag]['color']
-
-    # ==================================================================
-    def get_flag_color_list(self):
-        return [self.get_flag_color(flag) for flag in self.flag_list]
-
-    # ==================================================================
-    def get_flag_markersize(self, flag):
-        return self['flags'][flag]['markersize']
-
-    # ==================================================================
-    def get_flag_markersize_list(self):
-        return [self.get_flag_markersize(flag) for flag in self.flag_list]
-
-    # ==================================================================
-    def get_flag_marker(self, flag):
-        return self['flags'][flag]['marker']
-
-    # ==================================================================
-    def get_flag_marker_list(self):
-        return [self.get_flag_marker(flag) for flag in self.flag_list]
+    # # ==================================================================
+    # def get_flag_color(self, flag):
+    #     return self['flags'][flag]['color']
+    #
+    # # ==================================================================
+    # def get_flag_color_list(self):
+    #     return [self.get_flag_color(flag) for flag in self.flag_list]
+    #
+    # # ==================================================================
+    # def get_flag_markersize(self, flag):
+    #     return self['flags'][flag]['markersize']
+    #
+    # # ==================================================================
+    # def get_flag_markersize_list(self):
+    #     return [self.get_flag_markersize(flag) for flag in self.flag_list]
+    #
+    # # ==================================================================
+    # def get_flag_marker(self, flag):
+    #     return self['flags'][flag]['marker']
+    #
+    # # ==================================================================
+    # def get_flag_marker_list(self):
+    #     return [self.get_flag_marker(flag) for flag in self.flag_list]
 
     # ==================================================================
     def get_flag_from_description(self, description):

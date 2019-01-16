@@ -463,7 +463,6 @@ class TkMap(object):
 
         # Add toolbar
         if self.toolbar:
-            print('toolbar')
             map_toolbar = NavigationToolbar2Tk(canvas, frame_toolbar)
             map_toolbar.update()
             map_toolbar.pack(side=tk.BOTTOM, fill=tk.BOTH, expand=True)
@@ -822,12 +821,12 @@ class TkMap(object):
         if marker_name in self.marker_order:
             self.delete_marker(marker_name)
         
-        if type(lat) != list:
+        if type(lat) in [int, float]:
             lat = [lat]
             lon = [lon]
 
-        if not lat:
-            return
+        # if not lat:
+        #     return
         x, y = self.m(lon, lat)
         handle = self.m.plot(x, y, marker=marker, **kwargs)
         self.redraw()
@@ -950,7 +949,7 @@ class TkMap(object):
         for i in range(len(x_list)):
             marker_name = u'%s_scatter_%s_%s' % (color_string, marker_type[i], marker_id)
             if marker_name in self.marker_order:
-                print('Remove marker', marker_name)
+                # print('Remove marker', marker_name)
                 self.delete_marker(marker_name)
             # print(x_list[0])
             # print(y_list[0])
@@ -1387,7 +1386,7 @@ class TkMap(object):
                     except:
                         pass
 
-            print(self.marker_order)
+            # print(self.marker_order)
             self.marker_order.pop(self.marker_order.index(marker_name))
             self.markers.pop(marker_name)
             self.redraw()
@@ -1521,7 +1520,7 @@ class MovableText(object):
         " Update text position and redraw"
         
         if self.dragged is not None :
-            print('on_motion_notify_event')
+            # print('on_motion_notify_event')
             old_pos = self.dragged.get_position()
             new_pos = (old_pos[0] + event.xdata - self.pick_pos[0],
                        old_pos[1] + event.ydata - self.pick_pos[1])

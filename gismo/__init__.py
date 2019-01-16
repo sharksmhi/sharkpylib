@@ -5,6 +5,7 @@ from . import exceptions
 from . import gismo
 from . import mapping
 from . import qc_routines
+from . import qc_trajectory
 from . import sampling_types
 from . import session
 

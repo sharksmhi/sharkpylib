@@ -24,6 +24,7 @@ import numpy as np
 import datetime
 import matplotlib.dates as dates
 import matplotlib.dates as mdates
+from mpl_toolkits.axes_grid1.inset_locator import inset_axes
 import pandas as pd
 
 class PlotSeries():
@@ -351,7 +352,17 @@ class Plot():
         self.first_ax = None
         self.second_ax = None
         self.mark_line_id = 'default'
-    
+
+    # ==========================================================================
+    def delete_data(self, marker_id=None, ax='first'):
+        """
+        if marker_name: marker with the exact name is removed
+        if marker_id: All markers containing the given marker_id are removed
+        """
+        ax = self._get_ax_object(ax)
+        ax.delete_data(marker_id)
+        self.call_targets()
+
     #===========================================================================
     def reset_plot(self):
         if self.first_ax:
@@ -897,11 +908,13 @@ class Plot():
 #            self.call_targets()
             
     #===========================================================================
-    def zoom_to_data(self, ax='first', call_targets=True):
+    def zoom_to_data(self, ax='first', call_targets=True, x_limits=True, y_limits=True):
         ax = self._get_ax_object(ax)
         if ax:
-            ax.set_x_limits(call_targets=False)
-            ax.set_y_limits(call_targets=False)
+            if x_limits:
+                ax.set_x_limits(call_targets=False)
+            if y_limits:
+                ax.set_y_limits(call_targets=False)
             if call_targets:
                 self.call_range_targets()
             
@@ -924,7 +937,18 @@ class Plot():
             ax.set_prop(line_id=line_id, **kwargs)
             
     #===========================================================================
-    def set_data(self, x=False, y=False, z=None, line_id='default', exclude_index=[], ax='first', call_targets=True, **kwargs):
+    def set_data(self,
+                 x=False,
+                 y=False,
+                 z=None,
+                 c=None,
+                 line_id='default',
+                 exclude_index=[],
+                 ax='first',
+                 call_targets=True,
+                 colorbar_title='',
+                 **kwargs):
+
         ax = self._get_ax_object(ax)
         if ax:
             if self.time_axis == 'x':
@@ -936,7 +960,8 @@ class Plot():
             if kwargs.get('contour_plot'):
                 x, y = np.meshgrid(x, y)
 
-            ax.set_data(x=x, y=y, z=z, line_id=line_id, exclude_index=exclude_index, call_targets=call_targets, **kwargs)
+            ax.set_data(x=x, y=y, z=z, c=c, line_id=line_id, exclude_index=exclude_index,
+                        call_targets=call_targets, colorbar_title=colorbar_title, **kwargs)
 
         if self.hover_target:
             self._add_event_hover()
@@ -956,7 +981,7 @@ class Plot():
 
     def set_title(self, title):
         self.first_ax.set_title(title)
-        self.fig.tight_layout()
+        # self.fig.tight_layout()
         self.call_targets()
             
     #===========================================================================
@@ -1015,6 +1040,7 @@ class Ax():
         
         self.x_data = {}
         self.y_data = {}
+        self.c_data = {}
               
         
         self.mark_index_points = {}
@@ -1045,6 +1071,14 @@ class Ax():
         # How to modify this is several polygons are added to the plot
         if self.ax.patches:
             self.ax.patches.pop(0)
+
+    # ===========================================================================
+    def delete_data(self, marker_id):
+        if marker_id in self.ax.lines:
+            self.ax.lines.pop(self.ax.lines.index(marker_id))
+            self.p.pop(marker_id)
+            self.x_data[marker_id] = []
+            self.y_data[marker_id] = []
         
     #===========================================================================
     def reset_marked_points(self, reset_list=True):
@@ -1207,9 +1241,12 @@ class Ax():
             pass
         else:
 
-            # Save data
-            self.mark_from_value = mark_from_value
-            self.mark_to_value = mark_to_value
+            try:
+                # Save data
+                self.mark_from_value = mark_from_value
+                self.mark_to_value = mark_to_value
+            except:
+                return
 
             # print('From: {}, To: {}'.format(self.mark_from_value, self.mark_to_value))
 
@@ -1393,13 +1430,45 @@ class Ax():
         self.reset_ax()
         
     #===========================================================================
-    def set_data(self, x=False, y=False, z=None, line_id='default', exclude_index=[], call_targets=True, **kwargs):
+    def set_data(self, x=False, y=False, z=None, c=None, line_id='default', exclude_index=[], call_targets=True, colorbar_title='', **kwargs):
+
+        try:
+            self.p['scatter_plot'].remove()
+        except:
+            pass
+
         if kwargs.get('contour_plot'):
             cid = 'contour_plot'
             if 'contour_plot' not in self.p:
                 self.p[cid] = None
             self.p[cid] = self.ax.contourf(x, y, z, kwargs.get('nr_levels', 50))
 
+        elif c:
+            # Scatter data
+            self.x_data[line_id] = x
+            self.y_data[line_id] = y
+            self.c_data[line_id] = c
+            print('type, len')
+            print(type(x), len(x))
+            print(type(y), len(y))
+            print(type(c), len(c))
+            cid = 'scatter_plot'
+            if 'scatter_plot' not in self.p:
+                self.p[cid] = None
+            if self.p[cid]:
+                self.p[cid].remove()
+            self.p[cid] = self.ax.scatter(x, y, c=c, s=100, marker='o', **kwargs)
+                                      # cmap=kwargs.get('cmap', None),
+                                      # vmin=kwargs.get('vmin', None),
+                                      # vmax=kwargs.get('vmax', None))
+            if colorbar_title:
+                self.cbaxes = inset_axes(self.ax, width="5%", height="30%", loc=4)
+                self.cbar = self.parent.fig.colorbar(self.p[cid], cax=self.cbaxes, orientation='vertical')
+                self.cbaxes.yaxis.set_ticks_position('left')
+                self.cbar.ax.set_title(colorbar_title)
+                font = matplotlib.font_manager.FontProperties(family='times new roman', style='italic', size=10)
+                text = self.cbaxes.title
+                text.set_font_properties(font)
 
         else:
             # Create new prop dict if not in self.prop
