@@ -14,22 +14,35 @@ class QC(object):
 
         pass
 
-    def _convert_to_np_array(self, in_data):
+    def _convert_to_np_array(self, in_data, dtype='float'):
         """
         Tries to convert iterable input to numpy array
-        :param input: iterable
+        :param in_data: iterable
+        :param dtype: as 'float' or 'str', default is 'float'
         :return: input as numpy array
         """
         try:
-            data = np.array(in_data)
+            data = np.array(in_data, dtype=dtype)
         except:
             try:
                 iterator = iter(in_data)
-                data = np.array([])
+                data = np.array([], dtype=dtype)
                 for i in iterator:
-                    data = np.append(data, i)
+                    if i == '':
+                        data = np.append(data, np.nan)
+                    else:
+                        try:
+                            if dtype == 'float':
+                                data = np.append(data, float(i))
+                            elif dtype == 'str':
+                                data = np.append(data, str(i))
+                            else:
+                                data = np.append(data)
+
+                        except:
+                            raise ValueError('Cant convert %i to float' % i)
             except TypeError as te:
-                print('input is not iterable:', in_data)
+                print('input is not iterable:', in_data, type(in_data))
 
         return data
 
@@ -194,17 +207,102 @@ class QC(object):
 
         return qfindex, new_qf, qfindex_numeric
 
-    def spike_check(self):
-        pass
+    #def spike_check(self):
+    #    pass
 
         # djupderivata
 
         # kolla mot punkt före och efter
 
-    # std mot min/max utifrågn satta gränser (typ av klimatologi)
+    # std mot min/max utifrån satta gränser (typ av klimatologi)
     # CMEMS har vissa gränser satta från data på stationer (och månad)
 
     # std mot hela profilen
+    def _check_std_from_mean(self, data=False, nr_std=3, pressure=False, depth=False):
+
+        if data:
+                data_array = self._convert_to_np_array(data)
+        else:
+            raise ValueError('Missing data input!')
+
+        mean_value = np.nanmean(data_array)  # Mean value
+        std_value = np.nanstd(data_array)    # Std
+
+        if not np.isnan(mean_value):
+            output_array = np.abs(data_array - mean_value) > (std_value * float(nr_std))
+            for i, val in enumerate(output_array):
+                if val:
+                    print('Warning! Value > %.1f std from mean. Value: %s, index: %s' % (float(nr_std), val, i))
+                    if pressure:
+                        print('at %s dbar' % pressure(i))
+                    if depth:
+                        print('at %s meter' % depth(i))
+
+    # std mot neighboring??
+
+    # check deepest data against bottom depth
+    def depth_bottom(self, bottom=False, depth=False):
+
+        if bottom and depth:
+
+            max_depth = max(depth)
+
+            if max_depth > bottom:
+                print('Warning! Deepest depth (%s) is larger than bottom depth (%s)' % (max_depth, bottom))
+
+        else:
+            raise ValueError('length of input data differs!')
 
     # delta mellan sensorer om flera finns
+    def sensor_diff(self, data_primary=False, qf_primary=False, data_secondary=False, qf_secondary=False, max_diff=0.2, qf_ignore = ['B','S','?']):
+        """
+        Function to compare data from primary and secondary sensor
+        :param data_primary:
+        :param qf_primary:
+        :param data_secondary:
+        :param qf_secondary:
+        :param max_diff:
+        :param qf_ignore:
+        :return:
+        """
 
+        if data_primary and data_secondary:
+            if len(data_primary) == len(data_secondary):
+                data1 = self._convert_to_np_array(data_primary)
+                data2 = self._convert_to_np_array(data_secondary)
+
+            else:
+                raise ValueError('length of input data differs!')
+        else:
+            raise ValueError('Missing data input!')
+
+        if qf_primary and qf_secondary:
+            if len(qf_primary) == len(qf_secondary):
+                qf1 = self._convert_to_np_array(qf_primary, dtype='str')
+                qf2 = self._convert_to_np_array(qf_secondary, dtype='str')
+
+            else:
+                raise ValueError('length of quality flag arrays differs!')
+        else:
+            print('Warning! Missing quality flag input!')
+
+        # remove data with quality flag in qf_ignore
+        if qf_primary and qf_secondary:
+            counter = 0
+            for qaa, qbb in zip(qf1, qf2):
+                if qaa in qf_ignore:
+                    data1[counter] = np.nan
+                if qbb in qf_ignore:
+                    data2[counter] = np.nan
+
+                counter += 1
+
+        qfindex = np.abs(data1-data2) >= max_diff
+
+        if qfindex.any():
+            print('Warning! difference between data differs more than maximum allowed difference %s' % max_diff )
+
+        qfindex_numeric = np.arange(len(qfindex))
+        qfindex_numeric = qfindex_numeric[qfindex]
+
+        return qfindex, qfindex_numeric
