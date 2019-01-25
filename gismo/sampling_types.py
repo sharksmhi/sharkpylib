@@ -13,7 +13,6 @@ import matplotlib.dates as dates
 
 from .mapping import StationMapping, ParameterMapping
 from .gismo import GISMOdata
-from .gismo import GISMOmetadata
 
 from .exceptions import *
 
@@ -32,7 +31,7 @@ class PluginFactory(object):
         self.classes = {'Ferrybox CMEMS': CMEMSferrybox,
                         'Fixed platforms CMEMS': CMEMSFixedPlatform,
                         'PhysicalChemical SHARK': SHARKfilePhysicalChemichal,
-                        'CTD SHARK': CTDfile}
+                        'CTD SHARK': SHARKfileStandardCTD}
 
         # ferrybox_requirements = ['data_file_path', 'settings_file_path', 'root_directory']
         ferrybox_requirements = ['data_file_path', 'settings_file_path']
@@ -40,7 +39,8 @@ class PluginFactory(object):
         shark_requirements = ferrybox_requirements
         self.required_arguments = {'Ferrybox CMEMS': ferrybox_requirements,
                                    'Fixed platforms CMEMS': fixed_platform_requirements,
-                                   'PhysicalChemical SHARK': shark_requirements}
+                                   'PhysicalChemical SHARK': shark_requirements,
+                                   'CTD SHARK': shark_requirements}
 
 
 
@@ -165,14 +165,14 @@ class GISMOfile(GISMOdata):
         # Looping through the file seems to be faster then pd.read_csv regardless if there are comment lines or not.
         # Note that all values are of type str.
 
-        metadata_raw = []
+        self.metadata_raw = []
         header = []
         data = []
         with codecs.open(self.file_path, encoding=kwargs.get('encoding', 'cp1252')) as fid:
             for line in fid:
                 if self.comment_id is not None and line.startswith(self.comment_id):
                     # We have comments and need to load all lines in file
-                    metadata_raw.append(line)
+                    self.metadata_raw.append(line)
                 else:
                     split_line = line.strip('\n\r').split(kwargs.get('sep', '\t'))
                     split_line = [item.strip() for item in split_line]
@@ -244,7 +244,10 @@ class GISMOfile(GISMOdata):
     def _prepare_export(self):
         # Make a copy to be used for export
         self.export_df = self.df[self.original_columns].copy()
-        self.export_df.replace(np.nan, float(self.missing_value), inplace=True)
+        try:
+            self.export_df.replace(np.nan, float(self.missing_value), inplace=True)
+        except:
+            pass
 
     def _get_argument_list(self, arg):
         """
@@ -345,7 +348,7 @@ class GISMOfile(GISMOdata):
             self.df['depth'] = kwargs.get('depth')
         else:
             depth_par = self.parameter_mapping.get_external(self.settings.column.depth)
-            self.df['depth'] = self.df[depth_par]
+            self.df['depth'] = self.df[depth_par].astype(float)
         self.df['visit_depth_id'] = self.df['lat'].astype(str) + self.df['lon'].astype(str) + self.df['time'].astype(
             str) + self.df['depth'].astype(str)
 
@@ -360,8 +363,11 @@ class GISMOfile(GISMOdata):
         :return: None
         """
         flag = str(flag)
-        if not flag or flag not in self.valid_flags:
+        if flag not in self.valid_flags:
             raise GISMOExceptionInvalidFlag('"{}", valid flags are "{}"'.format(flag, ', '.join(self.valid_flags)))
+
+        if flag == 'no flag':
+            flag = ''
 
         # Check dependent parameters
         all_args = []
@@ -388,18 +394,27 @@ class GISMOfile(GISMOdata):
                 raise GISMOExceptionInvalidOption
             if key == 'time':
                 value_list = self._get_argument_list(value)
-                # print('type(value_list[0])', type(value_list[0]))
-                # print(type(self.df.time.values[0]))
                 boolean = boolean & (self.df.time.isin(value_list))
             elif key == 'time_start':
                 boolean = boolean & (self.df.time >= value)
             elif key == 'time_end':
                 boolean = boolean & (self.df.time <= value)
+            elif key == 'depth':
+                value_list = self._get_argument_list(value)
+                boolean = boolean & (self.df.depth.isin(value_list))
+            elif key == 'depth_min':
+                boolean = boolean & (self.df.depth >= value)
+            elif key == 'depth_max':
+                boolean = boolean & (self.df.depth <= value)
 
+        print(np.where(boolean)[0])
         # Flag data
         for par in args:
             if par not in self.df.columns:
-                continue
+                print('par', par)
+                print()
+                print('\n'.join(sorted(self.df.columns)))
+                raise GISMOExceptionInvalidParameter('Parameter {} not in data'.format(par))
             qf_par = self.get_qf_par(par)
             if not qf_par:
                 raise GISMOExceptionMissingQualityParameter('for parameter "{}"'.format(par))
@@ -407,9 +422,13 @@ class GISMOfile(GISMOdata):
             if flag_list:
                 if type(flag_list) != list:
                     flag_list = [flag_list]
+                if 'no flag' in flag_list:
+                    flag_list.pop(flag_list.index('no flag'))
+                    flag_list.append('')
                 par_boolean = boolean & (self.df[qf_par].isin(flag_list))
             else:
                 par_boolean = boolean.copy(deep=True)
+                print(par, qf_par, flag)
             self.df.loc[par_boolean, qf_par] = flag
 
     # ==========================================================================
@@ -457,7 +476,7 @@ class GISMOfile(GISMOdata):
         Updated 20181024
 
         :param args: parameters that you want to have data for.
-        :param kwargs: specify filter. For example profile_id=<something>. Only = if implemented at the moment.
+        :param kwargs: specify filter.
         :return: dict with args as keys and list(s) as values.
         """
         if not args:
@@ -493,6 +512,13 @@ class GISMOfile(GISMOdata):
             elif key == 'visit_id':
                 value_list = self._get_argument_list(value)
                 boolean = boolean & (self.df.visit_id.isin(value_list))
+            elif key == 'depth':
+                value_list = self._get_argument_list(value)
+                boolean = boolean & (self.df.depth.isin(value_list))
+            elif key == 'depth_min':
+                boolean = boolean & (self.df.depth >= value)
+            elif key == 'depth_max':
+                boolean = boolean & (self.df.depth <= value)
 
         # Extract filtered dataframe
         # filtered_df = self.df.loc[boolean, sorted(args)].copy(deep=True)
@@ -520,13 +546,27 @@ class GISMOfile(GISMOdata):
                     if not qf_par:
                         continue
                     # print('\n'.join(sorted(filtered_df.columns)))
-                    keep_boolean = filtered_df[qf_par].astype(str).isin([str(v) for v in value])
+                    qf_list = []
+                    for v in value:
+                        if v == 'no flag':
+                            v = ''
+                        else:
+                            v = str(v)
+                        qf_list.append(v)
+                    keep_boolean = filtered_df[qf_par].astype(str).isin(qf_list)
                     par_array[~keep_boolean] = ''
                 elif opt == 'exclude_flags':
                     qf_par = self.get_qf_par(par)
                     if not qf_par:
                         continue
-                    nan_boolean = filtered_df[qf_par].astype(str).isin([str(v) for v in value])
+                    qf_list = []
+                    for v in value:
+                        if v == 'no flag':
+                            v = ''
+                        else:
+                            v = str(v)
+                        qf_list.append(v)
+                    nan_boolean = filtered_df[qf_par].astype(str).isin(qf_list)
                     par_array[nan_boolean] = ''
 
             # Check output type
@@ -580,6 +620,14 @@ class GISMOfile(GISMOdata):
 
         return par_list
 
+    def get_position(self, **kwargs):
+        data = self.get_data('lat', 'lon')
+        if 'lat' in self.df:
+            return [data['lat'], data['lon']]
+        else:
+            raise GISMOExceptionMethodNotImplemented
+
+
     def get_internal_parameter_name(self, parameter):
         """
         :param parameter:
@@ -631,8 +679,13 @@ class GISMOfile(GISMOdata):
                 if ext_par != par:
                     #                     print 'ext_par', ext_par, par, prefix, suffix
                     return ext_par
-
         return False
+
+    def get_metadata_tree(self):
+        if self.metadata:
+            return self.metadata.get_metadata_tree()
+        else:
+            raise GISMOExceptionMethodNotImplemented
 
     # ==========================================================================
     def _get_extended_qf_list(self, qf_list):
@@ -680,7 +733,8 @@ class GISMOfile(GISMOdata):
 
         with codecs.open(file_path, 'w', encoding=encoding) as fid:
             if self.metadata.has_data:
-                pass
+                fid.write('\n'.join(self.metadata.get_lines()))
+                fid.write('\n')
             # Write column header
             fid.write(sep.join(data_dict['columns']))
             fid.write('\n')
@@ -758,7 +812,7 @@ class CMEMSFixedPlatform(GISMOfile):
 
 # ==============================================================================
 # ==============================================================================
-class CTDfile(GISMOfile):
+class SHARKfileStandardCTD(GISMOfile):
     """
     A DATA-file has data from several platforms. Like SHARKweb Physical/Chemical columns.
     """
@@ -780,35 +834,34 @@ class CTDfile(GISMOfile):
                            comment_id='//'))
         GISMOfile.__init__(self, **kwargs)
 
-        self.filter_data_options = self.filter_data_options + ['visit_id', 'depth', 'from_depth', 'to_depth']
-        self.flag_data_options = self.flag_data_options + ['depth', 'from_depth', 'to_depth']
+        self.filter_data_options = self.filter_data_options + ['depth', 'depth_min', 'depth_max']
+        self.flag_data_options = self.flag_data_options + ['depth', 'depth_min', 'depth_max']
         self.mask_data_options = self.mask_data_options + []
 
-        self.metadata = GISMOmetadata(**kwargs)
+        self.metadata = SHARKmetadataStandardBase(self.metadata_raw, **kwargs)
 
-        self._create_profile_info_dict()
+        self.valid_qc_routines = []
 
-    #         self._add_unique_profile_id() # Not implemented. Usefull?
+        # self._create_profile_info_dict()
 
-    #     #==========================================================================
-    #     def _load_data(self):
-    #         self.df = pd.read_csv(self.file_path, sep='\t', skipinitialspace=True, dtype={0:str})
-    #
-    #         # Save parameters
-    #         self.parameters_external = [external for external in self.df.columns if 'Unnamed' not in external]
-    #         self.parameters_internal = [self.parameter_mapping.get_internal(external) for external in self.parameters_external]
-    #
-    #         self.internal_to_external = dict(zip(self.parameters_internal, self.parameters_external))
-    #         self.external_to_internal = dict(zip(self.parameters_external, self.parameters_internal))
-    #
-    #         self.qpar_list = sorted([par for par in self.parameters_external if self.get_qf_par(par) != False])
-    #         self.mapped_parameters = [self.parameter_mapping.get_internal(par) for par in self.qpar_list]
+    def get_position(self, *kwargs):
+        return [float(self.df['lat'].values[0]), float(self.df['lon'].values[0])]
+
+    def get_station_name(self, **kwargs):
+        """
+        Station can be found in metadata or self.df['station']
+        :return:
+        """
+        return self.metadata.data['METADATA'].get_statn()
+
 
     # ==========================================================================
-    def _create_profile_info_dict(self):
+    def old_create_profile_info_dict(self):
         """
         Creats a dict with display name as key and information about the profile in an object.
         Prolfile is defined by unique time.
+
+        Old method created for CMEMS files! They have several profiles in the same file. Probably needs to be handled in an other way.
         """
         print('_create_profile_info_dict')
 
@@ -848,9 +901,10 @@ class CTDfile(GISMOfile):
 
 
 
+
 # ==============================================================================
 # ==============================================================================
-class CTDmetadata(GISMOmetadata):
+class SHARKmetadataStandardBase(object):
     """
     Created 20180928     
     Updated 20181003     
@@ -858,14 +912,43 @@ class CTDmetadata(GISMOmetadata):
     Class holds metadata information of a GISMO file.
     """
 
-    class Meatadata(object):
+    class FileInfo(object):
+        """ Class to handle the file info found at the top of the file """
+        def __init__(self, **kwargs):
+            self.has_data = False
+            self.metadata_string = ''
+            self.data = []
+            self.column_sep = '='
+            self.comment_id = kwargs.get('comment_id', '//')
+            self.metadata_id = ''
+
+        def add(self, line):
+            """ Whole line is given in line """
+            self.data.append(line)
+
+        def set(self, **kwargs):
+            pass
+
+        def get_rows(self):
+            return self.data
+
+        def get_metadata_tree(self):
+            return_dict = {}
+            for line in self.data:
+                split_line = line.strip().strip('//').split(self.column_sep)
+                return_dict[split_line[0]] = {'value': split_line[1]}
+            return return_dict
+
+    class Metadata(object):
         """ Class to handle the METADATA """
         def __init__(self, **kwargs):
             self.has_data = False
             self.metadata_string = 'METADATA'
             self.data = {}
             self.column_sep = kwargs.get('column_sep', ';')
-            self.metadata_id = '{}METADATA'.format(kwargs.get('comment_id', '/')*kwargs.get('nr_comment_id', '/'))
+            self.comment_id = kwargs.get('comment_id', '//')
+            self.metadata_id = '{}METADATA'.format(self.comment_id)
+            self.item_order = []
 
         def add(self, item_list, **kwargs):
             """
@@ -876,52 +959,156 @@ class CTDmetadata(GISMOmetadata):
             if item_list[0] != self.metadata_id:
                 raise GISMOExceptionMetadataError('Non matching metadata string')
             self.data[item_list[1]] = item_list[2]
+            self.item_order.append(item_list[1])
             self.has_data = True
 
         def set(self, **kwargs):
             for key, value in kwargs.items():
                 self.data[key] = value
 
-
         def get_rows(self):
             return_list = []
-            for key in sorted(self.data):
+            for key in self.item_order:
                 line_list = [self.metadata_id, key, self.data[key]]
                 return_list.append(self.column_sep.join(line_list))
 
             return return_list
 
-    class Unhandled(object):
-        """
-        Updated 20181003     
+        def get_metadata_tree(self):
+            return_dict = {}
+            for key, value in self.data.items():
+                return_dict[key] = {'value': value}
+            return return_dict
 
-        Class to handle the metadata that id not handled and should be as is
-        """
+        def get_statn(self):
+            return self.data.get('STATN')
+
+    class SensorInfo(object):
         def __init__(self, **kwargs):
-            self.data = []
+            self.has_data = False
+            self.metadata_string = 'SENSORINFO'
+            self.data = None
+            self.column_sep = kwargs.get('column_sep', ';')
+            self.metadata_id = '{}SENSORINFO'.format(kwargs.get('comment_id', '//'))
 
-        def add(self, metadata_string):
+        def add(self, item_list, **kwargs):
             """
+            If self.data is empty item_list is the header to the dataframe.
+            """
+            if item_list[0] != self.metadata_id:
+                raise GISMOExceptionMetadataError('Non matching metadata string')
 
-            """
-            self.data.append(metadata_string)
+            row_list = item_list[1:]
+
+            if self.data is None:
+                self.header = row_list
+                self.data = pd.DataFrame([], columns=row_list)
+            else:
+                df = pd.DataFrame([row_list], columns=self.header)
+                self.data = self.data.append(df)
+                self.data.reset_index(inplace=True)
+                self.data.pop('index')
+                self.has_data = True
 
         def set(self, **kwargs):
             pass
 
         def get_rows(self):
-            return sorted(self.data)
+            return_list = []
+            line_list = [self.metadata_id] + self.header
+            return_list.append(self.column_sep.join(line_list))
+            for i in self.data.index:
+                line_list = [self.metadata_id] + list(self.data.iloc[i].values)
+                return_list.append(self.column_sep.join(line_list))
 
+            return return_list
+
+        def get_metadata_tree(self):
+            par_key = 'PARAM_SIMPLE'
+            columns = [item for item in self.data.columns if item != par_key]
+            return_dict = {}
+            level_dict = return_dict
+            for k in self.data.index:
+                line_dict = dict(zip(self.data.columns, self.data.iloc[k].values))
+                par = line_dict[par_key]
+                return_dict.setdefault(par, {'children': {}})
+                for item in columns:
+                    return_dict[par]['children'][item] = {'value': line_dict[item]}
+            return return_dict
+
+
+    class Information(object):
+        """ Class to handle the INFORMATION """
+        def __init__(self, **kwargs):
+            self.has_data = False
+            self.metadata_string = 'INFORMATION'
+            self.data = []
+            self.column_sep = kwargs.get('column_sep', ';')
+            self.metadata_id = '{}INFORMATION'.format(kwargs.get('comment_id', '//'))
+
+        def add(self, item_list, **kwargs):
+            """
+            """
+            if self.metadata_string not in item_list[0]:
+                raise GISMOExceptionMetadataError('Non matching metadata string')
+            self.data.append(self.column_sep.join(item_list[1:]))
+            self.has_data = True
+
+        def set(self, **kwargs):
+            pass
+
+        def get_rows(self):
+            return_list = []
+            for item in self.data:
+                return_list.append(self.column_sep.join([self.metadata_id, item]))
+
+            return return_list
+
+        def get_metadata_tree(self):
+            return_dict = {}
+            for k, item in enumerate(self.data):
+                return_dict['Comment nr {}'.format(k+1)] = {'value': item}
+            return return_dict
+
+    class InstrumentMetadata(object):
+        """ Class to handle the INFORMATION """
+
+        def __init__(self, **kwargs):
+            self.has_data = False
+            self.metadata_string = 'INSTRUMENT_METADATA'
+            self.data = []
+            self.column_sep = kwargs.get('column_sep', ';')
+            self.metadata_id = '{}INSTRUMENT_METADATA'.format(kwargs.get('comment_id', '//'))
+
+        def add(self, item_list, **kwargs):
+            """
+            """
+            if item_list[0] != self.metadata_id:
+                raise GISMOExceptionMetadataError('Non matching metadata string')
+            self.data.append(kwargs.get('original_line').strip('\r\n'))
+            self.has_data = True
+
+        def set(self, **kwargs):
+            pass
+
+        def get_rows(self):
+            return self.data
+
+        def get_metadata_tree(self):
+            return_dict = {}
+            for k, item in enumerate(self.data):
+                return_dict['line {}'.format(k + 1)] = {'value': item}
+            return return_dict
 
     # ==========================================================================
-    def __init__(self, metadara_raw_lines, **kwargs):
+    def __init__(self, metadata_raw_lines, **kwargs):
         super().__init__()
-        self.metadata_raw_lines = metadara_raw_lines
-        self._load_meatadata()
-        self.column_sep = kwargs.get('metadata_column_sep', ';')
-        self.comment_id = kwargs.get('comment_id', '/')
-        self.nr_comment_id = kwargs.get('nr_comment_id', 2)
+        self.metadata_raw_lines = metadata_raw_lines
 
+        self.column_sep = kwargs.get('metadata_column_sep', ';')
+        self.comment_id = kwargs.get('comment_id', '//')
+
+        self._load_meatadata()
 
     # ==========================================================================
     def _load_meatadata(self):
@@ -929,32 +1116,58 @@ class CTDmetadata(GISMOmetadata):
         Updated 20181003     
         """
         kw = dict(column_sep=self.column_sep,
-                  comment_id=self.comment_id,
-                  nr_comment_id=self.nr_comment_id)
+                  comment_id=self.comment_id)
 
-        self.data = {'METADATA': self.Meatadata(**kw),
-                     'unhandled': self.Unhandled(**kw)}
+        self.file_info = self.FileInfo(**kw)
 
-        for k, line in enumerate(self.metadata_raw_lines):
-            line = line.strip()
+        self.data = {'METADATA': self.Metadata(**kw),
+                     'SENSORINFO': self.SensorInfo(**kw),
+                     'INFORMATION': self.Information(**kw),
+                     'INSTRUMENT_METADATA': self.InstrumentMetadata(**kw)}
+
+        self.metadata_order = []
+
+        for k, original_line in enumerate(self.metadata_raw_lines):
+            line = original_line.strip()
 
             # First line is FORMAT id line
-            if k == 0:
-                if 'FORMAT' not in line:
-                    raise GISMOExceptionMetadataError
-                self.format_line = line
-                self.format = line.split('=')[-1]
+            if k <= 2:
+                if 'FORMAT' in line:
+                    self.file_format = line.split('=')[-1]
+
+                self.file_info.add(line)
 
             else:
                 split_line = line.split(self.column_sep)
                 metadata_type = split_line[0].strip(self.comment_id)
 
-            if self.data.get(metadata_type):
-                self.data[metadata_type].add(split_line)
-            else:
-                self.data['unhandled'].add(line)
+                if metadata_type not in self.data:
+                    raise GISMOExceptionMetadataError('New field in metadata is not handled properly: {}'.format(metadata_type))
 
-            # ==============================================================================
+                if self.data.get(metadata_type):
+                    self.data[metadata_type].add(split_line, original_line=original_line)
+                # else:
+                #     self.data['unhandled'].add(line)
+                if metadata_type not in self.metadata_order:
+                    self.metadata_order.append(metadata_type)
+            self.has_data = True
+
+    def get_metadata(self):
+        metadata_dict = {}
+        for metadata_type in self.metadata_order:
+            metadata_dict[metadata_type] = self.data[metadata_type].get_metadata()
+
+    def get_lines(self):
+        all_lines = self.file_info.get_rows()
+        for metadata_type in self.metadata_order:
+            all_lines.extend(self.data[metadata_type].get_rows())
+        return all_lines
+
+    def get_metadata_tree(self):
+        return_dict = {}
+        for key in self.metadata_order:
+            return_dict[key] = {'children': self.data[key].get_metadata_tree()}
+        return return_dict
 
 
 # ==============================================================================
@@ -1013,7 +1226,7 @@ class SamplingTypeSettings(dict):
         fid = codecs.open(self.file_path, 'r', encoding='cp1252')
 
         for line in fid:
-            line = line.strip()
+            line = line.strip('\r\n')
             # Blank line or comment line
             if not line or line.startswith('#'):
                 continue
@@ -1035,11 +1248,13 @@ class SamplingTypeSettings(dict):
                 self['flags'] = {}
                 self.description_to_flag = {}
                 for i, line in enumerate(self.data[key]):
-                    split_line = [item.strip() for item in line.split(u'\t')]
+                    split_line = [item.strip() for item in line.split('\t')]
                     if i == 0:
                         header = [item.lower() for item in split_line]
                     else:
                         qf = split_line[header.index('qf')]
+                        if qf == '':
+                            qf = 'no flag'
                         self['flags'][qf] = {}
                         for par, item in zip(header, split_line):
                             if par == 'markersize':
@@ -1390,7 +1605,8 @@ def apply_datetime_object_to_df(x):
     :param x:
     :return:
     """
-    time_formats = ['%Y%m%d%H%M',
+    time_formats = ['%Y%m%d%H%M%S',
+                    '%Y%m%d%H%M',
                     '%Y%m%d%H:%M',
                     '%Y%m%d%H.%M',
                     '%Y-%m-%d%H%M',

@@ -311,5 +311,8 @@ class QCiocftp(GISMOqc):
             if len(diff):
                 print(col, diff)
 
+class QCstandardSMHIprofile(GISMOqc):
+    pass
+
 
 

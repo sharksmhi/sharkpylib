@@ -11,6 +11,8 @@ import datetime
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg, NavigationToolbar2Tk
 import matplotlib.dates as dates
 
+import utils
+
 """
 ================================================================================
 ================================================================================
@@ -1290,6 +1292,8 @@ class ListboxSelectionWidget(tk.Frame):
         
         self._remove_selected_items_from_items()
         self._set_frame()
+
+        self._update_listboxes(update_targets=False)
         
     #===========================================================================
     def _set_frame(self):
@@ -1297,36 +1301,45 @@ class ListboxSelectionWidget(tk.Frame):
         padx = 5
         pady = 2
         
-        frame_items = tk.Frame(self)
-        frame_selected = tk.Frame(self)
-        frame_buttons = tk.Frame(self)
+        self.frame_items = tk.Frame(self)
+        self.frame_selected = tk.Frame(self)
+        self.frame_buttons = tk.Frame(self)
         
         button_r=1
-        frame_items.grid(row=0, column=0, sticky='nw')
+        c = 0
+        self.frame_items.grid(row=0, column=c, sticky='nw')
         if self.vertical:
-            frame_selected.grid(row=1, column=0, sticky='nw')
+            self.frame_selected.grid(row=1, column=c, sticky='nw')
             button_r += 1
         else:
-            frame_selected.grid(row=0, column=1, sticky='nw')
-        
-        frame_buttons.grid(row=button_r, column=0, sticky='nw')
+            c+=1
+            self.frame_selected.grid(row=0, column=c, sticky='nw')
 
-    
-        #----------------------------------------------------------------------------
-        # Items listbox
+            self.frame_buttons.grid(row=button_r, column=0, sticky='nw')
+
+        grid_configure(self, nr_rows=button_r+1, nr_columns=c+1)
+
+        self._set_frame_items()
+        self._set_frame_selected()
+        self._set_frame_buttons()
+
+    def _set_frame_items(self):
+        frame = self.frame_items
+        padx = 5
+        pady = 2
+
         r = 0
-        c = 0
         if self.title_items:
-            tk.Label(frame_items, text=self.title_items).grid(row=0, column=c)
+            tk.Label(frame, text=self.title_items).grid(row=0, column=0)
             r+=1 
             
-        self.listbox_items = tk.Listbox(frame_items, selectmode=u'single', font=self.font, **self.prop_listbox_items)
-        self.listbox_items.grid(row=r, column=c, columnspan=2,
-                                 sticky=u'nsew', padx=(padx,0), pady=pady)
-        self.scrollbar_items = ttk.Scrollbar(frame_items, 
+        self.listbox_items = tk.Listbox(frame, selectmode=u'single', font=self.font, **self.prop_listbox_items)
+        self.listbox_items.grid(row=r, column=0, columnspan=2,
+                                 sticky=u'nsew', padx=(padx, 0), pady=pady)
+        self.scrollbar_items = ttk.Scrollbar(frame,
                                               orient=u'vertical', 
                                               command=self.listbox_items.yview)
-        self.scrollbar_items.grid(row=r, column=c+2, sticky=u'ns') 
+        self.scrollbar_items.grid(row=r, column=2, sticky=u'ns')
         self.listbox_items.configure(yscrollcommand=self.scrollbar_items.set)
         self.listbox_items.bind('<<ListboxSelect>>', self._on_click_items)
         self.listbox_items.bind('<Double-Button-1>', self._on_doubleclick_items)
@@ -1334,11 +1347,11 @@ class ListboxSelectionWidget(tk.Frame):
         
         # Search field items
         self.stringvar_items = tk.StringVar()
-        self.entry_items = tk.Entry(frame_items, 
+        self.entry_items = tk.Entry(frame,
                                     textvariable=self.stringvar_items, 
                                     width=self.prop_listbox_items['width'], 
                                     state=u'normal')
-        self.entry_items.grid(row=r, column=c, columnspan=2, sticky=u'e')
+        self.entry_items.grid(row=r, column=0, columnspan=2, sticky=u'e')
         self.stringvar_items.trace("w", self._search_item)
         self.entry_items.bind('<Return>', self._on_return_entry_items)
         self.entry_items.bind('<Tab>', self._on_tab_entry_items)
@@ -1346,43 +1359,33 @@ class ListboxSelectionWidget(tk.Frame):
         
         # Information about number of items in list
         self.stringvar_nr_items = tk.StringVar()
-        tk.Label(frame_items, textvariable=self.stringvar_nr_items, font=Fonts().fontsize_small).grid(row=r, column=c+1, sticky='e')
+        tk.Label(frame, textvariable=self.stringvar_nr_items, font=Fonts().fontsize_small).grid(row=r, column=1, sticky='e')
         
         
         if self.include_button_move_all_items:
-            self.button_move_all_items = tk.Button(frame_items, text=u'Select all', command=self.select_all, font=Fonts().fontsize_small)
-            self.button_move_all_items.grid(row=r, column=c, padx=padx, pady=pady, sticky='w')
-            r+=1
-        
-        # Buttons
-        #----------------------------------------------------------------------------
-        r = 0
-        c = 0
-        if self.callback_match_in_file:
-            self.button_match_in_file = tk.Button(frame_buttons, text=u'Match in file', command=self.callback_match_in_file, font=Fonts().fontsize_small)
-            self.button_match_in_file.grid(row=r, column=c, padx=padx, pady=pady, sticky='w')
-            r+=1
-            
-        if self.callback_match_subselection:
-            self.button_match_subselection = tk.Button(frame_buttons, text=u'Match subselection', command=self.callback_match_subselection, font=Fonts().fontsize_small)
-            self.button_match_subselection.grid(row=r, column=c, padx=padx, pady=pady, sticky='w')
+            self.button_move_all_items = tk.Button(frame, text=u'Select all', command=self.select_all, font=Fonts().fontsize_small)
+            self.button_move_all_items.grid(row=r, column=0, padx=padx, pady=pady, sticky='w')
             r+=1
 
-        #----------------------------------------------------------------------------
-        # Selected items listbox
+        grid_configure(frame, nr_rows=r, nr_columns=3, r0=10)
+
+    def _set_frame_selected(self):
+        frame = self.frame_selected
+        padx = 5
+        pady = 2
+
         r = 0
-        c = 0
         if self.title_selected:
-            tk.Label(frame_selected, text=self.title_selected).grid(row=r, column=c)
+            tk.Label(frame, text=self.title_selected).grid(row=r, column=0)
             r+=1 
             
-        self.listbox_selected = tk.Listbox(frame_selected, selectmode=u'single', font=self.font, **self.prop_listbox_selected)
-        self.listbox_selected.grid(row=r, column=c, columnspan=2, 
-                                 sticky=u'nsew', padx=(padx,0), pady=pady)
-        self.scrollbar_selected = ttk.Scrollbar(frame_selected, 
-                                              orient=u'vertical', 
+        self.listbox_selected = tk.Listbox(frame, selectmode='single', font=self.font, **self.prop_listbox_selected)
+        self.listbox_selected.grid(row=r, column=0, columnspan=2,
+                                 sticky='nsew', padx=(padx, 0), pady=pady)
+        self.scrollbar_selected = ttk.Scrollbar(frame,
+                                              orient='vertical',
                                               command=self.listbox_selected.yview)
-        self.scrollbar_selected.grid(row=r, column=c+2, sticky=u'ns') 
+        self.scrollbar_selected.grid(row=r, column=2, sticky=u'ns')
         self.listbox_selected.configure(yscrollcommand=self.scrollbar_selected.set)
     #         Hover(self.listbox_series, text=HelpTexts().listbox_seriesinformation, controller=self.controller)
         self.listbox_selected.bind('<<ListboxSelect>>', self._on_click_selected)
@@ -1391,30 +1394,43 @@ class ListboxSelectionWidget(tk.Frame):
         
         # Search field selected
         self.stringvar_selected = tk.StringVar()
-        self.entry_selected = tk.Entry(frame_selected, 
+        self.entry_selected = tk.Entry(frame,
                                     textvariable=self.stringvar_selected, 
                                     width=self.prop_listbox_selected['width'], 
-                                    state=u'normal') 
-        self.entry_selected.grid(row=r, column=c, columnspan=2, sticky=u'e')
+                                    state='normal')
+        self.entry_selected.grid(row=r, column=0, columnspan=2, sticky='e')
         self.stringvar_selected.trace("w", self._search_selected)
         self.entry_selected.bind('<Return>', self._on_return_entry_selected)
         r+=1
         
         # Information about number of items in list
         self.stringvar_nr_selected_items = tk.StringVar()
-        tk.Label(frame_selected, textvariable=self.stringvar_nr_selected_items, font=Fonts().fontsize_small).grid(row=r, column=c+1, sticky='e')
+        tk.Label(frame, textvariable=self.stringvar_nr_selected_items, font=Fonts().fontsize_small).grid(row=r, column=1, sticky='e')
         
         if self.include_button_move_all_selected:
-            self.button_move_all_selected = tk.Button(frame_selected, text=u'Deselect all', command=self.deselect_all, font=Fonts().fontsize_small)
-            self.button_move_all_selected.grid(row=r, column=c, pady=pady, sticky='w')
+            self.button_move_all_selected = tk.Button(frame, text='Deselect all', command=self.deselect_all, font=Fonts().fontsize_small)
+            self.button_move_all_selected.grid(row=r, column=0, pady=pady, sticky='w')
             r+=1
-        
-        grid_configure(self)
-        grid_configure(frame_items)
-        grid_configure(frame_selected)
-        grid_configure(frame_buttons)
-        
-        self._update_listboxes(update_targets=False)
+
+        grid_configure(frame, nr_rows=r, nr_columns=3, r0=10)
+
+    def _set_frame_buttons(self):
+        frame = self.frame_buttons
+        padx = 5
+        pady = 2
+
+        r = -1
+        if self.callback_match_in_file:
+            self.button_match_in_file = tk.Button(frame, text=u'Match in file', command=self.callback_match_in_file, font=Fonts().fontsize_small)
+            self.button_match_in_file.grid(row=r, column=0, padx=padx, pady=pady, sticky='w')
+            r+=1
+
+        if self.callback_match_subselection:
+            self.button_match_subselection = tk.Button(frame, text='Match subselection', command=self.callback_match_subselection, font=Fonts().fontsize_small)
+            self.button_match_subselection.grid(row=r, column=0, padx=padx, pady=pady, sticky='w')
+            r+=1
+
+        grid_configure(frame, nr_rows=r)
     
     #===========================================================================
     def _on_tab_entry_items(self, event):
@@ -3210,6 +3226,273 @@ class WrappedLabel(tk.Label):
         self.config(wraplength=self.frame.winfo_width())
 
 
+class TableWidget(tk.Frame):
+    """
+    Table based on ttk.TreeView widget.
+    Sorting functionality etc. taken from:
+    https://stackoverflow.com/questions/32051780/how-to-edit-the-style-of-a-heading-in-treeview-python-ttk
+    """
+    def __init__(self,
+                 parent=False,
+                 prop_frame={},
+                 prop_treeview={},
+                 columns=[],
+                 callback_select=[],
+                 **kwargs):
+
+        self.parent = parent
+
+        self.callback_select_targets = []
+        if not isinstance(callback_select, list):
+            self.callback_select_targets = [callback_select]
+        else:
+            self.callback_select_targets = callback_select
+
+        self.prop_frame = {}
+        self.prop_frame.update(prop_frame)
+
+        self.prop_treeview = {}
+        # self.prop_treeview = {'height': 5}
+        # self.prop_treeview.update(prop_treeview)
+
+        self.grid_frame = {'padx': 5,
+                           'pady': 5,
+                           'sticky': 'nsew'}
+        self.grid_frame.update(kwargs)
+
+        # Create frame
+        tk.Frame.__init__(self, parent, **self.prop_frame)
+        self.grid(**self.grid_frame)
+
+        self.columns = columns
+
+        self._set_frame()
+
+    def _set_frame(self):
+        self.tree = ttk.Treeview(self, columns=self.columns, show="headings")
+
+        self.xscrollbar = ttk.Scrollbar(self, orient='horizontal', command=self.tree.xview)
+        self.yscrollbar = ttk.Scrollbar(self, orient='vertical', command=self.tree.yview)
+
+        self.tree.configure(xscrollcommand=self.xscrollbar.set)
+        self.tree.configure(yscrollcommand=self.yscrollbar.set)
+
+        self.tree.grid(row=0, column=0, sticky="nsew")
+        self.xscrollbar.grid(row=1, column=0, sticky='sew')
+        self.yscrollbar.grid(row=0, column=1, sticky='nse')
+
+        self.xscrollbar.configure(command=self.tree.xview)
+        self.yscrollbar.configure(command=self.tree.yview)
+
+        self.tree.config(**self.prop_treeview)
+
+        grid_configure(self)
+
+        # Bindings
+        self.tree.bind('<<TreeviewSelect>>', self._callback_select)
+
+    def _callback_select(self, event=None):
+        for callback in self.callback_select_targets:
+            callback(**self.get_selected())
+
+
+    def get_selected(self):
+        selection = self.tree.selection()
+        item_dict = self.tree.item(selection)
+        # print('item_dict', item_dict)
+        return_dict = {col: value for col, value in zip(self.columns, item_dict['values'])}
+        return return_dict
+
+    def reset_table(self):
+        """
+        Deletes all items in the treeview.
+        :return:
+        """
+        for i in self.tree.get_children():
+            self.tree.delete(i)
+
+    def set_table(self, data_rows):
+        """
+        Sets the treeview widget with data from the data_rows. Structure is:
+
+        :param data_rows_rows:
+        :return:
+        """
+        for col in self.columns:
+            self.tree.heading(col, text=col.title(), command=lambda c=col: sortby(self.tree, c, 0))
+        for item in data_rows:
+            self.tree.insert('', 'end', values=item, tags=('items',))
+
+        def sortby(tree, col, descending):
+            """sort tree contents when a column header is clicked on"""
+            # grab values to sort
+            data = [(tree.set(child, col), child) for child in tree.get_children('')]
+            # if the data to be sorted is numeric change to float
+            # data =  change_numeric(data)
+            # now sort the data in place
+            data.sort(reverse=descending)
+            for ix, item in enumerate(data):
+                tree.move(item[1], '', ix)
+            # switch the heading so it will sort in the opposite direction
+            tree.heading(col, command=lambda col=col: sortby(tree, col, int(not descending)))
+
+
+class TreeviewWidget(tk.Frame):
+    """
+
+    """
+    def __init__(self,
+                 parent=False,
+                 prop_frame={},
+                 prop_treeview={},
+                 columns=[],
+                 callback_target=[],
+                 **kwargs):
+
+        self.parent = parent
+
+        if not isinstance(callback_target, list):
+            self.callback_targets = [callback_target]
+        else:
+            self.callback_targets = callback_target
+
+        self.prop_frame = {}
+        self.prop_frame.update(prop_frame)
+
+        self.prop_treeview = {}
+        # self.prop_treeview = {'height': 5}
+        # self.prop_treeview.update(prop_treeview)
+
+        self.grid_frame = {'padx': 5,
+                           'pady': 5,
+                           'sticky': 'nsew'}
+        self.grid_frame.update(kwargs)
+
+        # Create frame
+        tk.Frame.__init__(self, parent, **self.prop_frame)
+        self.grid(**self.grid_frame)
+
+        self.columns = columns
+
+        self._set_frame()
+
+    def _set_frame(self):
+
+        self.tree = ttk.Treeview(self)
+
+        self.xscrollbar = ttk.Scrollbar(self, orient='horizontal', command=self.tree.xview)
+        self.yscrollbar = ttk.Scrollbar(self, orient='vertical', command=self.tree.yview)
+
+        self.tree.configure(xscrollcommand=self.xscrollbar.set)
+        self.tree.configure(yscrollcommand=self.yscrollbar.set)
+
+        self.tree.grid(row=0, column=0, sticky="nsew")
+        self.xscrollbar.grid(row=1, column=0, sticky='sew')
+        self.yscrollbar.grid(row=0, column=1, sticky='nse')
+
+        self.xscrollbar.configure(command=self.tree.xview)
+        self.yscrollbar.configure(command=self.tree.yview)
+
+        if len(self.columns) > 1:
+            self.prop_treeview.update({'columns': self.columns[1:]})
+
+        self.tree.config(**self.prop_treeview)
+
+        for k, value in enumerate(self.columns):
+            item = '#{}'.format(k)
+            self.tree.heading(item, text=value)
+
+        grid_configure(self)
+
+        # Bindings
+        self.tree.bind('<<TreeviewSelect>>', self._callback_select)
+
+    def _callback_select(self, event=None):
+        if self.callback_targets:
+            for callback in self.callback_targets:
+                callback(self.get_selected())
+
+    def treeview_sort_column(self, tv, col, reverse):
+        """
+        https://stackoverflow.com/questions/1966929/tk-treeview-column-sort
+        :param tv:
+        :param col:
+        :param reverse:
+        :return:
+        """
+        l = [(tv.set(k, col), k) for k in tv.get_children('')]
+        l.sort(reverse=reverse)
+
+        # rearrange items in sorted positions
+        for index, (val, k) in enumerate(l):
+            tv.move(k, '', index)
+
+        # reverse sort next time
+        tv.heading(col, command=lambda: self.treeview_sort_column(tv, col, not reverse))
+
+
+    def get_selected(self):
+        selection = self.tree.selection()
+        item_dict = self.tree.item(selection)
+        # print('item_dict', item_dict)
+        return_dict = {}
+        for k, col in enumerate(self.columns):
+            if k==0:
+                return_dict[col] = item_dict['text']
+            else:
+                try:
+                    return_dict[col] = item_dict['values'][k-1]
+                except:
+                    return_dict[col] = ''
+        return return_dict
+
+    def reset_tree(self):
+        """
+        Deletes all items in the treeview.
+        :return:
+        """
+        for i in self.tree.get_children():
+            self.tree.delete(i)
+
+    def set_treeview_dict(self, treeview_dict):
+        """
+        Sets the treeview widget with data from the treeview_dict. Structur is:
+
+        {'First': 'children': {'Second': 'children: {...},
+                                         'value': 'Test string'}
+        Where 'value' must be initiated as a column in the treview widget.
+
+        :param treeview_dict:
+        :return:
+        """
+        def add_level(parent, level_dict):
+            for name in utils.sorted_int(level_dict):
+                key = '{}_{}'.format(parent, name)
+                self.tree.insert(parent, 'end', key, text=name)
+                if 'children' in level_dict[name]:
+                    add_level(key, level_dict[name]['children'])
+
+                for col in level_dict[name]:
+                    if col == 'value':
+                        header = '#1'
+                        self.tree.set(key, header, level_dict[name][col])
+                    elif col.startswith('col'):
+                        header = col.replace('col', '#')
+                        self.tree.set(key, header, level_dict[name][col])
+
+        # First delete old entries
+        self.reset_tree()
+
+        # Then add new data
+        add_level('', treeview_dict)
+
+        # Add sorting functionality (not working yet)
+        #for col in self.columns:
+        #    self.tree.heading(col, text=col, command=lambda: self.treeview_sort_column(self.tree, col, False))
+
+
+
+
 class Fonts():
     def __init__(self):
         self.fontsize_small = font.Font(size=6)
@@ -3229,14 +3512,20 @@ class TestApp(tk.Tk):
         self._set_start_frame()
         
 #         self._set_frame_entry()
-        self._set_frame_time()        
+        self._set_frame_time()
+        self._set_frame_treeview()
         
       
     #========================================================================== 
     def _set_start_frame(self):
-        self.notebook_widget = NotebookWidget(self, frames=['Time', 'Entry grid', 'Entry'])
+        self.notebook_widget = NotebookWidget(self, frames=['Time', 'Entry grid', 'Entry', 'Treeview'])
         grid_configure(self)
-        
+
+    def _set_frame_treeview(self):
+        frame = self.notebook_widget.frame_treeview
+        self.tree = TreeviewWidget(frame)
+
+        grid_configure(frame)
         
     #========================================================================== 
     def _set_frame_time(self):

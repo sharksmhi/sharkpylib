@@ -57,6 +57,12 @@ class GISMOExceptionMissingKey(GISMOException):
     code = ''
     message = ''
 
+# ==============================================================================
+class GISMOExceptionMissingRequirements(GISMOException):
+    """
+    """
+    code = ''
+    message = ''
 
 # ==============================================================================
 class GISMOExceptionMissingInputArgument(GISMOException):

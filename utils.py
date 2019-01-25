@@ -2,8 +2,13 @@
 # Copyright (c) 2018 SMHI, Swedish Meteorological and Hydrological Institute
 # License: MIT License (see LICENSE.txt or http://opensource.org/licenses/mit).
 
-import matplotlib.colors as mcolors
-from matplotlib import markers
+import re
+
+try:
+    import matplotlib.colors as mcolors
+    from matplotlib import markers
+except:
+    pass
 
 
 class ColorsList(list):
@@ -53,4 +58,28 @@ class MarkerList(list):
 
     def get_marker(self, description):
         return self.description_to_marker.get(description, description)
+
+
+def sorted_int(list_to_sort):
+    """
+    Sorts the given list interpreting the digits as integers.
+    Code based on:
+    https://stackoverflow.com/questions/5967500/how-to-correctly-sort-a-string-with-a-number-inside
+
+    :param list_to_sort:
+    :return: sorted list
+    """
+    def atoi(text):
+        return int(text) if text.isdigit() else text
+
+    def natural_keys(text):
+        '''
+        alist.sort(key=natural_keys) sorts in human order
+        http://nedbatchelder.com/blog/200712/human_sorting.html
+        (See Toothy's implementation in the comments)
+        '''
+        return [atoi(c) for c in re.split('(\d+)', text)]
+
+    return sorted(list_to_sort, key=natural_keys)
+
 

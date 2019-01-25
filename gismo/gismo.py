@@ -33,12 +33,17 @@ class GISMOdataManager(object):
 
         self.match_objects = {}
 
-    def has_file_id(self, file_id):
+    def has_file_id(self, *arg, **kwargs):
         try:
             self._check_file_id()
             return True
         except:
             return False
+
+    def has_metadata(self, file_id):
+        self._check_file_id(file_id)
+        gismo_object = self.objects.get(file_id)
+        return gismo_object.has_metadata()
 
     def _check_file_id(self, file_id):
         """
@@ -92,7 +97,7 @@ class GISMOdataManager(object):
         gismo_object = self.objects.get(file_id)
 
         flag = str(flag)
-        if not flag or flag not in gismo_object.valid_flags:
+        if flag not in gismo_object.valid_flags:
             raise GISMOExceptionInvalidFlag('"{}", valid flags are "{}"'.format(flag, ', '.join(gismo_object.valid_flags)))
 
         # Check if valid options
@@ -126,6 +131,65 @@ class GISMOdataManager(object):
         self._check_file_id(file_id)
         return self.objects.get(file_id).flag_data_options
 
+    def get_filtered_file_id_list(self, **kwargs):
+        """
+
+        :param kwargs:
+        :return: list of file_id matching filter options in kwargs.
+        """
+
+        # List options in kwargs to check
+        #----------------------------------
+
+        # Station
+        station = kwargs.get('stations', [])
+        if station and type(station) != list:
+            station = [station]
+        if not kwargs.get('case_sensitive', True):
+            station = [item.lower() for item in station]
+
+        # print('kwargs', kwargs)
+        # Position
+        lat_min = kwargs.get('lat_min', 0.)
+        lat_max = kwargs.get('lat_max', 90.)
+        lon_min = kwargs.get('lon_min', -180.)
+        lon_max = kwargs.get('lon_max', 180.)
+
+        # ----------------------------------
+
+        matching_file_id_list = []
+        for file_id in self.get_file_id_list():
+            gismo_object = self.objects.get(file_id)
+
+            # Check station
+            if station:
+                try:
+                    statn = gismo_object.get_station_name()
+                    if not kwargs.get('case_sensitive', True):
+                        statn = statn.lower()
+                    if statn not in station:
+                        continue
+                except GISMOExceptionMethodNotImplemented:
+                    pass
+
+            # Check position
+            pos = gismo_object.get_position()
+            lat, lon = pos
+            if type(lat) in [float, int]:
+                lat = np.array([lat])
+                lon = np.array([lon])
+            else:
+                lat = np.array(lat)
+                lon = np.array(lon)
+            if not any((lat >= lat_min) & (lat <= lat_max) & (lon >= lon_min) & (lon <= lon_max)):
+                continue
+
+            # If file_id passes every test it will be included in the return list
+            matching_file_id_list.append(file_id)
+
+        return matching_file_id_list
+
+
     def get_mask_options(self, file_id, **kwargs):
         """
 
@@ -145,6 +209,16 @@ class GISMOdataManager(object):
         """
         self._check_file_id(file_id)
         return self.objects.get(file_id).save_data_options
+
+    def get_station_list(self):
+        station_list = []
+        for file_id in self.get_file_id_list():
+            gismo_object = self.objects.get(file_id)
+            try:
+                station_list.append(gismo_object.get_station_name())
+            except GISMOExceptionMethodNotImplemented:
+                pass
+        return sorted(set(station_list))
 
     def get_file_id_list(self):
         return sorted(self.objects.keys())
@@ -209,6 +283,17 @@ class GISMOdataManager(object):
         self._check_file_id(file_id)
         return self.objects.get(file_id).get_parameter_list(**kwargs)
 
+    def get_position(self, file_id, **kwargs):
+        """
+        :param file_id:
+        :param kwargs:
+        :return: List with position(s). Two options:
+        fixed position: [lat, lon]
+        trajectory: [[lat, lat, lat, ...], [lon, lon, lon, ...]]
+        """
+        self._check_file_id(file_id)
+        return self.objects.get(file_id).get_position(**kwargs)
+
     def get_unit(self, file_id, unit, **kwargs):
         self._check_file_id(file_id)
         return self.objects.get(file_id).get_unit(unit, **kwargs)
@@ -246,7 +331,6 @@ class GISMOdata(object):
 
     def __init__(self, *args, **kwargs):
         self.file_id = ''
-        self.metadata = GISMOmetadata()
 
         self.parameter_list = []        # Valid data parameters
         self.filter_data_options = []   # Options for data filter (what to return in def get_data)
@@ -260,6 +344,8 @@ class GISMOdata(object):
         self.valid_qc_routines = []     # Specify the valid qc routines
 
         self.comment_id = None
+
+        self.metadata = None
 
 
     def flag_data(self, flag, *args, **kwargs):
@@ -283,11 +369,28 @@ class GISMOdata(object):
         """
         raise GISMOExceptionMethodNotImplemented
 
+    def get_metadata_tree(self, *args, **kwargs):
+        """
+        :param args:
+        :param kwargs:
+        :return: dict with metadata information.
+        """
+        raise GISMOExceptionMethodNotImplemented
+
     def get_parameter_list(self, *args, **kwargs):
         """
         :return: list of available data parameters. Parameters that have quality flags.
         """
         return sorted(self.parameter_list)
+
+    def get_position(self, **kwargs):
+        """
+        :param kwargs:
+        :return: List with position(s). Two options:
+        fixed position: [lat, lon]
+        trajectory: [[lat, lat, lat, ...], [lon, lon, lon, ...]]
+        """
+        raise GISMOExceptionMethodNotImplemented
 
     def get_internal_parameter_name(self, parameter):
         """
@@ -324,6 +427,16 @@ class GISMOdata(object):
         """
         raise GISMOExceptionMethodNotImplemented
 
+    def has_metadata(self):
+        """
+        Returns True if metadata is not None. Else False.
+        :return:
+        """
+        if self.metadata is not None:
+            return True
+        else:
+            return False
+
     def save_file(self, **kwargs):
         """
         Saves data to file. Also saves metadata if available.
@@ -335,7 +448,7 @@ class GISMOdata(object):
 
 # ==============================================================================
 # ==============================================================================
-class GISMOmetadata(object):
+class old_GISMOmetadata(object):
     """
     Created 20181003
     Updated 20181106
@@ -349,6 +462,14 @@ class GISMOmetadata(object):
         self.data = {}
         self.column_sep = ''
         self.metadata_id = ''
+
+    def get_metadata(self):
+        """
+        Returns a dict containg all metadata information.
+
+        """
+        raise GISMOExceptionMethodNotImplemented
+
 
 
 """

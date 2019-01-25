@@ -319,6 +319,9 @@ class GISMOsession(object):
     def get_sampling_types(self):
         return self.sampling_types_factory.get_list()
 
+    def get_station_list(self):
+        return self.data_manager.get_station_list()
+
     # ==========================================================================
     def get_qc_routines(self):
         return self.qc_routines_factory.get_list()
@@ -359,6 +362,15 @@ class GISMOsession(object):
         :return: list of flag options
         """
         return self.data_manager.get_flag_options(file_id, **kwargs)
+
+    def get_filtered_file_id_list(self, **kwargs):
+        """
+        Returns a list of the loaded file_id:s that matches the given criteria.
+
+        :param kwargs:
+        :return: list of file_id matching given filter
+        """
+        return self.data_manager.get_filtered_file_id_list(**kwargs)
 
     def get_mask_options(self, file_id, **kwargs):
         """
@@ -403,18 +415,20 @@ class GISMOsession(object):
     def match_files(self, main_file_id, match_file_id, **kwargs):
         self.data_manager.match_files(main_file_id, match_file_id, **kwargs)
 
+    def get_metadata_tree(self, file_id):
+        gismo_object = self.get_gismo_object(file_id)
+        return gismo_object.get_metadata_tree()
+
     # ==========================================================================
     def load_file(self,
                   sampling_type='',
                   data_file_path='',
                   settings_file='',
-                  # settings_file_path='',
                   **kwargs):
         """
         :param sampling_type:
         :param data_file_path:
         :param settings_file: must be found in self.settings_files_path
-        :param settings_file_path:
         :param kwargs:
         :return:
         """
@@ -447,6 +461,8 @@ class GISMOsession(object):
 
         # Check sampling type requirements
         sampling_type_requirements = self.get_sampling_type_requirements(sampling_type)
+        if not sampling_type_requirements:
+            raise GISMOExceptionMissingRequirements
         for item in sampling_type_requirements:
             if not kw.get(item):
                 raise GISMOExceptionMissingInputArgument(item)
@@ -505,8 +521,34 @@ class GISMOsession(object):
 
         return file_id
 
-    def has_file_id(self, file_id):
-        return self.data_manager.has_file_id(file_id)
+    def load_files(self,
+                   sampling_type='',
+                   data_file_paths=[],
+                   settings_file='',
+                   **kwargs):
+        """
+        Load several files using the same settings_file. Calls self.load_file with every path in data_file_paths
+
+        :param sampling_type:
+        :param data_file_paths:
+        :param settings_file:
+        :param kwargs:
+        :return:
+        """
+        file_id_list = []
+        for data_file_path in data_file_paths:
+            file_id = self.load_file(sampling_type=sampling_type,
+                               data_file_path=data_file_path,
+                               settings_file=settings_file,
+                               **kwargs)
+            file_id_list.append(file_id)
+        return file_id_list
+
+    def has_file_id(self):
+        return self.data_manager.has_file_id()
+
+    def has_metadata(self, file_id):
+        return self.data_manager.has_metadata(file_id)
 
     def remove_file(self, file_id):
         """
@@ -568,6 +610,16 @@ class GISMOsession(object):
         if not file_id:
             raise GISMOExceptionMissingInputArgument
         return self.data_manager.get_parameter_list(file_id, **kwargs)
+
+    def get_position(self, file_id, **kwargs):
+        """
+        :param file_id:
+        :param kwargs:
+        :return: List with position(s). Two options:
+        fixed position: [lat, lon]
+        trajectory: [[lat, lat, lat, ...], [lon, lon, lon, ...]]
+        """
+        return self.data_manager.get_position(file_id, **kwargs)
 
     def get_unit(self, file_id='', unit='', **kwargs):
         if not file_id:

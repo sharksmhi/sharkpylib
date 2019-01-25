@@ -42,8 +42,7 @@ class ColumnMapping():
 #        print external_column
 #        print '-'*30
         if not all([local_file_path, internal_column, external_column]):
-            print('Not enough input arguments to create ColumnMapping file')
-            return
+            raise AssertionError('Not enough input arguments to create ColumnMapping file')
             
         if not isinstance(internal_column, list):
             internal_column = [internal_column]
@@ -125,7 +124,12 @@ class ColumnMapping():
                 else:
                     self.internal_to_external[internal_value] = external_value
                     self.external_to_internal[external_value] = internal_value
-                self.internal_to_unit[internal_value] = line_dict[self.unit_column]
+
+                # Add unit column if given
+                if self.unit_column:
+                    self.internal_to_unit[internal_value] = line_dict[self.unit_column]
+                else:
+                    self.internal_to_unit[internal_value] = ''
         fid.close()
  
     #==========================================================================

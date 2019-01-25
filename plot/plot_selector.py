@@ -840,7 +840,7 @@ class Plot():
     #===========================================================================
     def add_first_ax(self, margins=None, **kwargs):
         if not self.first_ax:
-            self.first_ax = Ax(self, self.fig.add_subplot(111), **kwargs)
+            self.first_ax = Ax(self, self.fig.add_subplot(111), time_axis=self.time_axis, **kwargs)
             
             if margins:
                 if 'right' in margins:
@@ -866,10 +866,10 @@ class Plot():
             return
         if not self.second_ax:
             if self.vertical_orientation:
-                self.second_ax = Ax(self, self.first_ax.ax.twiny(), **kwargs)
+                self.second_ax = Ax(self, self.first_ax.ax.twiny(), time_axis=self.time_axis, **kwargs)
                 print('Second y-axis added!')
             else:
-                self.second_ax = Ax(self, self.first_ax.ax.twinx(), **kwargs)
+                self.second_ax = Ax(self, self.first_ax.ax.twinx(), time_axis=self.time_axis, **kwargs)
                 print('Second x-axis added!')
         else:
             print('Second ax already added!')
@@ -1006,9 +1006,10 @@ class Plot():
 """
 class Ax():  
     #===========================================================================
-    def __init__(self, parent, axes, mark_at_point=False, **general_prop):
+    def __init__(self, parent, axes, mark_at_point=False, time_axis=False, **general_prop):
         self.parent = parent
-        self.ax = axes  
+        self.ax = axes
+        self.time_axis = time_axis
         self._load_attributes()
         
         self.reset_ax(**general_prop)
@@ -1601,11 +1602,11 @@ class Ax():
                 
             self.ax.set_xlim([x_min, x_max])
 
-            # self._set_date_ticks()
-            try:
-                self._set_date_ticks()
-            except:
-                pass
+            if self.time_axis:
+                try:
+                    self._set_date_ticks()
+                except:
+                    pass
 
             if call_targets:
                 self.parent.call_targets()

@@ -644,6 +644,7 @@ class TkMap(object):
         self.m.drawcountries(linewidth = 0.2)
         self.m.fillcontinents(color=self.continent_color, zorder=3)
 
+
     # # ==========================================================================
     # def _add_to_tkinter(self):
     #     """
@@ -1132,6 +1133,22 @@ class TkMap(object):
     def get_lat_lon(self, x, y):
         lon, lat = self.m(x, y, inverse=True)
         return lat, lon
+
+    def get_x_y(self, lat, lon):
+        x, y = self.m(lon, lat)
+        return x, y
+
+    def get_map_limits(self):
+        xmin, xmax = self.ax.get_xlim()
+        ymin, ymax = self.ax.get_ylim()
+
+        lat_min, lon_min = self.get_lat_lon(xmin, ymin)
+        lat_max, lon_max = self.get_lat_lon(xmax, ymax)
+
+        return dict(lon_min=lon_min,
+                    lon_max=lon_max,
+                    lat_min=lat_min,
+                    lat_max=lat_max)
     
     #==========================================================================
     def get_random_color(self):
@@ -1340,15 +1357,29 @@ class TkMap(object):
   
             
     #==========================================================================
-    def add_event(self, event_type, event_function): 
-        if self.parent:
-            self.event_dict[event_type] = {}
-            self.event_dict[event_type][u'event_type'] = event_type
-            self.event_dict[event_type][u'event_function'] = event_function
-            self.event_dict[event_type][u'object'] = self.fig.canvas.mpl_connect(event_type, 
-                                                       event_function)
-        else:
-            print('Could not add event to Map(). No parent given.')
+    def add_event(self, event_type, event_function):
+        """
+        Changed 20190124 when used in GISMO Toolbox.
+            self.parent not needed
+        :param event_type:
+        :param event_function:
+        :return:
+        """
+        print('Add event')
+        self.event_dict[event_type] = {}
+        self.event_dict[event_type][u'event_type'] = event_type
+        self.event_dict[event_type][u'event_function'] = event_function
+        self.event_dict[event_type][u'object'] = self.fig.canvas.mpl_connect(event_type,
+                                                                             event_function)
+
+        # if self.parent:
+        #     self.event_dict[event_type] = {}
+        #     self.event_dict[event_type][u'event_type'] = event_type
+        #     self.event_dict[event_type][u'event_function'] = event_function
+        #     self.event_dict[event_type][u'object'] = self.fig.canvas.mpl_connect(event_type,
+        #                                                event_function)
+        # else:
+        #     print('Could not add event to Map(). No parent given.')
         
 
     #==========================================================================
@@ -1431,7 +1462,7 @@ class TkMap(object):
     
     #==========================================================================
     def save_map(self, file_path, resolution=600, orientation=u'portrait', close_figure=True):
-        if file_path.endswith(u'.pdf'):
+        if file_path.endswith('.pdf'):
             pdf_pages = PdfPages(file_path)
             pdf_pages.savefig(self.fig)
             pdf_pages.close()
@@ -1440,6 +1471,37 @@ class TkMap(object):
             if close_figure:
                 plt.close()
 #                 self.fig.close()
+
+    def zoom(self, **kwargs):
+        if not self.toolbar:
+            return
+
+        tb = self.fig.canvas.toolbar  # get the toolbar of the figure
+        tb.push_current() # save the current zoom in the view stack
+
+        current_xmin, current_xmax = self.ax.get_xlim()
+        current_ymin, current_ymax = self.ax.get_ylim()
+
+        current_lat_min, current_lon_min = self.get_lat_lon(current_xmin, current_ymin)
+        current_lat_max, current_lon_max = self.get_lat_lon(current_xmax, current_ymax)
+
+        # print('BEFORE:', current_lat_min, current_lat_max, current_lon_min, current_lon_max)
+
+        lat_min = kwargs.get('lat_min', current_lat_min)
+        lat_max = kwargs.get('lat_max', current_lat_max)
+        lon_min = kwargs.get('lon_min', current_lon_min)
+        lon_max = kwargs.get('lon_max', current_lon_max)
+
+        # print('AFTER :', lat_min, lat_max, lon_min, lon_max)
+
+        xmin, ymin = self.get_x_y(lat_min, lon_min)
+        xmax, ymax = self.get_x_y(lat_max, lon_max)
+
+        self.ax.set_xlim([xmin, xmax])  # change xlims
+        self.ax.set_ylim([ymin, ymax])  # change ylims
+        tb.push_current()  # save the new position in the view stack
+
+        self.redraw()
         
 
     #==========================================================================
