@@ -3271,22 +3271,22 @@ class TableWidget(tk.Frame):
     def _set_frame(self):
         self.tree = ttk.Treeview(self, columns=self.columns, show="headings")
 
-        self.xscrollbar = ttk.Scrollbar(self, orient='horizontal', command=self.tree.xview)
+        #self.xscrollbar = ttk.Scrollbar(self, orient='horizontal', command=self.tree.xview)
         self.yscrollbar = ttk.Scrollbar(self, orient='vertical', command=self.tree.yview)
 
-        self.tree.configure(xscrollcommand=self.xscrollbar.set)
+        #self.tree.configure(xscrollcommand=self.xscrollbar.set)
         self.tree.configure(yscrollcommand=self.yscrollbar.set)
 
         self.tree.grid(row=0, column=0, sticky="nsew")
-        self.xscrollbar.grid(row=1, column=0, sticky='sew')
-        self.yscrollbar.grid(row=0, column=1, sticky='nse')
+        #self.xscrollbar.grid(row=1, column=0, sticky='sew')
+        self.yscrollbar.grid(row=0, column=1, sticky='nsw')
 
-        self.xscrollbar.configure(command=self.tree.xview)
+        #self.xscrollbar.configure(command=self.tree.xview)
         self.yscrollbar.configure(command=self.tree.yview)
 
         self.tree.config(**self.prop_treeview)
 
-        grid_configure(self)
+        grid_configure(self, nr_rows=1, nr_columns=2, c0=10)
 
         # Bindings
         self.tree.bind('<<TreeviewSelect>>', self._callback_select)

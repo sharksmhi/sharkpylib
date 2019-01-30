@@ -732,7 +732,7 @@ class GISMOfile(GISMOdata):
         encoding = kwargs.get('encoding', 'cp1252')
 
         with codecs.open(file_path, 'w', encoding=encoding) as fid:
-            if self.metadata.has_data:
+            if self.metadata and self.metadata.has_data:
                 fid.write('\n'.join(self.metadata.get_lines()))
                 fid.write('\n')
             # Write column header
