@@ -847,6 +847,9 @@ class SHARKfileStandardCTD(GISMOfile):
     def get_position(self, *kwargs):
         return [float(self.df['lat'].values[0]), float(self.df['lon'].values[0])]
 
+    def get_time(self):
+        return [self.df['time'].values[0]]
+
     def get_station_name(self, **kwargs):
         """
         Station can be found in metadata or self.df['station']

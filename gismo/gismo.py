@@ -150,6 +150,11 @@ class GISMOdataManager(object):
 
         # print('kwargs', kwargs)
         # Position
+        check_pos = False
+        for pos in ['lat_min', 'lat_max', 'lon_min', 'lon_max']:
+            if kwargs.get(pos, None) is not None:
+                check_pos = True
+                break
         lat_min = kwargs.get('lat_min', 0.)
         lat_max = kwargs.get('lat_max', 90.)
         lon_min = kwargs.get('lon_min', -180.)
@@ -161,6 +166,8 @@ class GISMOdataManager(object):
         for file_id in self.get_file_id_list():
             gismo_object = self.objects.get(file_id)
 
+            if not file_id.startswith(kwargs.get('startswith', '')):
+                continue
             # Check station
             if station:
                 try:
@@ -173,16 +180,17 @@ class GISMOdataManager(object):
                     pass
 
             # Check position
-            pos = gismo_object.get_position()
-            lat, lon = pos
-            if type(lat) in [float, int]:
-                lat = np.array([lat])
-                lon = np.array([lon])
-            else:
-                lat = np.array(lat)
-                lon = np.array(lon)
-            if not any((lat >= lat_min) & (lat <= lat_max) & (lon >= lon_min) & (lon <= lon_max)):
-                continue
+            if check_pos:
+                pos = gismo_object.get_position()
+                lat, lon = pos
+                if type(lat) in [float, int]:
+                    lat = np.array([lat])
+                    lon = np.array([lon])
+                else:
+                    lat = np.array(lat)
+                    lon = np.array(lon)
+                if not any((lat >= lat_min) & (lat <= lat_max) & (lon >= lon_min) & (lon <= lon_max)):
+                    continue
 
             # If file_id passes every test it will be included in the return list
             matching_file_id_list.append(file_id)
@@ -389,6 +397,13 @@ class GISMOdata(object):
         :return: List with position(s). Two options:
         fixed position: [lat, lon]
         trajectory: [[lat, lat, lat, ...], [lon, lon, lon, ...]]
+        """
+        raise GISMOExceptionMethodNotImplemented
+
+    def get_time(self, **kwargs):
+        """
+        :param kwargs:
+        :return: list of timestamps
         """
         raise GISMOExceptionMethodNotImplemented
 

@@ -3238,6 +3238,7 @@ class TableWidget(tk.Frame):
                  prop_treeview={},
                  columns=[],
                  callback_select=[],
+                 callback_rightclick=None,
                  **kwargs):
 
         self.parent = parent
@@ -3247,6 +3248,8 @@ class TableWidget(tk.Frame):
             self.callback_select_targets = [callback_select]
         else:
             self.callback_select_targets = callback_select
+
+        self.callback_rightclick = callback_rightclick
 
         self.prop_frame = {}
         self.prop_frame.update(prop_frame)
@@ -3291,6 +3294,9 @@ class TableWidget(tk.Frame):
         # Bindings
         self.tree.bind('<<TreeviewSelect>>', self._callback_select)
 
+        if self.callback_rightclick:
+            MenuWidget(self.tree, bind_widget=self.tree, items=[{'name': 'Show filter', 'command': self.callback_rightclick}])
+
     def _callback_select(self, event=None):
         for callback in self.callback_select_targets:
             callback(**self.get_selected())
@@ -3299,9 +3305,19 @@ class TableWidget(tk.Frame):
     def get_selected(self):
         selection = self.tree.selection()
         item_dict = self.tree.item(selection)
+        print('SELECTION', selection)
         # print('item_dict', item_dict)
         return_dict = {col: value for col, value in zip(self.columns, item_dict['values'])}
         return return_dict
+
+    def get_filtered_items(self):
+        children = self.tree.get_children('')
+        return_list = []
+        for c in children:
+            item_dict = self.tree.item(c)
+            c_dict = {col: value for col, value in zip(self.columns, item_dict['values'])}
+            return_list.append(c_dict)
+        return return_list
 
     def reset_table(self):
         """
@@ -3491,7 +3507,66 @@ class TreeviewWidget(tk.Frame):
         #    self.tree.heading(col, text=col, command=lambda: self.treeview_sort_column(self.tree, col, False))
 
 
+class MenuWidget(object):
 
+    def __init__(self,
+                 parent,
+                 bind_command="<Button-3>",
+                 bind_widget=None,
+                 bind_fig=None,
+                 items=[],
+                 **kwargs):
+
+        self.parent = parent
+        self.bind_widget = bind_widget
+        self.bind_fig = bind_fig
+        self.kwargs = kwargs
+
+        self.popup_menu = tk.Menu(self.parent, tearoff=0)
+        for k, item in enumerate(items):
+            self.popup_menu.add_command(label=item.get('label', item.get('text', item.get('name', str(k)))),
+                                        command=item.get('target', item.get('command', None)))
+
+        if bind_widget:
+            bind_widget.bind(bind_command, self.popup)  # Button-2 on Aqua
+        elif bind_fig:
+            bind_fig.canvas.mpl_connect(bind_command, self.popup)
+
+    def popup(self, event):
+        popup = True
+        if self.bind_fig:
+            if self.kwargs.get('button'):
+                if self.kwargs.get('button') != event.button:
+                    popup = False
+            if popup:
+                try:
+                    print('event.x, event.y', event.x, event.y)
+                    disp_cord = self.bind_fig.axes[0].transData.transform([event.x, event.y])
+                    x = int(disp_cord[0])
+                    y = int(disp_cord[1])
+                    print('xx yy', x, y)
+
+                    x = self.parent.winfo_x()
+                    y = self.parent.winfo_y()
+                    w = self.parent.winfo_width()
+                    h = self.parent.winfo_height()
+                    print('x y w, h', x, y, w, h)
+
+                    x = int(x + w / 2)
+                    y = int(y + h / 2)
+
+                    print('X Y', x, y)
+
+                    self.popup_menu.tk_popup(x, y, 0)
+                finally:
+                    self.popup_menu.grab_release()
+
+        elif self.bind_widget:
+            try:
+                print('X Y', event.x_root, event.y_root)
+                self.popup_menu.tk_popup(event.x_root, event.y_root, 0)
+            finally:
+                self.popup_menu.grab_release()
 
 class Fonts():
     def __init__(self):

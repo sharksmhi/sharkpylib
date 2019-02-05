@@ -316,6 +316,7 @@ class Plot():
                  orientation='vertical', 
                  time_axis=None,
                  hover_target=None,
+                 callback_on_disconnect_events=None,
                  **kwargs):
         
         self.sync_colors = sync_colors
@@ -329,6 +330,7 @@ class Plot():
             
         self.time_axis = time_axis
         self.hover_target = hover_target
+        self.callback_on_disconnect_events = callback_on_disconnect_events
 
         self.legend = None
 
@@ -408,9 +410,15 @@ class Plot():
             
     #==========================================================================
     def disconnect_all_events(self):
-        event_list = self.event_dict.keys()
+        event_list = list(self.event_dict.keys())
         for event_type in event_list:
             self.disconnect_event(event_type)
+
+        if self.hover_target:
+            self._add_event_hover()
+
+        if self.callback_on_disconnect_events:
+            self.callback_on_disconnect_events()
     
     #===========================================================================
     def remove_mark_range_target(self, ax='all'):
@@ -730,6 +738,15 @@ class Plot():
         ax = self._get_ax_object(ax)
         if ax:
             return ax.get_ylim()
+
+    def get_display_coordinates(self, axis_coordinates, ax='first'):
+        """
+        Transform axis_coordinates to display coordinates.
+        :param ax_coordinates:
+        :return:
+        """
+        ax_object = self._get_ax_object(ax)
+        return ax_object.transData.transform(axis_coordinates)
         
     #===========================================================================
     def _on_click(self, event):
@@ -745,14 +762,16 @@ class Plot():
                     ax.add_mark_point(x, y, self.mark_line_id) # Will also plot
                 self.call_targets()
                     
-            else: 
-                self.disconnect_event('button_press_event')
+            else:
+                # self.disconnect_event('button_press_event')
                 self.rangetype = None
+                self.disconnect_all_events()
                 
         else:
-            self.disconnect_event('motion_notify_event')
-            self.disconnect_event('button_press_event')
+            # self.disconnect_event('motion_notify_event')
+            # self.disconnect_event('button_press_event')
             self.rangetype = None
+            self.disconnect_all_events()
 
     def _on_movement_hover(self, event):
         self.hover_x = event.xdata
@@ -1075,8 +1094,9 @@ class Ax():
 
     # ===========================================================================
     def delete_data(self, marker_id):
-        if marker_id in self.ax.lines:
-            self.ax.lines.pop(self.ax.lines.index(marker_id))
+        if marker_id in self.p:
+            # self.ax.lines.pop(self.ax.lines.index(marker_id))
+            self.p[marker_id].remove()
             self.p.pop(marker_id)
             self.x_data[marker_id] = []
             self.y_data[marker_id] = []
@@ -1449,10 +1469,10 @@ class Ax():
             self.x_data[line_id] = x
             self.y_data[line_id] = y
             self.c_data[line_id] = c
-            print('type, len')
-            print(type(x), len(x))
-            print(type(y), len(y))
-            print(type(c), len(c))
+            # print('type, len')
+            # print(type(x), len(x))
+            # print(type(y), len(y))
+            # print(type(c), len(c))
             cid = 'scatter_plot'
             if 'scatter_plot' not in self.p:
                 self.p[cid] = None
@@ -1567,13 +1587,21 @@ class Ax():
                 x_min, x_max = limits
             else:
                 # Find min and max
+                # try:
+                #     mi_list = [np.nanmin(self.x_data[key]) for key in self.x_data if self.x_data[key].size]
+                #     ma_list = [np.nanmax(self.x_data[key]) for key in self.x_data if self.x_data[key].size]
+                # except:
+                #     # Time series
+                #     mi_list = [min(self.x_data[key]) for key in self.x_data if self.x_data[key].size]
+                #     ma_list = [max(self.x_data[key]) for key in self.x_data if self.x_data[key].size]
+
                 try:
-                    mi_list = [np.nanmin(self.x_data[key]) for key in self.x_data if self.x_data[key].size]
-                    ma_list = [np.nanmax(self.x_data[key]) for key in self.x_data if self.x_data[key].size]
+                    mi_list = [np.nanmin(self.x_data[key]) for key in self.x_data if len(self.x_data[key])]
+                    ma_list = [np.nanmax(self.x_data[key]) for key in self.x_data if len(self.x_data[key])]
                 except:
                     # Time series
-                    mi_list = [min(self.x_data[key]) for key in self.x_data if self.x_data[key].size]
-                    ma_list = [max(self.x_data[key]) for key in self.x_data if self.x_data[key].size]
+                    mi_list = [min(self.x_data[key]) for key in self.x_data if len(self.x_data[key])]
+                    ma_list = [max(self.x_data[key]) for key in self.x_data if len(self.x_data[key])]
 
                 if not mi_list:
                     return
@@ -1586,12 +1614,12 @@ class Ax():
                     x_min = mi - margin
                     x_max = ma + margin
                     
-                    print('='*30)
-                    print('margin', margin)
-                    print('mi', mi)
-                    print('ma', ma)
-                    print('x_min', x_min)
-                    print('x_max', x_max)
+                    # print('='*30)
+                    # print('margin', margin)
+                    # print('mi', mi)
+                    # print('ma', ma)
+                    # print('x_min', x_min)
+                    # print('x_max', x_max)
                     
                 except:
                     # Time series
@@ -1619,8 +1647,11 @@ class Ax():
                 y_min, y_max = limits
             else:
                 # Find min and max
-                mi_list = [np.nanmin(self.y_data[key]) for key in self.y_data if self.y_data[key].size]
-                ma_list = [np.nanmax(self.y_data[key]) for key in self.y_data if self.y_data[key].size]
+                # mi_list = [np.nanmin(self.y_data[key]) for key in self.y_data if self.y_data[key].size]
+                # ma_list = [np.nanmax(self.y_data[key]) for key in self.y_data if self.y_data[key].size]
+
+                mi_list = [np.nanmin(self.y_data[key]) for key in self.y_data if len(self.y_data[key])]
+                ma_list = [np.nanmax(self.y_data[key]) for key in self.y_data if len(self.y_data[key])]
                 
                 if not mi_list:
                     return
@@ -1633,12 +1664,12 @@ class Ax():
                 y_min = mi - margin
                 y_max = ma + margin
                 
-                print('='*30)
-                print('margin', margin)
-                print('mi', mi)
-                print('ma', ma)
-                print('y_min', y_min)
-                print('y_max', y_max)
+                # print('='*30)
+                # print('margin', margin)
+                # print('mi', mi)
+                # print('ma', ma)
+                # print('y_min', y_min)
+                # print('y_max', y_max)
                 
             self.ax.set_ylim([y_min, y_max])
             if call_targets:
