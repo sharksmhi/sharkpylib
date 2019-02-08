@@ -20,6 +20,18 @@ import json
 import pickle
 import shutil
 
+# Setup logger
+import logging
+logger = logging.getLogger('gismo_session')
+logger.setLevel(logging.INFO)
+
+formatter = logging.Formatter('%(asctime)s\t%(levelname)s\t%(module)s (row=%(lineno)d)\t%(message)s')
+
+logger_file_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'log', 'gismo_session.log')
+file_handler = logging.FileHandler(logger_file_path)
+file_handler.setFormatter(formatter)
+
+logger.addHandler(file_handler)
 
 #==============================================================================
 #==============================================================================
@@ -240,6 +252,7 @@ class GISMOsession(object):
         kwargs can include:
             save_pkl
         """
+        logger.info('Start session')
         if not all([users_directory, user, sampling_types_factory, mapping_files_directory, settings_files_directory]):
             raise GISMOExceptionMissingInputArgument
 
@@ -326,6 +339,9 @@ class GISMOsession(object):
     def get_qc_routines(self):
         return self.qc_routines_factory.get_list()
 
+    def get_qc_subroutines(self, qc_routine):
+        return self.qc_manager.get_qc_subroutines(qc_routine)
+
     def get_valid_qc_routines(self, file_id):
         return self.data_manager.get_valid_qc_routines(file_id)
 
@@ -336,6 +352,10 @@ class GISMOsession(object):
     # ==========================================================================
     def get_qc_routine_requirements(self, routine):
         return self.qc_routines_factory.get_requirements(routine)
+
+        # ==========================================================================
+    def get_qc_routine_options(self, routine):
+        return self.qc_manager.get_qc_options(routine)
 
     def get_file_path(self, file_id):
         """
@@ -640,16 +660,24 @@ class GISMOsession(object):
                 print('   {}'.format(file_id))
 
 
-    def run_automatic_qc(self, file_id, qc_routines=[], **kwargs):
+    def run_automatic_qc(self, file_id, qc_routine, options={}, **kwargs):
         """
         Runs automatic qc controls on the given gismo object. All routines in qc_routines ar run.
         :param qismo_object:
         :param qc_routines:
         :param kwargs:
-        :return:
+        :return: True if successful
         """
+        # Check qc requirements
+        qc_requirements = self.get_qc_routine_requirements(qc_routine)
+        if not qc_requirements:
+            raise GISMOExceptionMissingRequirements
+        for item in qc_requirements:
+            if not kwargs.get(item):
+                raise GISMOExceptionMissingInputArgument(item)
+
         qismo_object = self.get_gismo_object(file_id)
-        self.qc_manager.run_automatic_qc(qismo_object, qc_routines, **kwargs)
+        return self.qc_manager.run_automatic_qc(qismo_object, qc_routine, options=options, **kwargs)
 
 
 

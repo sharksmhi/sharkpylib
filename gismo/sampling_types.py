@@ -9,6 +9,7 @@ import numpy as np
 import datetime
 import pandas as pd
 import codecs
+import re
 import matplotlib.dates as dates
 
 from .mapping import StationMapping, ParameterMapping
@@ -16,6 +17,9 @@ from .gismo import GISMOdata
 
 from .exceptions import *
 
+
+import logging
+logger = logging.getLogger('gismo_session')
 
 class PluginFactory(object):
     """
@@ -92,15 +96,16 @@ class GISMOfile(GISMOdata):
         self.root_directory = root_directory
         self.mapping_files_directory = mapping_files_directory
 
-        self.comment_id = kwargs.get('comment_id', None)
-
-        self.file_encoding = kwargs.get('file_encoding', 'cp1252')
         self.sampling_type = kwargs.get('sampling_type', '')
 
         self._find_mapping_files()
         self._load_settings_file()
         self._load_station_mapping()
         self._load_parameter_mapping()
+
+        self.comment_id = self.settings.info.get('comment_id', None)
+        self.file_encoding = self.settings.info.get('encoding', 'cp1252')
+        self.column_separator = self.settings.info.get('column_separator', '\t')
 
         self._load_data()
         self._do_import_changes(**kwargs)
@@ -130,6 +135,8 @@ class GISMOfile(GISMOdata):
             self.nr_decimals = '%s.%sf' % ('%', nr_decimals)
         else:
             self.nr_decimals = None
+
+        # self.file_encoding = self.settings
 
     def _find_mapping_files(self):
         # Mapping files
@@ -162,19 +169,25 @@ class GISMOfile(GISMOdata):
         :param kwargs:
         :return:
         """
+
+        logger.info('Loading file {}'.format(self.file_id))
+        logger.info('    encoding {}'.format(self.file_encoding))
+        logger.info('         sep {}'.format(self.column_separator))
+        logger.info('  comment_id {}'.format(self.comment_id))
+
         # Looping through the file seems to be faster then pd.read_csv regardless if there are comment lines or not.
         # Note that all values are of type str.
-
         self.metadata_raw = []
         header = []
         data = []
-        with codecs.open(self.file_path, encoding=kwargs.get('encoding', 'cp1252')) as fid:
+        with codecs.open(self.file_path, encoding=self.file_encoding) as fid:
             for line in fid:
                 if self.comment_id is not None and line.startswith(self.comment_id):
                     # We have comments and need to load all lines in file
                     self.metadata_raw.append(line)
                 else:
-                    split_line = line.strip('\n\r').split(kwargs.get('sep', '\t'))
+                    split_line = re.split(self.column_separator, line.strip('\n\r'))
+                    # split_line = line.strip('\n\r').split(self.column_separator)
                     split_line = [item.strip() for item in split_line]
                     if not header:
                         header = split_line
@@ -237,7 +250,6 @@ class GISMOfile(GISMOdata):
     # ==========================================================================
     def _do_import_changes(self, **kwargs):
         self._add_columns(**kwargs)
-        print('self.missing_value', self.missing_value)
         self.df.replace(self.missing_value, '', inplace=True)
 
     # ==========================================================================
@@ -299,11 +311,9 @@ class GISMOfile(GISMOdata):
         self.time_format = None
         datetime_list = []
         time_par = self.settings.column.time
-
         if 'index' in time_par:
             # At this moment mainly for CMEMS-files
             time_par = self.df.columns[int(time_par.split('=')[-1].strip())]
-            print('time_par', time_par)
             self.df['time'] = pd.to_datetime(self.df[time_par], format=self.time_format)
         else:
             time_pars = self.settings.column.get_list('time')
@@ -650,6 +660,27 @@ class GISMOfile(GISMOdata):
         """
         return self.parameter_mapping.get_unit(par)
 
+    def get_qf_list(self, *args, **kwargs):
+        """
+        Returns a list och quality flags for the parameter par.
+        :param par:
+        :return:
+        """
+        not_valid_par = []
+        for par in args:
+            if par not in self.df.columns:
+                not_valid_par.append(par)
+        if not_valid_par:
+            raise GISMOExceptionInvalidParameter('; '.join(not_valid_par))
+
+        return_dict = {}
+        for par in args:
+            qf_par = self.get_qf_par(par)
+            if not qf_par:
+                continue
+            return_dict[par] = list(self.df[qf_par])
+        return return_dict
+
     # ==========================================================================
     def get_qf_par(self, par):
         """
@@ -715,7 +746,6 @@ class GISMOfile(GISMOdata):
             file_path = self.file_path
         if os.path.exists(file_path) and not kwargs.get('overwrite', False):
             raise GISMOExceptionFileExcists(file_path)
-
         write_kwargs = {'index_label': False,
                         'index': False,
                         'sep': '\t',
@@ -728,19 +758,17 @@ class GISMOfile(GISMOdata):
 
         data_dict = self.export_df.to_dict('split')
 
-        sep = kwargs.get('sep', '\t')
-        encoding = kwargs.get('encoding', 'cp1252')
-
-        with codecs.open(file_path, 'w', encoding=encoding) as fid:
+        with codecs.open(file_path, 'w', encoding=self.file_encoding) as fid:
             if self.metadata and self.metadata.has_data:
                 fid.write('\n'.join(self.metadata.get_lines()))
                 fid.write('\n')
             # Write column header
-            fid.write(sep.join(data_dict['columns']))
+            fid.write(self.column_separator.join(data_dict['columns']))
             fid.write('\n')
             for line in data_dict['data']:
-                fid.write(sep.join(line))
+                fid.write(self.column_separator.join(line))
                 fid.write('\n')
+
 
 # ==============================================================================
 # ==============================================================================
@@ -830,8 +858,7 @@ class SHARKfileStandardCTD(GISMOfile):
 
         kwargs.update(dict(file_path=file_path,
                            settings_file_path=settings_file_path,
-                           root_directory=root_directory,
-                           comment_id='//'))
+                           root_directory=root_directory))
         GISMOfile.__init__(self, **kwargs)
 
         self.filter_data_options = self.filter_data_options + ['depth', 'depth_min', 'depth_max']
@@ -840,9 +867,7 @@ class SHARKfileStandardCTD(GISMOfile):
 
         self.metadata = SHARKmetadataStandardBase(self.metadata_raw, **kwargs)
 
-        self.valid_qc_routines = []
-
-        # self._create_profile_info_dict()
+        self.valid_qc_routines = ['Profile range simple', 'Profile report']
 
     def get_position(self, *kwargs):
         return [float(self.df['lat'].values[0]), float(self.df['lon'].values[0])]
@@ -856,53 +881,6 @@ class SHARKfileStandardCTD(GISMOfile):
         :return:
         """
         return self.metadata.data['METADATA'].get_statn()
-
-
-    # ==========================================================================
-    def old_create_profile_info_dict(self):
-        """
-        Creats a dict with display name as key and information about the profile in an object.
-        Prolfile is defined by unique time.
-
-        Old method created for CMEMS files! They have several profiles in the same file. Probably needs to be handled in an other way.
-        """
-        print('_create_profile_info_dict')
-
-        # ======================================================================
-        class ProfileInfo():
-            def __init__(self, display_name):
-                self.display_name = display_name
-
-        # ======================================================================
-        if 'index' in self.settings.column.station:
-            statn = self.internal_station_name
-        else:
-            statn = None
-
-        self.profile_info = {}
-
-        unique_dates = sorted(set(self.df.time))
-        for unique_date in unique_dates:
-            df = self.df.ix[self.df.time == unique_date, :]
-            self.dfdf = df
-            # Create display name used as key
-            if statn:
-                station_name = statn
-            else:
-                # Station is individual for each profile (or just one profile in file)
-                station_column = self.parameter_mapping.get_external(self.settings.column.station)
-                station_name = df.ix[0, station_column]
-            display_name = ' - '.join([station_name, str(unique_date)])
-
-            self.profile_info[display_name] = ProfileInfo(display_name)
-            self.profile_info[display_name].gismo_object = self
-            self.profile_info[display_name].file_path = self.file_path
-            self.profile_info[display_name].disp_name = display_name
-            self.profile_info[display_name].time = unique_date
-            self.profile_info[display_name].lat = df.lat.values[0]
-            self.profile_info[display_name].lon = df.lon.values[0]
-
-
 
 
 # ==============================================================================
@@ -1182,7 +1160,7 @@ class SamplingTypeSettings(dict):
 
     # ==========================================================================
     # ==========================================================================
-    class MappingObject():
+    class MappingObject(dict):
         def __init__(self, data, root_directory=None):
             for line in data:
                 split_line = [item.strip() for item in line.split('\t')]
@@ -1203,6 +1181,7 @@ class SamplingTypeSettings(dict):
                 if ';' in value:
                     value = [item.strip() for item in value.split(';')]
 
+                self[header] = value
                 setattr(self, header, value)
 
         # ======================================================================

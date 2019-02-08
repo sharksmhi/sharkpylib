@@ -199,6 +199,13 @@ class GISMOExceptionQCfailed(GISMOException):
     message = ''
 
 # ==============================================================================
+class GISMOExceptionQCmissingInformation(GISMOException):
+    """
+    """
+    code = ''
+    message = ''
+
+# ==============================================================================
 class GISMOExceptionInvalidFlag(GISMOException):
     """
     """

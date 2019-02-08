@@ -103,7 +103,7 @@ class QC(object):
 
 
         if qf:
-            qf = self._convert_to_np_array(qf)
+            qf = self._convert_to_np_array(qf, dtype=str)
             # try:
             #     self.qf = np.array(qf)
             # except:
@@ -128,6 +128,8 @@ class QC(object):
             qfindex = index_depth & (index_below | index_above)
 
             new_qf = qf
+            # print(len(new_qf), new_qf)
+            # print(len(qfindex), qfindex)
             new_qf[qfindex] = 'B'
 
             qfindex_numeric = np.arange(len(data))
@@ -143,7 +145,6 @@ class QC(object):
         pres = self._convert_to_np_array(pressure)
 
         dens = sw.pden(salt, temp, pres, 0)
-
 
         dens_temp = False
 

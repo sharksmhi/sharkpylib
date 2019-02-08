@@ -1,0 +1,3 @@
+salinity	temperature	pressure
+SALT_CTD [psu (PSS-78)]	TEMP_CTD [°C (ITS-90)]	PRES_CTD [dbar]
+SALT2_CTD [psu (PSS-78)]	TEMP2_CTD [°C (ITS-90)]	PRES_CTD [dbar]

@@ -377,6 +377,14 @@ class GISMOdata(object):
         """
         raise GISMOExceptionMethodNotImplemented
 
+    def get_qf_list(self, *args, **kwargs):
+        """
+        :param args: parameters
+        :param kwargs:
+        :return: dict with parameters as keys and corresponding qf list as value.
+        """
+        raise GISMOExceptionMethodNotImplemented
+
     def get_metadata_tree(self, *args, **kwargs):
         """
         :param args:
@@ -511,35 +519,49 @@ class GISMOqcManager(object):
         self.factory = factory
         self.qc_routine_list = factory.get_list()
         self.qc_routines = {}
-        for qcr in self.qc_routine_list:
-            self.add_qc_routine(qcr)
+
+    def _check_qc_routine(self, qc_routine):
+        """
+        Adds qc_routine if not added before.
+        :return:
+        """
+        if qc_routine not in self.qc_routine_list:
+            raise GISMOExceptionInvalidQCroutine(qc_routine)
+
+        if not self.qc_routines.get(qc_routine):
+            self.add_qc_routine(qc_routine)
+
 
     def add_qc_routine(self, routine, **kwargs):
         self.qc_routines[routine] = self.factory.get_object(routine=routine, **kwargs)
 
-
-    def run_automatic_qc(self, gismo_object=None, qc_routines=[], **kwargs):
+    def run_automatic_qc(self, gismo_object=None, qc_routine=None, options={}, **kwargs):
         """
         Runs the qc routines specified in qc_routines on the given gismo_object.
 
         :param gismo_object:
         :param args:
-        :return:
+        :return: True if successful
         """
-        if not qc_routines:
-            raise GISMOExceptionMissingInputArgument('No qc_routines given.')
-        if type(qc_routines) == str:
-            qc_routines = [qc_routines]
+        if not qc_routine:
+            raise GISMOExceptionMissingInputArgument('No qc_routine given.')
         # Check if all qc_routines are valid for the given gismo_object
-        not_implemented = []
-        for qcr in qc_routines:
-            if qcr not in gismo_object.valid_qc_routines or qcr not in self.qc_routine_list:
-                not_implemented.append(qcr)
-        if not_implemented:
-            raise GISMOExceptionInvalidQCroutine('; '.join(not_implemented))
+        if qc_routine not in gismo_object.valid_qc_routines:
+            raise GISMOExceptionInvalidQCroutine(qc_routine)
 
-        for qcr in qc_routines:
-            self.qc_routines.get(qcr).run_qc(gismo_object, **kwargs)
+        self._check_qc_routine(qc_routine)
+
+        return self.qc_routines.get(qc_routine).run_qc(gismo_object, options=options, **kwargs)
+
+    def get_qc_subroutines(self, qc_routine):
+        self._check_qc_routine(qc_routine)
+        qc_object = self.qc_routines.get(qc_routine)
+        return qc_object.get_subroutines()
+
+    def get_qc_options(self, qc_routine):
+        self._check_qc_routine(qc_routine)
+        qc_object = self.qc_routines.get(qc_routine)
+        return qc_object.get_options()
 
 
 
@@ -558,7 +580,7 @@ class GISMOqc(object):
     def __init__(self, *args, **kwargs):
         self.name = ''
 
-    def run_qc(self, gismo_object, **kwargs):
+    def run_qc(self, gismo_object, options={}, **kwargs):
         """
         Data is generally in a pandas dataframe that can be reach under gismo_object.df
 
@@ -575,6 +597,20 @@ class GISMOqc(object):
         :return:
         """
         raise GISMOExceptionMethodNotImplemented
+
+    def get_subroutines(self):
+        """
+        Should return a list och available subroutines. If not specified ["default"]is returned
+        :return:
+        """
+        return []
+
+    def get_options(self):
+        """
+        Should return a list of all options available for the qc routine.
+        :return:
+        """
+        return []
 
 
 class MatchGISMOdata(object):

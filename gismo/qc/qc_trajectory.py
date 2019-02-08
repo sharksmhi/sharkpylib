@@ -6,8 +6,7 @@
 
 import os
 import codecs
-import numpy as np
-from .exceptions import *
+from gismo.exceptions import *
 
 
 class FlagAreas(object):
