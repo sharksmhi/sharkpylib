@@ -12,12 +12,11 @@ import numpy as np
 import codecs
 import datetime
 
-import gismo
+from . import QCprofile
 from gismo.exceptions import *
-from gismo.qc import QCprofile
 
 import logging
-logger = logging.getLogger('gismo_session')
+gismo_logger = logging.getLogger('gismo_session')
 
 
 class ProfileQCrangeSimple(object):
@@ -26,51 +25,59 @@ class ProfileQCrangeSimple(object):
     """
 
     def __init__(self, **kwargs):
-        self.qc_object = gismo.QCprofile.QC()
+        self.qc_object = QCprofile.QC()
         self.range_files_directory = os.path.join(os.path.dirname(os.path.abspath(__file__)),
                                                   'data', 'simple_range')
 
-        self.subroutines = []
-        self.options = ['ignore qf']
-
-        self._load_data()
-
-    def _load_data(self):
         self.limit_object = QCrangeDirectory(self.range_files_directory)
+        self.options = {'ignore_qf': ['B', 'S', '?'],
+                        'parameter_list': self.limit_object.get_parameter_list()}
 
-    def run_qc(self, gismo_object, parameter_list=[], options={}):
+
+    def run_qc(self, gismo_objects, **kwargs):
+        parameter_list = kwargs.get('parameter_list')
         if not parameter_list:
-            logger.warning('No parameter list given in options while running qc. Qc not performed')
+            gismo_logger.warning('No parameter list given in options while running qc. Qc not performed')
             return False
+        if type(gismo_objects) != list:
+            gismo_objects = [gismo_objects]
 
-        data = gismo_object.get_data(*parameter_list)
-        qf_data = gismo_object.get_qf_list(*parameter_list)
-        t = gismo_object.get_time()[0]
+        for gismo_object in gismo_objects:
+            # Parameter list does not need to exactly match tha parameter names in gismo object.
+            par_mapping = gismo_object.get_dict_with_matching_parameters(parameter_list)
 
-        for par in qf_data:
-            limit_par = par
-            if limit_par not in self.limit_object.parameters:
-                for alt_par in self.limit_object.parameters:
-                    if alt_par in limit_par:
-                        limit_par = alt_par
-                        break
+            # print('par_mapping', par_mapping)
+            par_list = list(par_mapping) + ['depth']
 
-            qf_list = list(qf_data[par])
-            limits = self.limit_object.get_limit(limit_par, 'range_min', 'range_max', time=t)
-            if limits is not None:
-                result = self.qc_object.range_check(data=list(data[par]),
-                                                    qf=qf_list,
-                                                    lower_limit=limits['range_min'],
-                                                    upper_limit=limits['range_max'],
-                                                    depth=list(data['depth']),
-                                                    max_depth=False,
-                                                    min_depth=False,
-                                                    qf_ignore=options.get('ignore qf',  ['B', 'S', '?']))
-                qfindex, new_qf, qfindex_numeric = result
-                qf_list = list(new_qf)
-                # Update qf list in df
-                qf_par = gismo_object.get_qf_par(par)
-                gismo_object.df[qf_par] = qf_list
+            data = gismo_object.get_data(*par_list)
+            qf_data = gismo_object.get_qf_list(*par_list)
+            t = gismo_object.get_time()[0]
+
+            for par in qf_data:
+                limit_par = par_mapping.get(par)
+                # limit_par = par
+                # if limit_par not in self.limit_object.parameters:
+                #     for alt_par in self.limit_object.parameters:
+                #         if alt_par in limit_par:
+                #             limit_par = alt_par
+                #             break
+
+                qf_list = list(qf_data[par])
+                limits = self.limit_object.get_limit(limit_par, 'range_min', 'range_max', time=t)
+                if limits is not None:
+                    result = self.qc_object.range_check(data=list(data[par]),
+                                                        qf=qf_list,
+                                                        lower_limit=limits['range_min'],
+                                                        upper_limit=limits['range_max'],
+                                                        depth=list(data['depth']),
+                                                        max_depth=False,
+                                                        min_depth=False,
+                                                        qf_ignore=kwargs.get('ignore_qf',  ['B', 'S', '?']))
+                    qfindex, new_qf, qfindex_numeric = result
+                    qf_list = list(new_qf)
+                    # Update qf list in df
+                    qf_par = gismo_object.get_qf_par(par)
+                    gismo_object.df[qf_par] = qf_list
 
 
 class ProfileQCreportTXT(object):
@@ -79,20 +86,24 @@ class ProfileQCreportTXT(object):
     """
 
     def __init__(self):
-        self.qc_object = gismo.QCprofile.QC()
+        self.qc_object = QCprofile.QC()
         self.calc_dens_par_file_path = os.path.join(os.path.dirname(os.path.abspath(__file__)),
                                                   'data', 'calc_density_parameters.txt')
 
-        self.subroutines = ['increasing density']
-        self.options = ['ignore qf', 'min density delta', 'save directory', 'user', 'gismo version']
+        self.options = {'ignore_qf': ['B', 'S', '?'],
+                        'min_density_delta': 0.01,
+                        'save_directory': str,
+                        'user': str,
+                        'gismo_version': str,
+                        'subroutines': ['increasing density']}
         self._load_data()
 
 
     def _load_data(self):
         self.calc_dens_par_info = QCdensityFile(self.calc_dens_par_file_path)
 
-    def run_qc(self, gismo_objects, subroutines=[], options={}, save_directory=''):
-        if not save_directory:
+    def run_qc(self, gismo_objects, **kwargs):
+        if not kwargs.get('save_directory'):
             raise GISMOExceptionMissingPath('No directory provided in options')
 
         # Loop subroutines
@@ -104,17 +115,21 @@ class ProfileQCreportTXT(object):
         time_str1 = t.strftime('%Y%m%d%H%M')
         time_str2 = t.strftime('%Y-%m-%d %H:%M')
         file_name = 'gismo_qc_report_{}.txt'.format(time_str1)
-        file_path = os.path.join(save_directory, file_name)
+        directory = kwargs.get('save_directory')
+        file_path = os.path.join(directory, file_name)
 
-        ignore_qf = list(options.get('ignore qf', ['B', 'S', '?']))
+        ignore_qf = list(kwargs.get('ignore_qf', ['B', 'S', '?']))
 
         line_len = 100
+
+        if not os.path.exists(directory):
+            os.makedirs(directory)
 
         with codecs.open(file_path, 'w') as fid:
             # Write header
             fid.write('Report on automatic quality control performed: {}\n'.format(time_str2))
-            fid.write('User: {}\n'.format(options.get('user', '')))
-            fid.write('GISMO version: {}\n'.format(options.get('gismo version', '')))
+            fid.write('User: {}\n'.format(kwargs.get('user', '')))
+            fid.write('GISMO version: {}\n'.format(kwargs.get('gismo_version', '')))
             fid.write('Ignoring quality flags: {}\n'.format(', '.join(ignore_qf)))
             fid.write('\nFiles controlled:\n{}\n'.format('\n'.join(sorted(objects))))
             fid.write('=' * line_len)
@@ -125,14 +140,14 @@ class ProfileQCreportTXT(object):
                 fid.write('\n\n')
                 fid.write('-' * line_len)
                 fid.write('\nFile id: {}\n'.format(file_id))
-                for subroutine in subroutines:
+                for subroutine in kwargs.get('subroutines'):
                     # Increasing density
                     if subroutine.lower() == 'increasing density':
                         for item in self.calc_dens_par_info.get_parameters_from_list(gismo_object.get_parameter_list()):
                             parameters = list(item.values())
                             data = gismo_object.get_data(*parameters)
                             qf_data = gismo_object.get_qf_list(*parameters)
-                            min_delta = options.get('min density delta', 0.01)
+                            min_delta = float(kwargs.get('min_density_delta', 0.01))
                             result = self.qc_object.increasing_dens(temperature=data[item.get('temperature')],
                                                                     qtemp=qf_data[item.get('temperature')],
                                                                     salinity=data[item.get('salinity')],
@@ -204,6 +219,9 @@ class QCrangeDirectory(object):
         file_object = self.file_objects.get(par)
 
         return file_object.get_limit(*args, **kwargs)
+
+    def get_parameter_list(self):
+        return sorted(self.parameters)
 
 
 class QCrangeFile(object):

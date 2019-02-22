@@ -21,7 +21,7 @@ from .qc.qc_trajectory import FlagAreas
 from .qc.qc_profile import ProfileQCrangeSimple, ProfileQCreportTXT
 
 import logging
-logger = logging.getLogger('gismo_session')
+gismo_logger = logging.getLogger('gismo_session')
 
 """
 ========================================================================
@@ -46,7 +46,7 @@ class PluginFactory(object):
         # self.classes = {'Mask areas': QCmaskArea}
 
         self.required_arguments = {'Profile range simple': ['parameter_list'],
-                                   'Profile report': ['subroutines','save_directory']}
+                                   'Profile report': ['subroutines', 'save_directory']}
 
         # self.required_arguments = {'Mask areas': ['file_path', 'par_to_flag']}
 
@@ -328,15 +328,12 @@ class QCprofileRangeSimple(GISMOqc):
         self.name = 'Profile range simple'
         self.qc_object = ProfileQCrangeSimple()
 
-    def get_subroutines(self):
-        return self.qc_object.subroutines
-
     def get_options(self):
         return self.qc_object.options
 
-    def run_qc(self, gismo_object, options={}):
-        logger.info('Running QCprofileRangeSimple')
-        return self.qc_object.run_qc(gismo_object, options=options)
+    def run_qc(self, gismo_objects, **kwargs):
+        gismo_logger.info('Running QCprofileRangeSimple')
+        return self.qc_object.run_qc(gismo_objects, **kwargs)
 
 
 class QCprofileReport(GISMOqc):
@@ -345,18 +342,12 @@ class QCprofileReport(GISMOqc):
         self.name = 'Profile report'
         self.qc_object = ProfileQCreportTXT()
 
-    def get_subroutines(self):
-        return self.qc_object.subroutines
-
     def get_options(self):
         return self.qc_object.options
 
-    def run_qc(self, gismo_object, subroutines=[], save_directory='', options={}):
-        logger.info('Running QCprofileReport')
-        return self.qc_object.run_qc(gismo_object,
-                                     subroutines=subroutines,
-                                     save_directory=save_directory,
-                                     options=options)
+    def run_qc(self, gismo_objects, **kwargs):
+        gismo_logger.info('Running QCprofileReport')
+        return self.qc_object.run_qc(gismo_objects, **kwargs)
 
 
 

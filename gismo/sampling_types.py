@@ -106,6 +106,8 @@ class GISMOfile(GISMOdata):
         self.comment_id = self.settings.info.get('comment_id', None)
         self.file_encoding = self.settings.info.get('encoding', 'cp1252')
         self.column_separator = self.settings.info.get('column_separator', '\t')
+        if self.column_separator == 'tab':
+            self.column_separator = '\t'
 
         self._load_data()
         self._do_import_changes(**kwargs)
@@ -637,6 +639,22 @@ class GISMOfile(GISMOdata):
         else:
             raise GISMOExceptionMethodNotImplemented
 
+    def get_dict_with_matching_parameters(self, match_parameter):
+        """
+        Returns a dictionary for the parameters that matches the parameters in matchparameters.
+        key is name in self.df, values is name in match_parameter.
+        :param match_parameter:
+        :return:
+        """
+        print('TYPE', type(match_parameter), match_parameter)
+        return_dict = {}
+        par_list = list(set(self.get_parameter_list(internal=True) + self.get_parameter_list(external=True)))
+        for par in par_list:
+            for m_par in match_parameter:
+                if m_par.lower() in par.lower():
+                    return_dict[self.get_internal_parameter_name(par)] = m_par
+                    continue
+        return return_dict
 
     def get_internal_parameter_name(self, parameter):
         """
@@ -746,13 +764,13 @@ class GISMOfile(GISMOdata):
             file_path = self.file_path
         if os.path.exists(file_path) and not kwargs.get('overwrite', False):
             raise GISMOExceptionFileExcists(file_path)
-        write_kwargs = {'index_label': False,
-                        'index': False,
-                        'sep': '\t',
-                        'float_format': self.nr_decimals,
-                        'decimal': '.'}
-
-        write_kwargs.update(kwargs)
+        # write_kwargs = {'index_label': False,
+        #                 'index': False,
+        #                 'sep': '\t',
+        #                 'float_format': self.nr_decimals,
+        #                 'decimal': '.'}
+        #
+        # write_kwargs.update(kwargs)
 
         self._prepare_export()
 

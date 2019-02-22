@@ -13,11 +13,71 @@ import matplotlib.dates as dates
 
 import utils
 
-"""
-================================================================================
-================================================================================
-================================================================================
-"""
+
+class CheckbuttonWidgetSingle(tk.Frame):
+    def __init__(self,
+                 parent,
+                 name='Checkbutton',
+                 callback=None,
+                 prop_cbutton={},
+                 grid_cbutton={},
+                 prop_frame={},
+                 **kwargs):
+
+        self.name = name
+        self.callback = callback
+        # Save inputs
+        self.prop_frame = {}
+        self.prop_frame.update(prop_frame)
+
+        self.grid_frame = {'row': 0,
+                           'column': 0,
+                           'sticky': 'w',
+                           'rowspan': 1,
+                           'columnspan': 1}
+        self.grid_frame.update(kwargs)
+
+        self.prop_cbutton = {}
+        self.prop_cbutton.update(prop_cbutton)
+
+        self.grid_cbutton = {'sticky': 'w',
+                              'padx': 2,
+                              'pady': 0}
+        self.grid_cbutton.update(grid_cbutton)
+
+        # Create frame
+        tk.Frame.__init__(self, parent, **self.prop_frame)
+        self.grid(**self.grid_frame)
+
+        self._set_frame()
+
+    def _set_frame(self):
+        self.booleanvar = tk.BooleanVar()
+        self.checkbutton = tk.Checkbutton(self,
+                                          text=self.name,
+                                          variable=self.booleanvar,
+                                          comman=self._on_toggle,
+                                          **self.prop_cbutton)
+        self.checkbutton.grid(**self.grid_cbutton)
+        grid_configure(self)
+
+    def _on_toggle(self):
+        if self.callback:
+            self.callback()
+
+    def get(self):
+        return self.booleanvar.get()
+
+    def set(self, value):
+        self.booleanvar.set(value)
+
+    def get_value(self):
+        return self.booleanvar.get()
+
+    def set_value(self, value):
+        self.booleanvar.set(value)
+
+
 class CheckbuttonWidget(tk.Frame):
     """
     Frame to hold tk.Checkbuttons. 
@@ -183,6 +243,10 @@ class CheckbuttonWidget(tk.Frame):
             self.cbutton_select_all.deselect()
         except:
             pass
+
+    def select(self, item):
+        if item in self.cbutton:
+            self.cbutton[item].select()
         
     #===========================================================================
     def deactivate(self, item):
@@ -202,6 +266,27 @@ class CheckbuttonWidget(tk.Frame):
     def activate_all(self):
         for item in self.cbutton:
             self.activate(item)
+
+    def set_value(self, values):
+        """
+        Sets values. First diactivate and thena activate values if string or list.
+        :param values:
+        :return:
+        """
+        self.reset_selection()
+        if type(values) == str:
+            values = [values]
+
+        for item in values:
+            if item in self.cbutton:
+                self.select(item)
+
+    def get_value(self):
+        """
+        Returns all checkt items as a list.
+        :return:
+        """
+        return self.get_checked_item_list()
 
     #===========================================================================
     def get_checked_item_list(self):
@@ -340,7 +425,7 @@ class ComboboxWidget(tk.Frame):
         
     #===========================================================================
     def update_items(self, items=[], default_item=None, default_match=None):
-        self.items = items
+        self.items = items[:]
         # print('update_items', default_item, default_match)
         if not default_item and self.items:
             if default_match:
@@ -572,6 +657,8 @@ class EntryWidget(tk.Entry):
             string = string.replace(',', '.')
             split_value = [re.sub('\D', '', v) for v in string.split('.')]
             string = '.'.join(split_value)
+        elif self.entry_type == 'path':
+            string = string.replace('\\', '/')
         self.stringvar.set(string)
         if self.callback_on_change_value:
             self.callback_on_change_value()
@@ -583,7 +670,7 @@ class EntryWidget(tk.Entry):
         
     #===========================================================================
     def select_text(self):
-        self.select_range(0, u'end')
+        self.select_range(0, 'end')
         
     #===========================================================================
     def set_entry_type(self, entry_type):
@@ -591,7 +678,19 @@ class EntryWidget(tk.Entry):
         
     #===========================================================================
     def get_value(self):
-        return self.stringvar.get()
+        value = self.stringvar.get()
+        if self.entry_type in [float, 'float']:
+            if value:
+                return float(value)
+            else:
+                return np.nan
+        elif self.entry_type in [int, 'int']:
+            if value:
+                return int(value)
+            else:
+                return np.nan
+        else:
+            return value
     
     #===========================================================================
     def set_return_direction(self, direction='vertical'):
@@ -612,7 +711,13 @@ class EntryWidget(tk.Entry):
     def enable_widget(self):
         self.set_state('normal')
 
-        #===========================================================================
+    def deactivate(self):
+        self.set_state('disabled')
+
+    def activate(self):
+        self.set_state('normal')
+
+    #===========================================================================
     def set_fg_color(self, color='black'):  
         self.configure(fg=color)
     
@@ -1716,6 +1821,21 @@ class ListboxSelectionWidget(tk.Frame):
     #===========================================================================
     def get_items(self):
         return self.items[:]
+
+    def get_value(self):
+        """
+        returns selected items as a list.
+        :return:
+        """
+        return self.get_selected()
+
+    def set_value(self, values, **kwargs):
+        """
+        First deselect all. Then moves "values" to selected.
+        :return:
+        """
+        self.deselect_all()
+        self.move_items_to_selected(values, **kwargs)
          
     #===========================================================================
     def get_selected(self):
@@ -2036,13 +2156,18 @@ class NotebookWidget(ttk.Notebook):
             self.frame_dict[frame] = notebook_frame
 #            grid_configure(self.frame_dict[frame]) # Done when setting frame content
             grid_configure(notebook_frame)
-
         grid_configure(self)          
     
     #===========================================================================
     def select_frame(self, frame):
-#         name = u'frame_' + frame.lower().replace(u' ', u'_')
-        self.select(self.frame_dict[frame])
+        if frame in self.frame_dict:
+            self.select(self.frame_dict[frame])
+            return True
+        else:
+            return False
+
+    def get_selcted_tab(self):
+        return self.tab(self.select(), "text")
 
     #===========================================================================
     def get_frame(self, frame):
@@ -2313,10 +2438,14 @@ class RadiobuttonWidget(tk.Frame):
         elif self.target:
             # target is a direct link to a function och method (not class)
             self.target()
-            
-            
+
+
     #===========================================================================
     def get(self):
+        return self.stringvar.get()
+
+    # ===========================================================================
+    def get_value(self):
         return self.stringvar.get()
     
     #===========================================================================
@@ -2325,6 +2454,10 @@ class RadiobuttonWidget(tk.Frame):
             self.stringvar.set(value)
         except:
             pass
+
+    # ===========================================================================
+    def set_value(self, value):
+        self.set(value)
         
     #===========================================================================
     def change_color(self, item, new_color):
@@ -2578,14 +2711,99 @@ class TextScrollbarWidget(tk.Frame):
     #===========================================================================
     def get_text(self):
         return self.text.get('1.0','end')
-    
 
-"""
-================================================================================
-================================================================================
-================================================================================
-"""
-class TimeWidget(ttk.Labelframe):
+
+class TimeWidgetSeason(tk.Frame):
+    """
+    Widget to select month and day to represent a season.
+    """
+
+    def __init__(self,
+                 parent=False,
+                 prop_frame={},
+                 prop_combobox={},
+                 grid_items={},
+                 callback_target=None,
+                 **kwargs):
+
+        self.parent = parent
+
+        self.callback_target = callback_target
+
+        self.prop_frame = {}
+        self.prop_frame.update(prop_frame)
+
+        self.prop_combobox = {'width': 8,
+                              'state': 'readonly'}
+        self.prop_combobox.update(prop_combobox)
+
+        self.grid_frame = {'sticky': 'nsew'}
+        self.grid_frame.update(kwargs)
+
+        self.grid_items = {'sticky': 'w',
+                           'padx': 5,
+                           'pady': 2}
+        self.grid_items.update(grid_items)
+
+        # Create frame
+        tk.Frame.__init__(self, parent, **self.prop_frame)
+        self.grid(**self.grid_frame)
+
+        self.month_list = ['January', 'February', 'Mars', 'April', 'May', 'June',
+                           'July', 'August', 'September', 'October', 'November', 'December']
+        self.day_list = list(map(str, range(1, 32)))
+
+        self.name_to_num = {}
+        self.num_to_name = {}
+        for nr, name in enumerate(self.month_list):
+            self.name_to_num[name] = nr+1
+            self.num_to_name[nr+1] = name
+
+        self._set_frame()
+
+    # ===========================================================================
+    def _set_frame(self):
+
+        self.combobox = {}
+
+        prop_month = {'width': 25}
+        prop_day = {'width': 5}
+
+        # From
+        tk.Label(self, text='From:').grid(row=0, column=0, **self.grid_items)
+        self.combobox['month_from'] = ComboboxWidget(self, items=self.month_list, prop_combobox=prop_month, row=0, column=1)
+        self.combobox['day_from'] = ComboboxWidget(self, items=self.day_list, prop_combobox=prop_day, row=0, column=2)
+
+        # To
+        tk.Label(self, text='To:').grid(row=1, column=0, **self.grid_items)
+        self.combobox['month_to'] = ComboboxWidget(self, items=self.month_list, prop_combobox=prop_month, row=1, column=1)
+        self.combobox['day_to'] = ComboboxWidget(self, items=self.day_list, prop_combobox=prop_day, row=1, column=2)
+
+        grid_configure(self, nr_rows=2, nr_columns=3)
+
+    def get_value(self):
+        return_dict = {}
+        for key, combobox in self.combobox.items():
+            value = combobox.get_value()
+            return_dict[key] = int(self.name_to_num.get(value, value))
+        return return_dict
+
+    def set_value(self, **kwargs):
+        for key, value in kwargs.items():
+            if key in self.combobox:
+                if 'month' in key:
+                    self.combobox[key].set_value(self.num_to_name.get(value, value))
+                else:
+                    self.combobox[key].set_value(str(value))
+
+    def reset_widget(self):
+        self.combobox['month_from'].set_value(self.month_list[0])
+        self.combobox['month_to'].set_value(self.month_list[-1])
+        self.combobox['day_from'].set_value('1')
+        self.combobox['day_to'].set_value('31')
+
+
+class TimeWidget(tk.LabelFrame):
     """
     Updated 20180825    
     """
@@ -2610,8 +2828,7 @@ class TimeWidget(ttk.Labelframe):
             self.time_resolution.append(tr)
             if tr == lowest_time_resolution:
                 break
-        
-            
+
         self.callback_target = callback_target
         
         self.prop_frame = {}
@@ -2632,7 +2849,7 @@ class TimeWidget(ttk.Labelframe):
         self.grid_items.update(grid_items)
         
         # Create frame
-        ttk.Labelframe.__init__(self, parent, **self.prop_frame)
+        ttk.LabelFrame.__init__(self, parent, **self.prop_frame)
         self.grid(**self.grid_frame)
         
         self._initiate_attributes()
@@ -2775,6 +2992,7 @@ class TimeWidget(ttk.Labelframe):
             for time_format in self.time_formats:
                 try:
                     time_object = datetime.datetime.strptime(time_string, time_format)
+                    # print('time_object'.upper(), time_object)
                     self.current_datenumber = dates.date2num(time_object)
                 except:
                     pass
@@ -2806,9 +3024,17 @@ class TimeWidget(ttk.Labelframe):
                 time_string = self.stringvar[part].get()
             else:
                 time_string = time_string + ', ' + str(int(self.stringvar[part].get()))
+        if not time_string:
+            return None
         datetime_object = datetime.datetime(*eval(time_string))
         return datetime_object
-        
+
+    def get_time_string(self, string_format='%Y%m%d%H%M%S'):
+        time_object = self.get_time_object()
+        if not time_object:
+            return None
+        return time_object.strftime(string_format)
+
     #===========================================================================
     def get_time_number(self):
         datetime_object = self.get_time_object()
@@ -3125,17 +3351,17 @@ class FlagWidget(tk.Frame):
         
         
         return self.selection
-    
 
-class DirectoryWidget(ttk.LabelFrame):
+
+class DirectoryWidget(tk.Frame):
 
     def __init__(self,
                  parent,
-                 label='',
                  prop_frame={},
                  prop_entry={},
+                 default_directory='',
+                 include_default_button=True,
                  callback=None,
-                 user=None,
                  **kwargs):
         self.prop_frame = {}
         self.prop_frame.update(prop_frame)
@@ -3148,11 +3374,12 @@ class DirectoryWidget(ttk.LabelFrame):
                            'sticky': 'nsew'}
         self.grid_frame.update(kwargs)
 
-        ttk.LabelFrame.__init__(self, parent, text=label, **self.prop_frame)
+        tk.Frame.__init__(self, parent, **self.prop_frame)
         self.grid(**self.grid_frame)
 
         self.callback = callback
-        self.user = user
+        self.default_directory = default_directory
+        self.include_default_button = include_default_button
 
         self._set_frame()
 
@@ -3169,16 +3396,109 @@ class DirectoryWidget(ttk.LabelFrame):
         r = 0
         c = 0
 
-        tk.Label(frame, text='Directory:').grid(row=r, column=c, padx=padx, pady=pady, sticky='nw')
+        # tk.Label(frame, text='Directory:').grid(row=r, column=c, padx=padx, pady=pady, sticky='nw')
         self.stringvar_directory = tk.StringVar()
         self.entry_directory = tk.Entry(frame, textvariable=self.stringvar_directory, **self.prop_entry)
-        self.entry_directory.grid(row=r, column=c + 1, padx=padx, pady=pady, sticky='nw')
+        self.entry_directory.grid(row=0, column=0, columnspan=2, padx=padx, pady=pady, sticky='nw')
         self.stringvar_directory.trace("w",
                                        lambda name, index, mode, sv=self.stringvar_directory: check_path_entry(sv))
 
-        ttk.Button(frame, text='Get directory', command=self._get_directory).grid(row=r, column=c + 2, columnspan=2,
+        ttk.Button(frame, text='Get directory', command=self._get_directory).grid(row=1,
+                                                                                  column=0,
                                                                                   padx=padx,
                                                                                   pady=pady, sticky='se')
+
+        if self.include_default_button:
+            ttk.Button(frame, text='Default directory', command=self.set_default_directory).grid(row=1,
+                                                                                                 column=1,
+                                                                                                 padx=padx,
+                                                                                                 pady=pady,
+                                                                                                 sticky='se')
+
+        grid_configure(frame, nr_rows=2, nr_columns=2)
+
+    def _get_directory(self):
+        directory = tk.filedialog.askdirectory()
+        if directory:
+            self.stringvar_directory.set(directory)
+
+    def set_default_directory(self):
+        if self.default_directory:
+            self.stringvar_directory.set(self.default_directory)
+
+    def get_directory(self):
+        return self.stringvar_directory.get()
+
+    def set_directory(self, directory):
+        self.stringvar_directory.set(directory)
+
+    def get_value(self):
+        return self.stringvar_directory.get()
+
+    def set_value(self, directory):
+        self.stringvar_directory.set(directory)
+
+
+class DirectoryWidgetLabelframe(ttk.LabelFrame):
+
+    def __init__(self,
+                 parent,
+                 label='Directory',
+                 prop_frame={},
+                 prop_entry={},
+                 default_directory='',
+                 include_default_button=True,
+                 callback=None,
+                 **kwargs):
+        self.prop_frame = {}
+        self.prop_frame.update(prop_frame)
+
+        self.prop_entry = {'width': 50}
+        self.prop_entry.update(prop_entry)
+
+        self.grid_frame = {'padx': 5,
+                           'pady': 5,
+                           'sticky': 'nsew'}
+        self.grid_frame.update(kwargs)
+
+        ttk.LabelFrame.__init__(self, parent, text=label, **self.prop_frame)
+        self.grid(**self.grid_frame)
+
+        self.callback = callback
+        self.default_directory = default_directory
+        self.include_default_button = include_default_button
+
+        self._set_frame()
+
+
+    # ===========================================================================
+    def _set_frame(self):
+        padx = 5
+        pady = 5
+
+        frame = tk.Frame(self)
+        frame.grid(row=0, column=0, padx=padx, pady=pady, sticky='w')
+        grid_configure(self)
+
+        r = 0
+        c = 0
+
+        # tk.Label(frame, text='Directory:').grid(row=r, column=c, padx=padx, pady=pady, sticky='nw')
+        self.stringvar_directory = tk.StringVar()
+        self.entry_directory = tk.Entry(frame, textvariable=self.stringvar_directory, **self.prop_entry)
+        self.entry_directory.grid(row=r, column=0, columnspan=2, padx=padx, pady=pady, sticky='nw')
+        self.stringvar_directory.trace("w",
+                                       lambda name, index, mode, sv=self.stringvar_directory: check_path_entry(sv))
+
+        ttk.Button(frame, text='Get directory', command=self._get_directory).grid(row=r, column=c + 2,
+                                                                                  padx=padx,
+                                                                                  pady=pady, sticky='se')
+
+        if self.include_default_button and self.default_directory:
+            ttk.Button(frame, text='Default directory', command=self.set_default_directory).grid(row=r, column=c + 2, columnspan=1,
+                                                                                      padx=padx,
+                                                                                      pady=pady, sticky='se')
+
         r += 1
 
         grid_configure(frame, nr_rows=r)
@@ -3188,10 +3508,20 @@ class DirectoryWidget(ttk.LabelFrame):
         if directory:
             self.stringvar_directory.set(directory)
 
+    def set_default_directory(self):
+        if self.default_directory:
+            self.stringvar_directory.set(self.default_directory)
+
     def get_directory(self):
         return self.stringvar_directory.get()
 
     def set_directory(self, directory):
+        self.stringvar_directory.set(directory)
+
+    def get_value(self):
+        return self.stringvar_directory.get()
+
+    def set_value(self, directory):
         self.stringvar_directory.set(directory)
 
 
@@ -3254,9 +3584,8 @@ class TableWidget(tk.Frame):
         self.prop_frame = {}
         self.prop_frame.update(prop_frame)
 
-        self.prop_treeview = {}
-        # self.prop_treeview = {'height': 5}
-        # self.prop_treeview.update(prop_treeview)
+        self.prop_treeview = {'selectmode': 'browse'}
+        self.prop_treeview.update(prop_treeview)
 
         self.grid_frame = {'padx': 5,
                            'pady': 5,
@@ -3272,7 +3601,7 @@ class TableWidget(tk.Frame):
         self._set_frame()
 
     def _set_frame(self):
-        self.tree = ttk.Treeview(self, columns=self.columns, show="headings")
+        self.tree = ttk.Treeview(self, columns=self.columns, show="headings", **self.prop_treeview)
 
         #self.xscrollbar = ttk.Scrollbar(self, orient='horizontal', command=self.tree.xview)
         self.yscrollbar = ttk.Scrollbar(self, orient='vertical', command=self.tree.yview)

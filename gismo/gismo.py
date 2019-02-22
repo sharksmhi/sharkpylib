@@ -9,6 +9,7 @@ Created on Tue Mar 07 11:48:49 2017
 import pandas as pd
 
 import numpy as np
+import datetime
 
 from .exceptions import *
 
@@ -192,6 +193,37 @@ class GISMOdataManager(object):
                 if not any((lat >= lat_min) & (lat <= lat_max) & (lon >= lon_min) & (lon <= lon_max)):
                     continue
 
+            # Check time
+            time_array = np.array([pd.to_datetime(item) for item in gismo_object.get_time()])
+            if kwargs.get('time_from') and all(time_array < kwargs.get('time_from')):
+                continue
+            if kwargs.get('time_to') and all(time_array > kwargs.get('time_to')):
+                continue
+            if type(kwargs.get('season', None)) == dict:
+                season = kwargs.get('season')
+                for time_object in time_array:
+                    if season['month_from'] < time_object.month < season['month_to']:
+                        break
+                    elif time_object.month == season['month_from'] == season['month_to']:
+                        if season['day_from'] <= time_object.day <= season['day_to']:
+                            break
+                    elif time_object.month == season['month_from'] and time_object.day >= season['day_from']:
+                        break
+                    elif time_object.month == season['month_to'] and time_object.day <= season['day_to']:
+                        break
+                else:
+                    continue
+
+                # if season.get('month_from') and all([item.month < season.get('month_from') for item in time_array]):
+                #     continue
+                # if season.get('month_to') and all([item.month > season.get('month_to') for item in time_array]):
+                #     continue
+                # if season.get('day_from') and all([item.day < season.get('day_from') for item in time_array]):
+                #     continue
+                # if season.get('day_to') and all([item.day > season.get('day_to') for item in time_array]):
+                #     continue
+
+
             # If file_id passes every test it will be included in the return list
             matching_file_id_list.append(file_id)
 
@@ -228,8 +260,11 @@ class GISMOdataManager(object):
                 pass
         return sorted(set(station_list))
 
-    def get_file_id_list(self):
-        return sorted(self.objects.keys())
+    def get_file_id_list(self, sampling_type=None):
+        if sampling_type:
+            return sorted(self.objects_by_sampling_type.get(sampling_type))
+        else:
+            return sorted(self.objects.keys())
 
     def get_match_object(self, main_file_id, match_file_id, *args, **kwargs):
         self._check_file_id(main_file_id)
@@ -535,7 +570,7 @@ class GISMOqcManager(object):
     def add_qc_routine(self, routine, **kwargs):
         self.qc_routines[routine] = self.factory.get_object(routine=routine, **kwargs)
 
-    def run_automatic_qc(self, gismo_object=None, qc_routine=None, options={}, **kwargs):
+    def run_automatic_qc(self, gismo_object=None, gismo_objects=[], qc_routine=None, **kwargs):
         """
         Runs the qc routines specified in qc_routines on the given gismo_object.
 
@@ -545,18 +580,18 @@ class GISMOqcManager(object):
         """
         if not qc_routine:
             raise GISMOExceptionMissingInputArgument('No qc_routine given.')
+
+        if gismo_object:
+            gismo_objects = [gismo_object]
+
         # Check if all qc_routines are valid for the given gismo_object
-        if qc_routine not in gismo_object.valid_qc_routines:
-            raise GISMOExceptionInvalidQCroutine(qc_routine)
+        for gismo_object in gismo_objects:
+            if qc_routine not in gismo_object.valid_qc_routines:
+                raise GISMOExceptionInvalidQCroutine(qc_routine)
 
         self._check_qc_routine(qc_routine)
 
-        return self.qc_routines.get(qc_routine).run_qc(gismo_object, options=options, **kwargs)
-
-    def get_qc_subroutines(self, qc_routine):
-        self._check_qc_routine(qc_routine)
-        qc_object = self.qc_routines.get(qc_routine)
-        return qc_object.get_subroutines()
+        return self.qc_routines.get(qc_routine).run_qc(gismo_objects, **kwargs)
 
     def get_qc_options(self, qc_routine):
         self._check_qc_routine(qc_routine)
@@ -580,13 +615,13 @@ class GISMOqc(object):
     def __init__(self, *args, **kwargs):
         self.name = ''
 
-    def run_qc(self, gismo_object, options={}, **kwargs):
+    def run_qc(self, gismo_objects, **kwargs):
         """
         Data is generally in a pandas dataframe that can be reach under gismo_object.df
 
         Make sure self.name is in gismo_object.valid_qc_routines
 
-        :param gismo_object:
+        :param gismo_objects: gismo objects or objects as a list.
         :return:
         """
         raise GISMOExceptionMethodNotImplemented
@@ -598,19 +633,21 @@ class GISMOqc(object):
         """
         raise GISMOExceptionMethodNotImplemented
 
-    def get_subroutines(self):
-        """
-        Should return a list och available subroutines. If not specified ["default"]is returned
-        :return:
-        """
-        return []
-
     def get_options(self):
         """
-        Should return a list of all options available for the qc routine.
+        Should return a dict with options available for the qc routine. Key is the option itself.
+        Value are tho available choices for the corresponding option. Choices can be of the following types:
+
+        list: multi select
+        empty list: free nr of inputs (ex. list of quality flags)
+        tuple: single select
+        string: free text
+        float: free float number
+        int: free int number
+
         :return:
         """
-        return []
+        return {}
 
 
 class MatchGISMOdata(object):

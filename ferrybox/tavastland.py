@@ -8,11 +8,21 @@ import codecs
 import pandas as pd
 import datetime
 import numpy as np
+import log
 
+
+def get_logger(**kwargs):
+    DEFAULT_LOG_INPUT = {'name': 'tavastland',
+                         'level': 'DEBUG'}
+    DEFAULT_LOG_INPUT.update(kwargs)
+    log_object = log.Logger(**DEFAULT_LOG_INPUT)
+    logger = log_object.get_logger()
+    return logger
 
 class File(object):
     def __init__(self, file_path='', **kwargs):
         self.file_path = file_path
+        self.file_name = os.path.basename(self.file_path)
 
         self.df = pd.DataFrame()
         self.time_start = None
@@ -20,8 +30,22 @@ class File(object):
 
         self.data_loaded = False
 
+        self.time_in_file_name_formats = ['TP_%Y%m%d%H%M%S.mit']
+        self._add_file_path_time()
+
         if kwargs.get('load_file'):
             self.load_file()
+
+    def _add_file_path_time(self):
+        self.file_path_time = None
+        for time_format in self.time_in_file_name_formats:
+            try:
+                time_object = datetime.datetime.strptime(self.file_name, time_format)
+                self.file_path_time = time_object
+                break
+            except ValueError:
+                # logger.debug('No time in file path for file: {}'.format(self.file_path))
+                pass
 
     def _add_columns(self):
         # Time
@@ -36,9 +60,14 @@ class File(object):
         if 'Lat' in self.df.columns:
             self.df['lat'] = self.df['Lat'].astype(float)
             self.df['lon'] = self.df['Lon'].astype(float)
+        elif 'latitude' in self.df.columns:
+            self.df['lat'] = self.df['latitude'].apply(as_float)
+            self.df['lon'] = self.df['longitude'].apply(as_float)
         else:
             self.df['lat'] = np.nan
             self.df['lon'] = np.nan
+            
+        self.df['source_file'] = self.file_name
 
     def valid_data_line(self, line):
         if 'DD.MM.YYYY' in line:
@@ -52,25 +81,54 @@ class File(object):
     def load_file(self, **kwargs):
         if not os.path.exists(self.file_path):
             raise FileNotFoundError
+        # Log().information('Loading file: {}'.format(self.file_path))
+
         header = []
         data = []
         with codecs.open(self.file_path, encoding=kwargs.get('encoding', 'cp1252')) as fid:
-            for line in fid:
+            for row, line in enumerate(fid):
                 split_line = line.strip('\n\r').split(kwargs.get('sep', '\t'))
                 split_line = [item.strip() for item in split_line]
                 if not header:
                     header = split_line
                 else:
                     if not self.valid_data_line(line):
+                        Log().information(
+                            'Removing invalid line {} from file: {}'.format(row, self.file_path))
                         continue
                     data.append(split_line)
 
         self.original_columns = header[:]
         self.df = pd.DataFrame(data, columns=header)
 
+
         self._add_columns()
 
+        self.filter_data()
+
         self.data_loaded = True
+
+    def filter_data(self):
+        """
+        Filters the data from unwanted lines etc.
+        :return:
+        """
+        # remove_boolean = pd.to_datetime(self.df['time']) == datetime.datetime(1904, 1, 1)
+        if self.file_path_time:
+            time_delta = datetime.timedelta(days=365)
+            remove_before_datetime = self.file_path_time - time_delta
+            remove_after_datetime = self.file_path_time + time_delta
+            time_array = pd.to_datetime(self.df['time'])
+            keep_boolean = (time_array >= remove_before_datetime) & (time_array <= remove_after_datetime)
+            removed = self.df.loc[~keep_boolean]
+            if len(removed):
+                Log().information('{} lines removed from file {}'.format(len(removed), self.file_path))
+            self.df = self.df.loc[keep_boolean]
+
+    def get_df(self):
+        if not len(self.df):
+            self.load_file()
+        return self.df
 
     def get_time_range(self):
         def get_time(line):
@@ -98,7 +156,13 @@ class File(object):
                         if r == 0:
                             continue
                         elif not self.time_start:
-                            self.time_start = get_time(data_line)
+                            time = get_time(data_line)
+                            if self.file_path_time:
+                                if (time + datetime.timedelta(1)) >= self.file_path_time:
+                                    # print('time', datetime.timedelta(1), time, (time + datetime.timedelta(60*60*24)), self.file_path_time)
+                                    self.time_start = time
+                            else:
+                                self.time_start = time
                 self.time_end = get_time(data_line)
                 # print('self.time_end', self.time_end, data_line)
 
@@ -108,7 +172,6 @@ class File(object):
     def in_time_range(self, datetime_object):
         if not self.time_start:
             self.get_time_range()
-        print(self.file_path)
         return (datetime_object >= self.time_start) & (datetime_object <= self.time_end)
 
     def check_if_valid_file_name(self):
@@ -177,62 +240,453 @@ class CO2file(File):
 
 class FileHandler(object):
     def __init__(self, **kwargs):
-        self.mit_directory = kwargs.get('mit_directory', None)
-        self.co2_directory = kwargs.get('co2_directory', None)
+        global logger
+        logger = get_logger(**kwargs.get('log_info', {}))
+        logger.debug('Starting FileHandler for Tavastland')
+        logger.warning('warning 1')
+        logger.warning('warning 2')
+        logger.error('error 1')
+        self.directories = {}
+        self.directories['mit'] = kwargs.get('mit_directory', None)
+        self.directories['co2'] = kwargs.get('co2_directory', None)
 
-        self.mit = dict()
-        self.co2 = dict()
+        self.export_directory = kwargs.get('export_directory', None)
 
-        if self.mit_directory is not None:
-            self.set_mit_directory(self.mit_directory)
+        self.df_header = ['file_id', 'file_path', 'time_start', 'time_end']
 
-        if self.co2_directory is not None:
-            self.set_co2_directory(self.co2_directory)
+        self.objects = dict()
+        self.dfs = dict()
 
-    def set_mit_directory(self, directory):
+        self.reset_time_range()
+        self.reset_data()
+
+        self.set_time_delta(seconds=30)
+
+        for file_type, directory in self.directories.items():
+            if directory:
+                self.set_directory(file_type, directory)
+
+        # if self.mit_directory is not None:
+        #     self.set_mit_directory(self.mit_directory)
+        #
+        # if self.co2_directory is not None:
+        #     self.set_co2_directory(self.co2_directory)
+
+    def set_directory(self, file_type, directory):
         """
-        Saves path to mit-files in directory tree with root "directory"
-        :param directory:
+        Saves path to files with the given directory for the given file_type
+        :param file_type:
         :return:
         """
-        mit_object = MITfile()
-        self.mit = dict()
+        if file_type == 'mit':
+            file_type_object = MITfile()
+        elif file_type == 'co2':
+            file_type_object = CO2file()
+
+        self.objects[file_type] = dict()
+        data_lines = []
         for root, dirs, files in os.walk(directory):
             for name in files:
-                if not mit_object.check_if_valid_file_name(name):
+                if not file_type_object.check_if_valid_file_name(name):
                     continue
                 file_path = os.path.join(root, name)
                 file_object = MITfile(file_path)
                 start, end = file_object.get_time_range()
-                self.mit[name] = dict(file_name=name,
-                                      file_path=file_path,
-                                      object=file_object,
-                                      time_start=start,
-                                      time_end=end)
+                data_lines.append([name, file_path, start, end])
+                self.objects[file_type][name] = file_object
+        self.dfs[file_type] = pd.DataFrame(data_lines, columns=self.df_header)
+        self.dfs[file_type].sort_values('time_start', inplace=True)
 
-    def set_co2_directory(self, directory):
+    def get_file_id(self, time=None, file_type='mit'):
         """
-        Saves path to co2-files in directory tree with root "directory"
-        :param directory:
+        Returns the mit file matching the given input.
+
+        :param time: datetime_object
         :return:
         """
-        co2_object = CO2file()
-        self.co2 = dict()
-        for root, dirs, files in os.walk(directory):
-            for name in files:
-                if not co2_object.check_if_valid_file_name(name):
-                    continue
-                file_path = os.path.join(root, name)
-                file_object = CO2file(file_path)
-                start, end = file_object.get_time_range()
-                self.co2[name] = dict(file_name=name,
-                                      file_path=file_path,
-                                      object=file_object,
-                                      time_start=start,
-                                      time_end=end)
+        if time:
+            result = self.dfs[file_type].loc[(self.dfs[file_type]['time_start'] <= time) &
+                                             (time <= self.dfs[file_type]['time_end']), 'file_id'].values
+            if len(result) > 1:
+                logger.debug('Several files matches time stamp: {}\n{}'.format(time, '\n'.join(list(result))))
+                raise AttributeError('Several files matches time stamp: {}'.format('\n'.join(list(result))))
+            else:
+                return result[0]
+        else:
+            raise AttributeError('Missing')
+
+    def get_pervious_file_id(self, file_id, file_type='mit'):
+        """
+        Returns the previous file_id
+        :param file_id:
+        :return:
+        """
+        df = self.dfs.get(file_type)
+        if file_id in df['file_id'].values:
+            index = df.index[df['file_id'] == file_id][0]
+            if index == 0:
+                return None
+            else:
+                return df.at[index-1, 'file_id']
+
+
+    def set_time_range(self, time_start=None, time_end=None, time=None, file_id=None, file_type='mit'):
+        """
+        Selects/sets the period to work with. You can select data by giving start and end time or by file_id.
+        Also option to find file_id by time stamp (looking at mit_file) given in time. All time objects ar of type
+        datetime.datetime.
+
+        :param time_start:
+        :param time_end:
+        :param time:
+        :param file_name:
+        :return:
+        """
+        if time:
+            file_id = self.get_file_id(time=time, file_type=file_type)
+
+        if file_id:
+            for file_type in self.objects:
+                if file_id in self.objects[file_type]:
+                    time_start = self.objects[file_id][file_id]['time_start']
+                    time_end = self.objects[file_id][file_id]['time_end']
+                    break
+            else:
+                raise ValueError('Could not find file_id {}')
+
+        self.reset_time_range()
+
+        self.current_time_start = time_start
+        self.current_time_end = time_end
+
+    def set_time_delta(self, **kwargs):
+        """
+        Sets the timedelta allowed for matching data.
+        :param kwargs:
+        :return:
+        """
+        self.time_delta = pd.Timedelta(**kwargs)
+
+    def reset_time_range(self):
+        self.current_time_start = None
+        self.current_time_end = None
+
+        self.reset_data()
+
+    def load_data(self):
+        """
+        Loades data in time range. Time range is set in method select_time_range.
+        :return:
+        """
+        if not all([self.current_time_start, self.current_time_end]):
+            raise Exception
+
+        self.reset_data()
+
+        # Load files within time range
+        self.current_data['mit'] = self.get_data_within_time_range('mit', self.current_time_start, self.current_time_end)
+        self.current_data['co2'] = self.get_data_within_time_range('co2', self.current_time_start, self.current_time_end)
+
+    def reset_data(self):
+        self.current_data = {}
+        self.current_merge_data = pd.DataFrame()
+        self.pCO2_constants = {}
+        self.std_val_list = []
+        self.std_co2_list = []
+        self.std_latest_time = None
+
+    def get_data_within_time_range(self, file_type, time_start, time_end):
+        """
+        Extracts data within time range from mit or c02 files. expands time limits with self.time_delta first.
+
+        :param file_type: mit or co2
+        :param time_start:
+        :param time_end:
+        :return:
+        """
+        object_dict = self.objects.get(file_type)
+        file_id_list = self.get_file_ids_within_time_range(file_type, time_start, time_end)
+        df = pd.DataFrame()
+        for file_id in file_id_list:
+            df = df.append(object_dict.get(file_id).get_df())
+
+        if len(df):
+            df.sort_values('time', inplace=True)
+
+        df.columns = ['{}_{}'.format(file_type, item) for item in df.columns]
+        df['time'] = df['{}_time'.format(file_type)]
+
+        return df
+
+    def get_file_ids_within_time_range(self, file_type, time_start, time_end):
+        """
+        Returns a list of the matching file_id:s found in self.dfs
+        :param file_type:
+        :param time_start:
+        :param time_end:
+        :return:
+        """
+        df = self.dfs.get(file_type)
+        ts = time_start - self.time_delta
+        te = time_end + self.time_delta 
+        boolean = (df['time_end'] >= ts) & (df['time_end'] <= te)
+        return sorted(df.loc[boolean, 'file_id'])
+
+    def merge_data(self, left='mit', right='co2'):
+        """
+        Merges the dataframes in self.current_data.
+        :return:
+        """
+        missing_data = []
+        for file_type, df in self.current_data.items():
+            if not len(df):
+                missing_data.append(file_type)
+        if missing_data:
+            raise Exception('Missing data from the following sources: {}'.format(', '.join(missing_data)))
+
+        self.current_merge_data = pd.merge_asof(self.current_data[left], self.current_data[right],
+                                                on='time',
+                                                tolerance=self.time_delta,
+                                                direction='nearest')
+
+        # Add time par (based on left df)
+        self.current_merge_data['time'] = self.current_merge_data['{}_time'.format(left)]
+
+        # Add diffs
+        self.current_merge_data['diff_time'] = abs(self.current_merge_data['{}_time'.format(left)] - \
+                                               self.current_merge_data['{}_time'.format(right)])
+
+        self.current_merge_data['diff_lat'] = self.current_merge_data['{}_lat'.format(left)] - \
+                                               self.current_merge_data['{}_lat'.format(right)]
+
+        self.current_merge_data['diff_lon'] = self.current_merge_data['{}_lon'.format(left)] - \
+                                               self.current_merge_data['{}_lon'.format(right)]
+
+    def get_merge_data(self):
+        """
+        Returns merge data limited by time range
+        :return:
+        """
+        boolean = (self.current_merge_data['time'] >= self.current_time_start) & \
+                  (self.current_merge_data['time'] <= self.current_time_end)
+        return self.current_merge_data.loc[boolean, :].copy()
+
+    def calculate_pCO2(self):
+        """
+        Calculates pCO2 on self.current_merge_data
+        :return:
+        """
+        self.current_merge_data['k'] = np.nan
+        self.current_merge_data['m'] = np.nan
+        self.current_merge_data['Pequ'] = np.nan
+        self.current_merge_data['pCO2 dry air'] = np.nan
+
+        self.current_merge_data['xCO2'] = np.nan
+        self.current_merge_data['pCO2'] = np.nan
+
+        items = ['k', 'm', 'xCO2', 'Pequ', 'pCO2 dry air', 'time_since_latest_std']
+        for i in self.current_merge_data.index:
+            values = self._get_pCO2_data_from_row(self.current_merge_data.iloc[i])
+            for key in items:
+                self.current_merge_data.at[i, key] = values.get(key, np.nan)
+
+            # self.current_merge_data.at[i, 'k'] = values.get('k', np.nan)
+            # self.current_merge_data.at[i, 'm'] = values.get('m', np.nan)
+            # self.current_merge_data.at[i, 'Pequ'] = values.get('Pequ', np.nan)
+            # self.current_merge_data.at[i, 'pCO2 dry air'] = values.get('pCO2 dry air', np.nan)
+            # self.current_merge_data.at[i, 'xCO2'] = values.get('xCO2', np.nan)
+
+        self._calculate_pCO2()
+
+    def _calculate_pCO2(self):
+
+        salinity_par = 'mit_Sosal'
+        temp_par = 'mit_Soxtemp'
+
+        Tequ = self.current_merge_data['co2_equ temp'].astype(float) + 273.15  # temp in Kelvin
+        self.current_merge_data['Tequ'] = Tequ
+
+        Pequ = self.current_merge_data['co2_equ press'].astype(float) + self.current_merge_data['co2_licor press'].astype(float)
+        # Pequ is not in the same order as the privious cualculated self.current_merge_data['Pequ'] (has * 1e-3)
+
+        VP_H2O = np.exp(24.4543 - 67.4509 * 100 / Tequ -
+                        4.8489 * np.log(Tequ / 100) -
+                        0.000544 * self.current_merge_data[salinity_par].astype(float))
+        self.current_merge_data['VP_H2O'] = VP_H2O
+
+        pCO2 = self.current_merge_data['xCO2'] * (Pequ / 1013.25 - VP_H2O) * np.exp(
+            0.0423 * (self.current_merge_data[temp_par].astype(float) + 273.15 - Tequ))
+
+        fCO2 = pCO2 * np.exp(((-1636.75 + 12.0408 * Tequ - 0.0327957 * Tequ ** 2 + 3.16528 * 1e-5 * Tequ ** 3)
+                              + 2 * (1 - self.current_merge_data['xCO2'] * 1e-6) ** 2 * (
+                                      57.7 - 0.118 * Tequ)) * Pequ / 1013.25 / (82.0575 * Tequ))
+        self.current_merge_data['pCO2'] = pCO2
+        self.current_merge_data['fCO2 SST'] = fCO2
+
+
+    def _get_pCO2_data_from_row(self, series):
+        """
+        Calculates pCO2 for row or saves information needed to calculate pCO2.
+        :param row_series: pandas.Series (row in df)
+        :return:
+        """
+        type_value = series['co2_Type']
+        co2_value = as_float(series['co2_CO2 um/m'])
+        std_value = as_float(series['co2_std val'])
+        equ_press_value = as_float(series['co2_equ press'])
+        licor_press_value = as_float(series['co2_licor press'])
+
+        if 'STD' in type_value:
+            if is_std(type_value):
+                # This row should be saved for regression calculation
+                self.std_val_list.append(std_value)
+                self.std_co2_list.append(co2_value)
+                self.std_latest_time = series['time']
+                return dict()
+            else:
+                return dict()
+        else:
+            # Calculate/save constants if data is available
+            if self.std_val_list:
+                self._set_constants(self.std_val_list, self.std_co2_list, file_id=self.get_file_id(time=series['time'],
+                                                                                                   file_type='co2'))
+
+                # Reset lists
+                self.std_val_list = []
+                self.std_co2_list = []
+
+            if not self.pCO2_constants:
+                self._set_constants_for_timestamp(series['time'])
+                # return {'pCO2 dry air': co2_value,
+                #         'xCO2': co2_value}
+
+            # Make calculations
+            k = self.pCO2_constants['k']  # k in y = kx + m
+            m = self.pCO2_constants['m']  # m in y = kx + m
+
+            x = (co2_value - m) / k  # x in y = kx + m
+
+            xCO2 = co2_value + (1 - k) * x + m
+            # value = measured Value + correction (correction = diff between y = x and y = kx + m)
+
+            Pequ = (equ_press_value + licor_press_value) * 1e-3  # 1e-3
+            # pressure due to EQU press and licor press
+
+            pCO2_dry_air = xCO2 * Pequ
+
+            # Check time since latest standard gas
+            time_since_latest_std = np.nan
+            if self.std_latest_time:
+                time_since_latest_std = abs(self.std_latest_time - series['time'])
+
+
+            return_dict = {'k': k,
+                           'm': m,
+                           'xCO2': xCO2,
+                           'Pequ': Pequ,
+                           'pCO2 dry air': pCO2_dry_air,
+                           'time_since_latest_std': time_since_latest_std}
+
+            return return_dict
+
+    def _set_constants(self, std_val_list=[], std_co2_list=[], file_id='', **kwargs):
+        """
+        Returns the konstants from the regression calculated from standard gases.
+        :return:
+        """
+        print('std_val_list', std_val_list)
+        print('std_co2_list', std_co2_list)
+        adapt = np.polyfit(np.array(std_val_list), np.array(std_co2_list), 1)
+        self.pCO2_constants = dict(k=adapt[0],
+                                   m=adapt[1],
+                                   file_id=file_id)
+
+    def _set_constants_for_timestamp(self, time_stamp):
+        """
+        Search in file or previous files to find cloasest STD rows. Sets constants and saves self.std_latest_time.
+        :return:
+        """
+        data = self.get_std_basis_for_timestamp(time_stamp)
+        self._set_constants(**data)
+        self.std_latest_time = data.get('std_latest_time')
+
+    def get_std_basis_for_timestamp(self, time_object):
+        """
+        Finds information of the most resent std gasses
+        :param time_object:
+        :return:
+        """
+        index_list = []
+        file_id = self.get_file_id(time=time_object, file_type='co2')
+        while file_id and not index_list:
+            print('=' * 40)
+            print('file_id:', file_id)
+            obj = self.objects['co2'][file_id]
+            df = obj.get_df()
+            df = df.loc[df['time'] <= time_object]
+            for i in list(df.index)[::-1]:
+                value = df.at[i, 'Type']
+                if 'STD' in value:
+                    index_list.append(i)
+                elif index_list:
+                    break
+            if not index_list:
+                # No STD values found
+                print('-', file_id)
+                file_id = self.get_pervious_file_id(file_id, file_type='co2')
+                print('-', file_id)
+
+        index_list.reverse()
+        print(index_list)
+        std_latest_time = df.at[index_list[-1], 'time']
+
+        std_df = df.iloc[index_list, :]
+        std_val_list = [as_float(item) for item in std_df['CO2 um/m']]
+        std_co2_list = [as_float(item) for item in std_df['std val']]
+
+        return_dict = dict(file_id=file_id,
+                           std_latest_time=std_latest_time,
+                           std_val_list=std_val_list,
+                           std_co2_list=std_co2_list)
+        return return_dict
+
+    def save_merge_data(self, directory=None, **kwargs):
+        if not directory:
+            directory = self.export_directory
+
+        if not directory:
+            raise AttributeError('No export directory found or given')
+
+        if not os.path.exists(directory):
+            os.makedirs(directory)
+
+        time_format_str = '%Y%m%d%H%M%S'
+        file_path = os.path.join(directory, 'merge_data_{}_{}.txt'.format(self.current_time_start.strftime(
+                                                                              time_format_str),
+                                                                          self.current_time_end.strftime(
+                                                                              time_format_str)))
+        kw = dict(sep='\t',
+                  index=False)
+        kw.update(kwargs)
+        merge_data = self.get_merge_data()
+        merge_data.to_csv(file_path, **kw)
 
 
 
+def as_float(item):
+    try:
+        return float(item)
+    except:
+        return np.nan
+
+def is_std(item):
+    if not item.startswith('STD'):
+        return False
+    if 'DRAIN' in item:
+        return False
+    if item[-1] in ['z', 's']:
+        return False
+    return True
 
 
-
+logger = get_logger()
