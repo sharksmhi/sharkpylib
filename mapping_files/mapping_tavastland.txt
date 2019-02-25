@@ -1,0 +1,79 @@
+internal	external
+co2_Type	
+co2_error	
+co2_PC Date	
+co2_PC Time	
+co2_equ temp	
+co2_std val	
+co2_CO2a W	
+co2_CO2b W	
+co2_CO2 um/m	
+co2_H2Oa W	
+co2_H2Ob W	
+co2_H2O mm/m	
+co2_licor temp	
+co2_licor press	
+co2_equ press	
+co2_H2O flow	
+co2_licor flow	
+co2_equ pump	
+co2_vent flow	
+co2_atm cond	
+co2_equ cond	
+co2_drip 1	
+co2_N/A	
+co2_cond temp	
+co2_dry box temp	
+co2_time_str	
+co2_time	
+co2_lat	
+co2_lon	
+time	
+mit_Date	
+mit_Time	
+mit_Wsample	
+mit_Lat	
+mit_Lon	
+mit_Sospd	
+mit_Soflow	
+mit_Sosal	
+mit_Sotemp	
+mit_Soxtemp	
+mit_Sochlfl	
+mit_Sopcfl	
+mit_Soturb	
+mit_Socdom	
+mit_Sooxy	
+mit_Soatemp	
+mit_Sopar	
+mit_Soapres	
+mit_PT1	
+mit_PT2	
+mit_PT3	
+mit_Sovar16	
+mit_Sovar17	
+mit_Sovar18	
+mit_Sovar19	
+mit_SopHstd	
+mit_SopHmeas	
+mit_SopH15	
+mit_SopHins	
+mit_CAL	
+mit_Sovar25	
+mit_time_str	
+mit_time	
+mit_lat	
+mit_lon	
+diff_time	
+diff_lat	
+diff_lon	
+k	
+m	
+Pequ	
+pCO2 dry air	
+xCO2	
+pCO2	
+time_since_latest_std	
+Tequ	
+VP_H2O	
+fCO2 SST	

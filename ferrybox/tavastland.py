@@ -10,19 +10,50 @@ import datetime
 import numpy as np
 import log
 
+import sys
+parent_directory = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+if parent_directory not in sys.path:
+    sys.path.append(parent_directory)
+import gismo
 
-def get_logger(**kwargs):
-    DEFAULT_LOG_INPUT = {'name': 'tavastland',
-                         'level': 'DEBUG'}
-    DEFAULT_LOG_INPUT.update(kwargs)
-    log_object = log.Logger(**DEFAULT_LOG_INPUT)
-    logger = log_object.get_logger()
-    return logger
+
+# def get_logger(**kwargs):
+#     DEFAULT_LOG_INPUT = {'name': 'tavastland',
+#                          'level': 'DEBUG'}
+#     DEFAULT_LOG_INPUT.update(kwargs)
+#     log_object = log.Logger(**DEFAULT_LOG_INPUT)
+#     logger = log_object.get_logger()
+#     return logger
+
+# ==============================================================================
+class TavastlandException(Exception):
+    """
+
+    Blueprint for error message.
+    code is for external mapping of exceptions. For example if a GUI wants to
+    handle the error text for different languages.
+    """
+    code = None
+    message = ''
+
+    def __init__(self, message='', code=''):
+        self.message = '{}: {}'.format(self.message, message)
+        if code:
+            self.code = code
+
+# ==============================================================================
+class TavastlandExceptionNoCO2data(TavastlandException):
+    """
+    """
+    code = ''
+    message = ''
+
 
 class File(object):
     def __init__(self, file_path='', **kwargs):
         self.file_path = file_path
         self.file_name = os.path.basename(self.file_path)
+        self.file_id = self.file_name
 
         self.df = pd.DataFrame()
         self.time_start = None
@@ -38,6 +69,8 @@ class File(object):
 
     def _add_file_path_time(self):
         self.file_path_time = None
+        self.file_path_year = None
+        self.file_path_possible_years = []
         for time_format in self.time_in_file_name_formats:
             try:
                 time_object = datetime.datetime.strptime(self.file_name, time_format)
@@ -46,6 +79,12 @@ class File(object):
             except ValueError:
                 # logger.debug('No time in file path for file: {}'.format(self.file_path))
                 pass
+
+        # Find year
+        result = re.findall('\d{4}', self.file_name)
+        if result:
+            self.file_path_year = int(result[0])
+            self.file_path_possible_years = [self.file_path_year-1, self.file_path_year, self.file_path_year+1]
 
     def _add_columns(self):
         # Time
@@ -93,8 +132,7 @@ class File(object):
                     header = split_line
                 else:
                     if not self.valid_data_line(line):
-                        Log().information(
-                            'Removing invalid line {} from file: {}'.format(row, self.file_path))
+                        logger.warning('Removing invalid line {} from file: {}'.format(row, self.file_path))
                         continue
                     data.append(split_line)
 
@@ -122,7 +160,7 @@ class File(object):
             keep_boolean = (time_array >= remove_before_datetime) & (time_array <= remove_after_datetime)
             removed = self.df.loc[~keep_boolean]
             if len(removed):
-                Log().information('{} lines removed from file {}'.format(len(removed), self.file_path))
+                logger.warning('{} lines removed from file {}'.format(len(removed), self.file_path))
             self.df = self.df.loc[keep_boolean]
 
     def get_df(self):
@@ -130,12 +168,49 @@ class File(object):
             self.load_file()
         return self.df
 
-    def get_time_range(self):
+    def old_get_time_range(self):
         def get_time(line):
             date = re.findall('\d{2}\.\d{2}\.\d{4}', line)
             time = re.findall('\d{2}:\d{2}:\d{2}', line)
             if date and time:
                 return datetime.datetime.strptime(date[0]+time[0], '%d.%m.%Y%H:%M:%S')
+
+            date = re.findall('\d{2}/\d{2}/\d{2}', line)
+            time = re.findall('\d{2}:\d{2}:\d{2}', line)
+            if date and time:
+                return datetime.datetime.strptime(date[0] + time[0], '%d/%m/%y%H:%M:%S')
+
+        self.time_start = None
+        self.time_end = None
+        timedelta = datetime.timedelta(weeks=1)
+        if self.data_loaded:
+            self.time_start = self.df.time.values[0]
+            self.time_end = self.df.time.values[-1]
+            return self.time_start, self.time_end
+        else:
+            with codecs.open(self.file_path) as fid:
+                for r, line in enumerate(fid):
+                    if self.valid_data_line(line):
+                        data_line = line
+                        if r == 0:
+                            continue
+                        time = get_time(data_line)
+                        if self.file_path_possible_years:
+                            if time.year not in self.file_path_possible_years:
+                                continue
+                        if not self.time_start:
+                            self.time_start = time
+                        self.time_end = time
+
+        # print(self.time_end, self.file_path, r)
+        return self.time_start, self.time_end
+
+    def older_get_time_range(self):
+        def get_time(line):
+            date = re.findall('\d{2}\.\d{2}\.\d{4}', line)
+            time = re.findall('\d{2}:\d{2}:\d{2}', line)
+            if date and time:
+                return datetime.datetime.strptime(date[0] + time[0], '%d.%m.%Y%H:%M:%S')
 
             date = re.findall('\d{2}/\d{2}/\d{2}', line)
             time = re.findall('\d{2}:\d{2}:\d{2}', line)
@@ -167,6 +242,36 @@ class File(object):
                 # print('self.time_end', self.time_end, data_line)
 
         # print(self.time_end, self.file_path, r)
+        return self.time_start, self.time_end
+
+    def get_time_range(self):
+        def get_time(line):
+            date = re.findall('\d{2}\.\d{2}\.\d{4}', line)
+            time = re.findall('\d{2}:\d{2}:\d{2}', line)
+            if date and time:
+                return datetime.datetime.strptime(date[0] + time[0], '%d.%m.%Y%H:%M:%S')
+
+            date = re.findall('\d{2}/\d{2}/\d{2}', line)
+            time = re.findall('\d{2}:\d{2}:\d{2}', line)
+            if date and time:
+                return datetime.datetime.strptime(date[0] + time[0], '%d/%m/%y%H:%M:%S')
+
+        self.time_start = None
+        self.time_end = None
+        if self.data_loaded:
+            self.time_start = self.df.time.values[0]
+            self.time_end = self.df.time.values[-1]
+            return self.time_start, self.time_end
+        else:
+            with codecs.open(self.file_path) as fid:
+                for r, line in enumerate(fid):
+                    if self.valid_data_line(line):
+                        if r == 0:
+                            continue
+                        elif not self.time_start:
+                            time = get_time(line)
+                            self.time_start = time
+                self.time_end = get_time(line)
         return self.time_start, self.time_end
 
     def in_time_range(self, datetime_object):
@@ -220,7 +325,6 @@ class MITfile(File):
             return True
 
 
-
 class CO2file(File):
 
     def __init__(self, file_path='', **kwargs):
@@ -241,11 +345,8 @@ class CO2file(File):
 class FileHandler(object):
     def __init__(self, **kwargs):
         global logger
-        logger = get_logger(**kwargs.get('log_info', {}))
+        logger = log.get_logger(**kwargs.get('log_info', {}))
         logger.debug('Starting FileHandler for Tavastland')
-        logger.warning('warning 1')
-        logger.warning('warning 2')
-        logger.error('error 1')
         self.directories = {}
         self.directories['mit'] = kwargs.get('mit_directory', None)
         self.directories['co2'] = kwargs.get('co2_directory', None)
@@ -256,6 +357,8 @@ class FileHandler(object):
 
         self.objects = dict()
         self.dfs = dict()
+
+        self.files_with_errors = dict()
 
         self.reset_time_range()
         self.reset_data()
@@ -278,10 +381,13 @@ class FileHandler(object):
         :param file_type:
         :return:
         """
+        this_year = datetime.datetime.now().year
         if file_type == 'mit':
             file_type_object = MITfile()
         elif file_type == 'co2':
             file_type_object = CO2file()
+
+        self.files_with_errors[file_type] = set()
 
         self.objects[file_type] = dict()
         data_lines = []
@@ -292,6 +398,22 @@ class FileHandler(object):
                 file_path = os.path.join(root, name)
                 file_object = MITfile(file_path)
                 start, end = file_object.get_time_range()
+                if not all([start, end]):
+                    logger.error('Could not find time in file {}.'.format(name))
+                    self.files_with_errors[file_type].add(name)
+                    # continue
+                elif start > end:
+                    logger.error('Start time > end time in file {}.'.format(name))
+                    self.files_with_errors[file_type].add(name)
+                    # continue
+                elif any([start.year > this_year, end.year > this_year]):
+                    logger.error('Start year or end year is later than current year in file {}.'.format(name))
+                    self.files_with_errors[file_type].add(name)
+                    # continue
+                elif any([start.year == 1904, end.year == 1904]):
+                    logger.error('Start year or end year is 1904 in file {}.'.format(name))
+                    self.files_with_errors[file_type].add(name)
+                    # continue
                 data_lines.append([name, file_path, start, end])
                 self.objects[file_type][name] = file_object
         self.dfs[file_type] = pd.DataFrame(data_lines, columns=self.df_header)
@@ -348,8 +470,7 @@ class FileHandler(object):
         if file_id:
             for file_type in self.objects:
                 if file_id in self.objects[file_type]:
-                    time_start = self.objects[file_id][file_id]['time_start']
-                    time_end = self.objects[file_id][file_id]['time_end']
+                    time_start, time_end = self.objects[file_type][file_id].get_time_range()
                     break
             else:
                 raise ValueError('Could not find file_id {}')
@@ -408,9 +529,14 @@ class FileHandler(object):
         file_id_list = self.get_file_ids_within_time_range(file_type, time_start, time_end)
         df = pd.DataFrame()
         for file_id in file_id_list:
+            if file_id in self.files_with_errors:
+                logger.warning('Discarding file {}. File has errors!'.format(file_id))
+                continue
             df = df.append(object_dict.get(file_id).get_df())
 
-        if len(df):
+        if not len(df):
+            raise TavastlandExceptionNoCO2data('in time range {} - {}'.format(time_start, time_end))
+        else:
             df.sort_values('time', inplace=True)
 
         df.columns = ['{}_{}'.format(file_type, item) for item in df.columns]
@@ -462,6 +588,47 @@ class FileHandler(object):
         self.current_merge_data['diff_lon'] = self.current_merge_data['{}_lon'.format(left)] - \
                                                self.current_merge_data['{}_lon'.format(right)]
 
+    def remove_areas(self, file_path):
+        """
+        Remove areas listed in file_path. file_path should be of type gismo.qc.qc_trijectory.
+        Maybe this class should be located in a more general place.
+        :param file_path:
+        :return:
+        """
+        area_object = gismo.qc.qc_trajectory.FlagAreasFile(file_path)
+        areas = area_object.get_areas()
+        df = self.current_merge_data
+        masked_areas = []
+        combined_boolean = df['time'] == ''
+        for name, area in areas.items():
+            lat_min = area.get('lat_min')
+            lat_max = area.get('lat_max')
+            lon_min = area.get('lon_min')
+            lon_max = area.get('lon_max')
+
+            boolean = (df['lat'].astype(float) >= lat_min) & \
+                      (df['lat'].astype(float) <= lat_max) & \
+                      (df['lon'].astype(float) >= lon_min) & \
+                      (df['lon'].astype(float) <= lon_max)
+            if len(np.where(boolean)):
+                masked_areas.append(name)
+            combined_boolean = combined_boolean | boolean
+        # Remove areas
+        self.current_merge_data = self.current_merge_data.loc[~combined_boolean, :]
+
+        return masked_areas
+
+    def get_min_and_max_time(self):
+        """
+        Returns the minimum and maximum time found looking in both time_start and time_end and all file_types.
+        :return:
+        """
+        time_list = []
+        for df in self.dfs.values():
+            time_list.extend(list(df['time_start']))
+            time_list.extend(list(df['time_end']))
+        return min(time_list), max(time_list)
+
     def get_merge_data(self):
         """
         Returns merge data limited by time range
@@ -503,7 +670,8 @@ class FileHandler(object):
         salinity_par = 'mit_Sosal'
         temp_par = 'mit_Soxtemp'
 
-        Tequ = self.current_merge_data['co2_equ temp'].astype(float) + 273.15  # temp in Kelvin
+        # Tequ = self.current_merge_data['co2_equ temp'].astype(float) + 273.15  # temp in Kelvin
+        Tequ = np.array([as_float(item) for item in self.current_merge_data['co2_equ temp']]) + 273.15  # temp in Kelvin
         self.current_merge_data['Tequ'] = Tequ
 
         Pequ = self.current_merge_data['co2_equ press'].astype(float) + self.current_merge_data['co2_licor press'].astype(float)
@@ -594,8 +762,8 @@ class FileHandler(object):
         Returns the konstants from the regression calculated from standard gases.
         :return:
         """
-        print('std_val_list', std_val_list)
-        print('std_co2_list', std_co2_list)
+        # print('std_val_list', std_val_list)
+        # print('std_co2_list', std_co2_list)
         adapt = np.polyfit(np.array(std_val_list), np.array(std_co2_list), 1)
         self.pCO2_constants = dict(k=adapt[0],
                                    m=adapt[1],
@@ -650,6 +818,14 @@ class FileHandler(object):
                            std_co2_list=std_co2_list)
         return return_dict
 
+    def get_types_in_merge_data(self):
+        """
+        Returns a list of types in loaded merged data
+        :return:
+        """
+        merge_data = self.get_merge_data()
+        return sorted(set(merge_data['co2_Type']))
+
     def save_merge_data(self, directory=None, **kwargs):
         if not directory:
             directory = self.export_directory
@@ -667,9 +843,13 @@ class FileHandler(object):
                                                                               time_format_str)))
         kw = dict(sep='\t',
                   index=False)
-        kw.update(kwargs)
         merge_data = self.get_merge_data()
-        merge_data.to_csv(file_path, **kw)
+
+        if kwargs.get('co2_types'):
+            boolean = merge_data['co2_Type'].isin(kwargs.get('co2_types'))
+            merge_data.loc[boolean].to_csv(file_path, **kw)
+        else:
+            merge_data.to_csv(file_path, **kw)
 
 
 
@@ -689,4 +869,4 @@ def is_std(item):
     return True
 
 
-logger = get_logger()
+logger = log.get_logger()

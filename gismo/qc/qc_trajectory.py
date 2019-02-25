@@ -49,6 +49,7 @@ class FlagAreas(object):
 
         df.to_csv(r'D:\temp_gismo/after.txt', index=False, sep='\t')
 
+
 class FlagAreasFile(object):
     def __init__(self, file_path):
         if not os.path.exists(file_path):

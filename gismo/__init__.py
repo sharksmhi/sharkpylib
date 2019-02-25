@@ -2,7 +2,7 @@
 # License: MIT License (see LICENSE.txt or http://opensource.org/licenses/mit).
 
 from . import exceptions
-#from . import gismo
+# from . import gismo
 from . import mapping
 from . import qc_routines
 from . import sampling_types

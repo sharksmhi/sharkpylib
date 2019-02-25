@@ -2235,7 +2235,51 @@ class PlotFrame(tk.Frame):
     #========================================================================== 
     def update_canvas(self):
         self.canvas.draw()
-        
+
+
+class LogWidget(object):
+    """
+    """
+    def __init__(self, controller, popup_window=False):
+        self.controller = controller
+        self.popup_window = popup_window
+
+    def display(self):
+        padx = 5
+        pady = 5
+
+        self.popup_frame = tk.Toplevel(self.controller)
+        x = self.controller.winfo_x()
+        y = self.controller.winfo_y()
+
+        # Set text
+        self.label = tk.Label(self.popup_frame, text=self.text)
+        self.label.grid(row=0, column=0, columnspan=2, padx=padx, pady=pady)
+
+        self.entry = tkw.EntryWidget(self.popup_frame, entry_type='int')
+
+        button_ok = tk.Button(self.popup_frame, text='Ok', command=self._ok)
+        button_ok.grid(row=1, column=0, padx=padx, pady=pady)
+
+        tkw.grid_configure(self.popup_frame, nr_columns=2, nr_rows=2)
+
+        self.popup_frame.update_idletasks()
+
+        root_dx = self.controller.winfo_width()
+        root_dy = self.controller.winfo_height()
+
+        dx = int(root_dx/3)
+        dy = int(root_dy/3)
+        w = self.popup_frame.winfo_width()
+        h = self.popup_frame.winfo_height()
+        self.popup_frame.geometry("%dx%d+%d+%d" % (w, h, x + dx, y + dy))
+        # self.controller.withdraw()
+
+    def _ok(self):
+        if self.entry.get_value():
+            self.popup_frame.destroy()
+        # self.controller.deiconify()
+
 """
 ================================================================================
 ================================================================================
@@ -3056,6 +3100,12 @@ class TimeWidget(tk.LabelFrame):
         """
         for part in self.time_resolution:
             self.stringvar[part].set('')
+
+    def disable_widget(self):
+        disable_widgets(*self.combobox.values())
+
+    def enable_widget(self):
+        enable_widgets(*self.combobox.values())
 """
 ================================================================================
 ================================================================================
@@ -3378,7 +3428,7 @@ class DirectoryWidget(tk.Frame):
         self.grid(**self.grid_frame)
 
         self.callback = callback
-        self.default_directory = default_directory
+        self.default_directory = default_directory[:]
         self.include_default_button = include_default_button
 
         self._set_frame()
@@ -3420,23 +3470,25 @@ class DirectoryWidget(tk.Frame):
     def _get_directory(self):
         directory = tk.filedialog.askdirectory()
         if directory:
-            self.stringvar_directory.set(directory)
+            self.set_directory(directory)
 
     def set_default_directory(self):
         if self.default_directory:
-            self.stringvar_directory.set(self.default_directory)
+            self.set_directory(self.default_directory)
 
     def get_directory(self):
         return self.stringvar_directory.get()
 
-    def set_directory(self, directory):
+    def set_directory(self, directory, call_target=True):
         self.stringvar_directory.set(directory)
+        if self.callback and call_target:
+            self.callback()
 
     def get_value(self):
         return self.stringvar_directory.get()
 
     def set_value(self, directory):
-        self.stringvar_directory.set(directory)
+        self.set_directory(directory)
 
 
 class DirectoryWidgetLabelframe(ttk.LabelFrame):
@@ -3465,7 +3517,7 @@ class DirectoryWidgetLabelframe(ttk.LabelFrame):
         self.grid(**self.grid_frame)
 
         self.callback = callback
-        self.default_directory = default_directory
+        self.default_directory = default_directory[:]
         self.include_default_button = include_default_button
 
         self._set_frame()
@@ -3486,43 +3538,45 @@ class DirectoryWidgetLabelframe(ttk.LabelFrame):
         # tk.Label(frame, text='Directory:').grid(row=r, column=c, padx=padx, pady=pady, sticky='nw')
         self.stringvar_directory = tk.StringVar()
         self.entry_directory = tk.Entry(frame, textvariable=self.stringvar_directory, **self.prop_entry)
-        self.entry_directory.grid(row=r, column=0, columnspan=2, padx=padx, pady=pady, sticky='nw')
+        self.entry_directory.grid(row=0, column=0, columnspan=2, padx=padx, pady=pady, sticky='nw')
         self.stringvar_directory.trace("w",
                                        lambda name, index, mode, sv=self.stringvar_directory: check_path_entry(sv))
 
-        ttk.Button(frame, text='Get directory', command=self._get_directory).grid(row=r, column=c + 2,
+        ttk.Button(frame, text='Get directory', command=self._get_directory).grid(row=1, column=0,
                                                                                   padx=padx,
                                                                                   pady=pady, sticky='se')
 
         if self.include_default_button and self.default_directory:
-            ttk.Button(frame, text='Default directory', command=self.set_default_directory).grid(row=r, column=c + 2, columnspan=1,
+            ttk.Button(frame, text='Default directory', command=self.set_default_directory).grid(row=1, column=1,
                                                                                       padx=padx,
                                                                                       pady=pady, sticky='se')
 
-        r += 1
 
-        grid_configure(frame, nr_rows=r)
+        grid_configure(frame, nr_rows=2, nr_columns=2)
 
     def _get_directory(self):
         directory = tk.filedialog.askdirectory()
         if directory:
-            self.stringvar_directory.set(directory)
+            self.set_directory(directory)
 
     def set_default_directory(self):
         if self.default_directory:
-            self.stringvar_directory.set(self.default_directory)
+            self.set_directory(self.default_directory)
+
 
     def get_directory(self):
         return self.stringvar_directory.get()
 
-    def set_directory(self, directory):
+    def set_directory(self, directory, call_target=True):
         self.stringvar_directory.set(directory)
+        if self.callback and call_target:
+            self.callback()
 
     def get_value(self):
         return self.stringvar_directory.get()
 
     def set_value(self, directory):
-        self.stringvar_directory.set(directory)
+        self.set_directory(directory)
 
 
 class WrappedLabel(tk.Label):
@@ -3567,6 +3621,7 @@ class TableWidget(tk.Frame):
                  prop_frame={},
                  prop_treeview={},
                  columns=[],
+                 int_columns=[],
                  callback_select=[],
                  callback_rightclick=None,
                  **kwargs):
@@ -3596,7 +3651,8 @@ class TableWidget(tk.Frame):
         tk.Frame.__init__(self, parent, **self.prop_frame)
         self.grid(**self.grid_frame)
 
-        self.columns = columns
+        self.columns = columns[:]
+        self.int_columns = int_columns
 
         self._set_frame()
 
@@ -3618,7 +3674,7 @@ class TableWidget(tk.Frame):
 
         self.tree.config(**self.prop_treeview)
 
-        grid_configure(self, nr_rows=1, nr_columns=2, c0=10)
+        grid_configure(self, nr_rows=1, nr_columns=2, c0=20)
 
         # Bindings
         self.tree.bind('<<TreeviewSelect>>', self._callback_select)
@@ -3630,12 +3686,9 @@ class TableWidget(tk.Frame):
         for callback in self.callback_select_targets:
             callback(**self.get_selected())
 
-
     def get_selected(self):
         selection = self.tree.selection()
         item_dict = self.tree.item(selection)
-        print('SELECTION', selection)
-        # print('item_dict', item_dict)
         return_dict = {col: value for col, value in zip(self.columns, item_dict['values'])}
         return return_dict
 
@@ -3663,8 +3716,16 @@ class TableWidget(tk.Frame):
         :param data_rows_rows:
         :return:
         """
+        # for col in self.columns:
+        #     self.tree.heading(col, text=col.title(), command=lambda c=col: sortby(self.tree, c, 0))
+
         for col in self.columns:
-            self.tree.heading(col, text=col.title(), command=lambda c=col: sortby(self.tree, c, 0))
+            if col in self.int_columns:
+                self.tree.heading(col, text=col,
+                                  command=lambda c=col: sortby_int(self.tree, c, False))
+            else:
+                self.tree.heading(col, text=col,
+                                  command=lambda c=col: sortby(self.tree, c, False))
         for item in data_rows:
             self.tree.insert('', 'end', values=item, tags=('items',))
 
@@ -3682,6 +3743,35 @@ class TableWidget(tk.Frame):
             tree.heading(col, command=lambda col=col: sortby(tree, col, int(not descending)))
 
 
+        def sortby_int(tv, col, reverse):
+            """
+            https://stackoverflow.com/questions/22032152/python-ttk-treeview-sort-numbers
+            :param tv:
+            :param col:
+            :param reverse:
+            :return:
+            """
+            l = [(tv.set(k, col), k) for k in tv.get_children('')]
+            l.sort(key=lambda t: int(t[0]), reverse=reverse)
+            #      ^^^^^^^^^^^^^^^^^^^^^^^
+
+            for index, (val, k) in enumerate(l):
+                tv.move(k, '', index)
+
+            tv.heading(col,
+                       command=lambda: sortby_int(tv, col, not reverse))
+
+        # root = Tk()
+        # columns = ('number',)
+        # treeview = ttk.Treeview(root, columns=columns, show='headings')
+        # for t in ('1', '10', '11', '2', '3'):
+        #     treeview.insert('', END, values=(t,))
+        # treeview.pack()
+        # for col in columns:
+        #     treeview.heading(col, text=col,
+        #                      command=lambda c=col: treeview_sort_column(treeview, c, False))
+
+
 class TreeviewWidget(tk.Frame):
     """
 
@@ -3691,6 +3781,7 @@ class TreeviewWidget(tk.Frame):
                  prop_frame={},
                  prop_treeview={},
                  columns=[],
+                 int_columns=[],
                  callback_target=[],
                  **kwargs):
 
@@ -3718,6 +3809,7 @@ class TreeviewWidget(tk.Frame):
         self.grid(**self.grid_frame)
 
         self.columns = columns
+        self.int_columns = int_columns
 
         self._set_frame()
 
