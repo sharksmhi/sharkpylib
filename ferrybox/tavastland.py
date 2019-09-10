@@ -8,7 +8,7 @@ import codecs
 import pandas as pd
 import datetime
 import numpy as np
-import log
+import logger
 
 import sys
 parent_directory = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -345,7 +345,7 @@ class CO2file(File):
 class FileHandler(object):
     def __init__(self, **kwargs):
         global logger
-        logger = log.get_logger(**kwargs.get('log_info', {}))
+        logger = logger.get_logger(**kwargs.get('log_info', {}))
         logger.debug('Starting FileHandler for Tavastland')
         self.directories = {}
         self.directories['mit'] = kwargs.get('mit_directory', None)
@@ -869,4 +869,4 @@ def is_std(item):
     return True
 
 
-logger = log.get_logger()
+logger = logger.get_logger()
