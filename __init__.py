@@ -15,5 +15,5 @@ from . import file_io
 from . import geography
 from . import mapping_lib
 from . import utils
-from . import logger
+from . import loglib
 

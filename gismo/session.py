@@ -27,7 +27,10 @@ gismo_logger.setLevel(logging.INFO)
 
 formatter = logging.Formatter('%(asctime)s\t%(levelname)s\t%(module)s (row=%(lineno)d)\t%(message)s')
 
-logger_file_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'log', 'gismo_session.log')
+logger_directory = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'log')
+if not os.path.exists(logger_directory):
+    os.mkdir(logger_directory)
+logger_file_path = os.path.join(logger_directory, 'gismo_session.log')
 file_handler = logging.FileHandler(logger_file_path)
 file_handler.setFormatter(formatter)
 

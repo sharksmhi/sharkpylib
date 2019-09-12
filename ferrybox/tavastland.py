@@ -8,7 +8,7 @@ import codecs
 import pandas as pd
 import datetime
 import numpy as np
-import logger
+import loglib
 
 import sys
 parent_directory = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -52,6 +52,7 @@ class TavastlandExceptionNoCO2data(TavastlandException):
 class File(object):
     def __init__(self, file_path='', **kwargs):
         self.file_path = file_path
+        self.file_directory = os.path.dirname(self.file_path)
         self.file_name = os.path.basename(self.file_path)
         self.file_id = self.file_name
 
@@ -138,12 +139,8 @@ class File(object):
 
         self.original_columns = header[:]
         self.df = pd.DataFrame(data, columns=header)
-
-
         self._add_columns()
-
         self.filter_data()
-
         self.data_loaded = True
 
     def filter_data(self):
@@ -151,98 +148,50 @@ class File(object):
         Filters the data from unwanted lines etc.
         :return:
         """
-        # remove_boolean = pd.to_datetime(self.df['time']) == datetime.datetime(1904, 1, 1)
-        if self.file_path_time:
-            time_delta = datetime.timedelta(days=365)
-            remove_before_datetime = self.file_path_time - time_delta
-            remove_after_datetime = self.file_path_time + time_delta
-            time_array = pd.to_datetime(self.df['time'])
-            keep_boolean = (time_array >= remove_before_datetime) & (time_array <= remove_after_datetime)
-            removed = self.df.loc[~keep_boolean]
-            if len(removed):
-                logger.warning('{} lines removed from file {}'.format(len(removed), self.file_path))
-            self.df = self.df.loc[keep_boolean]
+        # print('len(df)', len(self.df))
+        combined_keep_boolean = pd.Series([True]*len(self.df))
+        # print('0', len(np.where(combined_keep_boolean)[0]))
+
+        # if self.file_path_time:
+        #     time_delta = datetime.timedelta(days=365)
+        #     remove_before_datetime = self.file_path_time - time_delta
+        #     remove_after_datetime = self.file_path_time + time_delta
+        #     time_array = pd.to_datetime(self.df['time'])
+        #     keep_boolean = (time_array >= remove_before_datetime) & (time_array <= remove_after_datetime)
+        #     combined_keep_boolean = combined_keep_boolean & keep_boolean
+        #     print('1', len(np.where(combined_keep_boolean)[0]))
+        keep_boolean = ~self.df[self.original_columns[0]].str.contains('DD.MM.YYYY')
+        combined_keep_boolean = combined_keep_boolean & keep_boolean
+        # print('1', len(np.where(combined_keep_boolean)[0]))
+
+        keep_boolean = ~self.df[self.original_columns[0]].str.contains('.1904')
+        combined_keep_boolean = combined_keep_boolean & keep_boolean
+        # print('2', len(np.where(combined_keep_boolean)[0]))
+
+        removed = self.df.loc[~combined_keep_boolean]
+        if len(removed):
+            logger.warning('{} lines removed from file {}'.format(len(removed), self.file_path))
+        self.df = self.df.loc[combined_keep_boolean]
+
+    def clean_file(self, export_directory):
+        """
+        Loads file (including filter data) and saves to the export directory.
+        :return
+        """
+        # print(export_directory)
+        if export_directory == self.file_directory:
+            raise TavastlandException('Cannot export to the same directory!')
+        if not os.path.exists(export_directory):
+            os.makedirs(export_directory)
+        if not self.data_loaded:
+            self.load_file()
+        export_file_path = os.path.join(export_directory, self.file_name)
+        self.df[self.original_columns].to_csv(export_file_path, index=False, sep='\t')
 
     def get_df(self):
         if not len(self.df):
             self.load_file()
         return self.df
-
-    def old_get_time_range(self):
-        def get_time(line):
-            date = re.findall('\d{2}\.\d{2}\.\d{4}', line)
-            time = re.findall('\d{2}:\d{2}:\d{2}', line)
-            if date and time:
-                return datetime.datetime.strptime(date[0]+time[0], '%d.%m.%Y%H:%M:%S')
-
-            date = re.findall('\d{2}/\d{2}/\d{2}', line)
-            time = re.findall('\d{2}:\d{2}:\d{2}', line)
-            if date and time:
-                return datetime.datetime.strptime(date[0] + time[0], '%d/%m/%y%H:%M:%S')
-
-        self.time_start = None
-        self.time_end = None
-        timedelta = datetime.timedelta(weeks=1)
-        if self.data_loaded:
-            self.time_start = self.df.time.values[0]
-            self.time_end = self.df.time.values[-1]
-            return self.time_start, self.time_end
-        else:
-            with codecs.open(self.file_path) as fid:
-                for r, line in enumerate(fid):
-                    if self.valid_data_line(line):
-                        data_line = line
-                        if r == 0:
-                            continue
-                        time = get_time(data_line)
-                        if self.file_path_possible_years:
-                            if time.year not in self.file_path_possible_years:
-                                continue
-                        if not self.time_start:
-                            self.time_start = time
-                        self.time_end = time
-
-        # print(self.time_end, self.file_path, r)
-        return self.time_start, self.time_end
-
-    def older_get_time_range(self):
-        def get_time(line):
-            date = re.findall('\d{2}\.\d{2}\.\d{4}', line)
-            time = re.findall('\d{2}:\d{2}:\d{2}', line)
-            if date and time:
-                return datetime.datetime.strptime(date[0] + time[0], '%d.%m.%Y%H:%M:%S')
-
-            date = re.findall('\d{2}/\d{2}/\d{2}', line)
-            time = re.findall('\d{2}:\d{2}:\d{2}', line)
-            if date and time:
-                return datetime.datetime.strptime(date[0] + time[0], '%d/%m/%y%H:%M:%S')
-
-        self.time_start = None
-        self.time_end = None
-        if self.data_loaded:
-            self.time_start = self.df.time.values[0]
-            self.time_end = self.df.time.values[-1]
-            return self.time_start, self.time_end
-        else:
-            with codecs.open(self.file_path) as fid:
-                for r, line in enumerate(fid):
-                    if self.valid_data_line(line):
-                        data_line = line
-                        if r == 0:
-                            continue
-                        elif not self.time_start:
-                            time = get_time(data_line)
-                            if self.file_path_time:
-                                if (time + datetime.timedelta(1)) >= self.file_path_time:
-                                    # print('time', datetime.timedelta(1), time, (time + datetime.timedelta(60*60*24)), self.file_path_time)
-                                    self.time_start = time
-                            else:
-                                self.time_start = time
-                self.time_end = get_time(data_line)
-                # print('self.time_end', self.time_end, data_line)
-
-        # print(self.time_end, self.file_path, r)
-        return self.time_start, self.time_end
 
     def get_time_range(self):
         def get_time(line):
@@ -288,16 +237,17 @@ class File(object):
         """
         raise NotImplementedError
 
-    def has_warnings(self):
+    def warnings(self):
         """
-        Returns True if something strange is in file. Strange things kan be handled.
-        :return:
+        Returns a list of strange things found in file. Strange things kan be handled.
+        :return: list with description of the warnings.
         """
         raise NotImplementedError
 
-    def has_errors(self):
+    def errors(self):
         """
-        Returns True if error in file. Errors ar obvious faults that can not be handled.
+        Returns a list of errors in file if any. Errors are obvious faults that can not be handled.
+        :return list with description of the errors.
         """
         raise NotImplementedError
 
@@ -318,11 +268,49 @@ class MITfile(File):
             return False
         return True
 
-    def has_errors(self):
+    def warnings(self):
+        """
+        Returns a list of strange things found in file. Strange things kan be handled.
+        :return: list with description of the warnings.
+        """
+        raise NotImplementedError
+
+    def errors(self):
+        """
+        Returns a list of errors in file if any. Errors are obvious faults that can not be handled.
+        :return list with description of the errors.
+        """
+        error_list = []
         # Check time
         start, end = self.get_time_range()
-        if start < datetime.datetime(1980, 1, 1):
-            return True
+        d = datetime.datetime(1980, 1, 1)
+        this_year = datetime.datetime.now().year
+
+        if not all([start, end]):
+            text = 'Could not find time in file {}.'.format(self.file_name)
+            error_list.append(text)
+        else:
+            if start < d:
+                text = 'Start data is too early in file {}. Before {}'.format(self.file_name, d.strftime('%Y%m%d'))
+                error_list.append(text)
+                # continue
+            if start > end:
+                text = 'Start time > end time in file {}.'.format(self.file_name)
+                error_list.append(text)
+                # continue
+            if any([start.year > this_year, end.year > this_year]):
+                text = 'Start year or end year is later than current year in file {}.'.format(self.file_name)
+                error_list.append(text)
+                # continue
+            if any([start.year == 1904, end.year == 1904]):
+                text = 'Start year or end year is 1904 in file {}.'.format(self.file_name)
+                logger.info(text)
+                error_list.append(text)
+
+        if error_list:
+            logger.info(text.join('; '))
+
+        return error_list
 
 
 class CO2file(File):
@@ -341,11 +329,38 @@ class CO2file(File):
             return False
         return True
 
+    def warnings(self):
+        """
+        Returns a list of strange things found in file. Strange things kan be handled.
+        :return: list with description of the warnings.
+        """
+        raise NotImplementedError
+
+    def errors(self):
+        """
+        Returns a list of errors in file if any. Errors are obvious faults that can not be handled.
+        :return list with description of the errors.
+        """
+        error_list = []
+        # Check time
+        start, end = self.get_time_range()
+        d = datetime.datetime(1980, 1, 1)
+        this_year = datetime.datetime.now().year
+
+        if not all([start, end]):
+            text = 'Could not find time in file {}.'.format(self.file_name)
+            error_list.append(text)
+
+        if error_list:
+            logger.info(text.join('; '))
+
+        return error_list
+
 
 class FileHandler(object):
     def __init__(self, **kwargs):
         global logger
-        logger = logger.get_logger(**kwargs.get('log_info', {}))
+        logger = loglib.get_logger(**kwargs.get('log_info', {}))
         logger.debug('Starting FileHandler for Tavastland')
         self.directories = {}
         self.directories['mit'] = kwargs.get('mit_directory', None)
@@ -367,7 +382,7 @@ class FileHandler(object):
 
         for file_type, directory in self.directories.items():
             if directory:
-                self.set_directory(file_type, directory)
+                self.set_file_directory(file_type, directory)
 
         # if self.mit_directory is not None:
         #     self.set_mit_directory(self.mit_directory)
@@ -375,7 +390,15 @@ class FileHandler(object):
         # if self.co2_directory is not None:
         #     self.set_co2_directory(self.co2_directory)
 
-    def set_directory(self, file_type, directory):
+    def set_export_directory(self, directory):
+        """
+        Sets the export directory.
+        :param directory:
+        :return:
+        """
+        self.export_directory = directory
+
+    def set_file_directory(self, file_type, directory):
         """
         Saves path to files with the given directory for the given file_type
         :param file_type:
@@ -387,7 +410,7 @@ class FileHandler(object):
         elif file_type == 'co2':
             file_type_object = CO2file()
 
-        self.files_with_errors[file_type] = set()
+        self.files_with_errors[file_type] = []
 
         self.objects[file_type] = dict()
         data_lines = []
@@ -398,22 +421,12 @@ class FileHandler(object):
                 file_path = os.path.join(root, name)
                 file_object = MITfile(file_path)
                 start, end = file_object.get_time_range()
-                if not all([start, end]):
-                    logger.error('Could not find time in file {}.'.format(name))
-                    self.files_with_errors[file_type].add(name)
-                    # continue
-                elif start > end:
-                    logger.error('Start time > end time in file {}.'.format(name))
-                    self.files_with_errors[file_type].add(name)
-                    # continue
-                elif any([start.year > this_year, end.year > this_year]):
-                    logger.error('Start year or end year is later than current year in file {}.'.format(name))
-                    self.files_with_errors[file_type].add(name)
-                    # continue
-                elif any([start.year == 1904, end.year == 1904]):
-                    logger.error('Start year or end year is 1904 in file {}.'.format(name))
-                    self.files_with_errors[file_type].add(name)
-                    # continue
+
+                errors = file_object.errors()
+                if errors:
+                    errors_dict = {name: errors}
+                    self.files_with_errors[file_type].append(errors_dict)
+
                 data_lines.append([name, file_path, start, end])
                 self.objects[file_type][name] = file_object
         self.dfs[file_type] = pd.DataFrame(data_lines, columns=self.df_header)
@@ -515,6 +528,22 @@ class FileHandler(object):
         self.std_val_list = []
         self.std_co2_list = []
         self.std_latest_time = None
+
+    def clean_files(self, export_directory, file_list=False):
+        if not self.current_data:
+            raise TavastlandException
+        if not file_list:
+            file_list = []
+            for key, value in self.objects.items():
+                for file_name in value:
+                    if self.objects[key][file_name].data_loaded:
+                       file_list.append(file_name)
+        # Clean files and save in subdirectories
+        for key in self.objects:
+            directory = os.path.join(export_directory, 'cleaned_files', key)
+            for file_name in file_list:
+                if file_name in self.objects[key]:
+                    self.objects[key][file_name].clean_file(directory)
 
     def get_data_within_time_range(self, file_type, time_start, time_end):
         """
@@ -675,7 +704,7 @@ class FileHandler(object):
         self.current_merge_data['Tequ'] = Tequ
 
         Pequ = self.current_merge_data['co2_equ press'].astype(float) + self.current_merge_data['co2_licor press'].astype(float)
-        # Pequ is not in the same order as the privious cualculated self.current_merge_data['Pequ'] (has * 1e-3)
+        # Pequ is not in the same order as the previous calculated self.current_merge_data['Pequ'] (has * 1e-3)
 
         VP_H2O = np.exp(24.4543 - 67.4509 * 100 / Tequ -
                         4.8489 * np.log(Tequ / 100) -
@@ -759,7 +788,7 @@ class FileHandler(object):
 
     def _set_constants(self, std_val_list=[], std_co2_list=[], file_id='', **kwargs):
         """
-        Returns the konstants from the regression calculated from standard gases.
+        Returns the constants from the regression calculated from standard gases.
         :return:
         """
         # print('std_val_list', std_val_list)
@@ -771,7 +800,7 @@ class FileHandler(object):
 
     def _set_constants_for_timestamp(self, time_stamp):
         """
-        Search in file or previous files to find cloasest STD rows. Sets constants and saves self.std_latest_time.
+        Search in file or previous files to find closest STD rows. Sets constants and saves self.std_latest_time.
         :return:
         """
         data = self.get_std_basis_for_timestamp(time_stamp)
@@ -787,8 +816,8 @@ class FileHandler(object):
         index_list = []
         file_id = self.get_file_id(time=time_object, file_type='co2')
         while file_id and not index_list:
-            print('=' * 40)
-            print('file_id:', file_id)
+            # print('=' * 40)
+            # print('file_id:', file_id)
             obj = self.objects['co2'][file_id]
             df = obj.get_df()
             df = df.loc[df['time'] <= time_object]
@@ -800,12 +829,12 @@ class FileHandler(object):
                     break
             if not index_list:
                 # No STD values found
-                print('-', file_id)
+                # print('-', file_id)
                 file_id = self.get_pervious_file_id(file_id, file_type='co2')
-                print('-', file_id)
+                # print('-', file_id)
 
         index_list.reverse()
-        print(index_list)
+        # print(index_list)
         std_latest_time = df.at[index_list[-1], 'time']
 
         std_df = df.iloc[index_list, :]
@@ -869,4 +898,4 @@ def is_std(item):
     return True
 
 
-logger = logger.get_logger()
+logger = loglib.get_logger()
