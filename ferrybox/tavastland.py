@@ -90,11 +90,11 @@ class File(object):
     def _add_columns(self):
         # Time
         if 'Date' in self.df.columns:
-            self.df['time_str'] = self.df['Date'] + ' ' + self.df['Time']
-            self.df['time'] = pd.to_datetime(self.df['time_str'], format='%d.%m.%Y %H:%M:%S')
+            time_str = self.df['Date'] + ' ' + self.df['Time']
+            self.df['time'] = pd.to_datetime(time_str, format='%d.%m.%Y %H:%M:%S')
         elif 'PC Date' in self.df.columns:
-            self.df['time_str'] = self.df['PC Date'] + ' ' + self.df['PC Time']
-            self.df['time'] = pd.to_datetime(self.df['time_str'], format='%d/%m/%y %H:%M:%S')
+            time_str = self.df['PC Date'] + ' ' + self.df['PC Time']
+            self.df['time'] = pd.to_datetime(time_str, format='%d/%m/%y %H:%M:%S')
 
         # Position
         if 'Lat' in self.df.columns:
@@ -148,25 +148,16 @@ class File(object):
         Filters the data from unwanted lines etc.
         :return:
         """
-        # print('len(df)', len(self.df))
         combined_keep_boolean = pd.Series([True]*len(self.df))
-        # print('0', len(np.where(combined_keep_boolean)[0]))
 
-        # if self.file_path_time:
-        #     time_delta = datetime.timedelta(days=365)
-        #     remove_before_datetime = self.file_path_time - time_delta
-        #     remove_after_datetime = self.file_path_time + time_delta
-        #     time_array = pd.to_datetime(self.df['time'])
-        #     keep_boolean = (time_array >= remove_before_datetime) & (time_array <= remove_after_datetime)
-        #     combined_keep_boolean = combined_keep_boolean & keep_boolean
-        #     print('1', len(np.where(combined_keep_boolean)[0]))
         keep_boolean = ~self.df[self.original_columns[0]].str.contains('DD.MM.YYYY')
         combined_keep_boolean = combined_keep_boolean & keep_boolean
-        # print('1', len(np.where(combined_keep_boolean)[0]))
 
         keep_boolean = ~self.df[self.original_columns[0]].str.contains('.1904')
         combined_keep_boolean = combined_keep_boolean & keep_boolean
-        # print('2', len(np.where(combined_keep_boolean)[0]))
+
+        keep_boolean = self.df['time'] <= datetime.datetime.now()
+        combined_keep_boolean = combined_keep_boolean & keep_boolean
 
         removed = self.df.loc[~combined_keep_boolean]
         if len(removed):
@@ -439,16 +430,19 @@ class FileHandler(object):
         :param time: datetime_object
         :return:
         """
+        print('get_file_id')
         if time:
             result = self.dfs[file_type].loc[(self.dfs[file_type]['time_start'] <= time) &
                                              (time <= self.dfs[file_type]['time_end']), 'file_id'].values
             if len(result) > 1:
                 logger.debug('Several files matches time stamp: {}\n{}'.format(time, '\n'.join(list(result))))
-                raise AttributeError('Several files matches time stamp: {}'.format('\n'.join(list(result))))
+                raise TavastlandException('Several files matches time stamp {}: \n{}'.format(time, '\n'.join(list(result))))
+            elif len(result) == 0:
+                return None
             else:
                 return result[0]
         else:
-            raise AttributeError('Missing')
+            raise AttributeError('Missing input parameter "time"')
 
     def get_pervious_file_id(self, file_id, file_type='mit'):
         """
@@ -568,6 +562,7 @@ class FileHandler(object):
         else:
             df.sort_values('time', inplace=True)
 
+        # Add file type to header
         df.columns = ['{}_{}'.format(file_type, item) for item in df.columns]
         df['time'] = df['{}_time'.format(file_type)]
 
@@ -586,6 +581,17 @@ class FileHandler(object):
         te = time_end + self.time_delta 
         boolean = (df['time_end'] >= ts) & (df['time_end'] <= te)
         return sorted(df.loc[boolean, 'file_id'])
+
+    def get_files_with_errors(self, file_type):
+        """
+        Returns a list with all files that has errors in them.
+        :param file_type:
+        :return:
+        """
+        file_list = []
+        for file_name_dict in self.files_with_errors[file_type]:
+            file_list.append(list(file_name_dict.keys())[0])
+        return file_list
 
     def merge_data(self, left='mit', right='co2'):
         """
@@ -727,7 +733,16 @@ class FileHandler(object):
         :param row_series: pandas.Series (row in df)
         :return:
         """
+        return_dict = {'k': np.nan,
+                       'm': np.nan,
+                       'xCO2': np.nan,
+                       'Pequ': np.nan,
+                       'pCO2 dry air': np.nan,
+                       'time_since_latest_std': np.nan}
+
         type_value = series['co2_Type']
+        if type(type_value) == float and np.isnan(type_value):
+            return return_dict
         co2_value = as_float(series['co2_CO2 um/m'])
         std_value = as_float(series['co2_std val'])
         equ_press_value = as_float(series['co2_equ press'])
@@ -745,6 +760,7 @@ class FileHandler(object):
         else:
             # Calculate/save constants if data is available
             if self.std_val_list:
+                print(series['time'])
                 self._set_constants(self.std_val_list, self.std_co2_list, file_id=self.get_file_id(time=series['time'],
                                                                                                    file_type='co2'))
 
@@ -853,7 +869,11 @@ class FileHandler(object):
         :return:
         """
         merge_data = self.get_merge_data()
-        return sorted(set(merge_data['co2_Type']))
+        types = []
+        for item in merge_data['co2_Type']:
+            if type(item) == str:
+                types.append(item)
+        return sorted(set(types))
 
     def save_merge_data(self, directory=None, **kwargs):
         if not directory:
@@ -879,6 +899,8 @@ class FileHandler(object):
             merge_data.loc[boolean].to_csv(file_path, **kw)
         else:
             merge_data.to_csv(file_path, **kw)
+
+        return file_path
 
 
 
