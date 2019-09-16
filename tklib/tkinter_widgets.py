@@ -8,6 +8,7 @@ import numpy as np
 import pandas as pd
 import re
 import datetime
+import calendar
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg, NavigationToolbar2Tk
 import matplotlib.dates as dates
 
@@ -1318,7 +1319,8 @@ class ListboxSelectionWidget(tk.Frame):
                  include_button_move_all_items=True, 
                  include_button_move_all_selected=True, 
                  callback_match_in_file=None, 
-                 callback_match_subselection=None, 
+                 callback_match_subselection=None,
+                 callback_set_default=None,
                  sort_selected=False, 
                  include_blank_item=False, 
                  target=None,
@@ -1374,6 +1376,7 @@ class ListboxSelectionWidget(tk.Frame):
         
         self.callback_match_in_file = callback_match_in_file
         self.callback_match_subselection = callback_match_subselection
+        self.callback_set_default = callback_set_default
         
         if isinstance(target, list):
             self.targets = target
@@ -1524,16 +1527,23 @@ class ListboxSelectionWidget(tk.Frame):
         padx = 5
         pady = 2
 
-        r = -1
+        r = 0
         if self.callback_match_in_file:
             self.button_match_in_file = tk.Button(frame, text=u'Match in file', command=self.callback_match_in_file, font=Fonts().fontsize_small)
             self.button_match_in_file.grid(row=r, column=0, padx=padx, pady=pady, sticky='w')
-            r+=1
+            r += 1
 
         if self.callback_match_subselection:
             self.button_match_subselection = tk.Button(frame, text='Match subselection', command=self.callback_match_subselection, font=Fonts().fontsize_small)
             self.button_match_subselection.grid(row=r, column=0, padx=padx, pady=pady, sticky='w')
-            r+=1
+            r += 1
+
+        if self.callback_set_default:
+            self.button_select_default = tk.Button(frame, text='Select default',
+                                                       command=self.callback_set_default,
+                                                       font=Fonts().fontsize_small)
+            self.button_select_default.grid(row=r, column=0, padx=padx, pady=pady, sticky='w')
+            r += 1
 
         grid_configure(frame, nr_rows=r)
     
@@ -2846,6 +2856,75 @@ class TimeWidgetSeason(tk.Frame):
         self.combobox['day_from'].set_value('1')
         self.combobox['day_to'].set_value('31')
 
+
+class TimeWidgetMonthSelector(tk.Frame):
+    """
+    Widget to select month and year.
+    """
+
+    def __init__(self,
+                 parent=False,
+                 prop_frame={},
+                 prop_combobox={},
+                 grid_items={},
+                 callback_target=None,
+                 **kwargs):
+
+        self.parent = parent
+
+        self.callback_target = callback_target
+
+        self.prop_frame = {}
+        self.prop_frame.update(prop_frame)
+
+        self.prop_combobox = {'width': 8,
+                              'state': 'readonly'}
+        self.prop_combobox.update(prop_combobox)
+
+        self.grid_frame = {'sticky': 'nsew'}
+        self.grid_frame.update(kwargs)
+
+        self.grid_items = {'sticky': 'w',
+                           'padx': 5,
+                           'pady': 2}
+        self.grid_items.update(grid_items)
+
+        # Create frame
+        tk.Frame.__init__(self, parent, **self.prop_frame)
+        self.grid(**self.grid_frame)
+
+        self.year_list = list(range(1990, datetime.datetime.now().year))
+        self.month_list = ['January', 'February', 'Mars', 'April', 'May', 'June',
+                           'July', 'August', 'September', 'October', 'November', 'December']
+
+        self.name_to_num = {}
+        self.num_to_name = {}
+        for nr, name in enumerate(self.month_list):
+            self.name_to_num[name] = nr+1
+            self.num_to_name[nr+1] = name
+
+        self._set_frame()
+
+    # ===========================================================================
+    def _set_frame(self):
+
+        self.combobox = {}
+
+        prop_month = {'width': 25}
+        prop_day = {'width': 5}
+
+        tk.Label(self, text='Year:').grid(row=0, column=0, **self.grid_items)
+        self.combobox_year = ComboboxWidget(self, items=self.year_list, prop_combobox=prop_month, row=0, column=1)
+        self.combobox_year.set_value(datetime.datetime.now().year()+1)
+
+        tk.Label(self, text='Month:').grid(row=1, column=0, **self.grid_items)
+        self.combobox_month = ComboboxWidget(self, items=self.month_list, prop_combobox=prop_month, row=1, column=1)
+        self.combobox_year.set_value(self.num_to_name[datetime.datetime.now().month()])
+
+        grid_configure(self, nr_rows=2, nr_columns=3)
+
+    def set_year_span(self, from_year, to_year):
+        self.year_list = list(range(from_year, to_year+1))
 
 class TimeWidget(tk.LabelFrame):
     """

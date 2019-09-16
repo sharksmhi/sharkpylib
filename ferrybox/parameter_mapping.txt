@@ -1,0 +1,9 @@
+kanalnummer	internal_name
+8177	pCO2_from_co2
+8002	Lon_from_ferrybox
+8003	Lat_from_ferrybox
+8171	Sospd_from_ferrybox
+8172	Soflow_from_ferrybox
+8181	Sosal_from_ferrybox
+8180	Sosal_from_ferrybox
+8179	Soxtemp_from_ferrybox

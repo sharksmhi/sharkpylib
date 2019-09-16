@@ -48,6 +48,14 @@ class TavastlandExceptionNoCO2data(TavastlandException):
     code = ''
     message = ''
 
+# ==============================================================================
+class TavastlandExceptionNoMatchWhenMerging(TavastlandException):
+    """
+    """
+    code = ''
+    message = ''
+
+
 
 class File(object):
     def __init__(self, file_path='', **kwargs):
@@ -397,8 +405,10 @@ class FileHandler(object):
         """
         this_year = datetime.datetime.now().year
         if file_type == 'mit':
+            File_type_class = MITfile
             file_type_object = MITfile()
         elif file_type == 'co2':
+            File_type_class = CO2file
             file_type_object = CO2file()
 
         self.files_with_errors[file_type] = []
@@ -410,7 +420,7 @@ class FileHandler(object):
                 if not file_type_object.check_if_valid_file_name(name):
                     continue
                 file_path = os.path.join(root, name)
-                file_object = MITfile(file_path)
+                file_object = File_type_class(file_path)
                 start, end = file_object.get_time_range()
 
                 errors = file_object.errors()
@@ -420,6 +430,8 @@ class FileHandler(object):
 
                 data_lines.append([name, file_path, start, end])
                 self.objects[file_type][name] = file_object
+        if not data_lines:
+            raise TavastlandException('No valid {}-files found!'.format(file_type))
         self.dfs[file_type] = pd.DataFrame(data_lines, columns=self.df_header)
         self.dfs[file_type].sort_values('time_start', inplace=True)
 
@@ -444,19 +456,33 @@ class FileHandler(object):
         else:
             raise AttributeError('Missing input parameter "time"')
 
-    def get_pervious_file_id(self, file_id, file_type='mit'):
+    def get_previous_file_id(self, file_id=None, time_stamp=None, file_type='mit'):
         """
         Returns the previous file_id
         :param file_id:
         :return:
         """
         df = self.dfs.get(file_type)
-        if file_id in df['file_id'].values:
-            index = df.index[df['file_id'] == file_id][0]
-            if index == 0:
-                return None
+        if file_id:
+            if file_id in df['file_id'].values:
+                index = df.index[df['file_id'] == file_id][0]
+                if index == 0:
+                    return None
+                else:
+                    return df.at[index-1, 'file_id']
             else:
-                return df.at[index-1, 'file_id']
+                return None
+        elif time_stamp:
+            end_time_boolean = df['time_end'] < time_stamp
+            matching_file_id_list = df.loc[end_time_boolean]['file_id'].values
+            # print('='*20)
+            # print('matching_file_id_list')
+            # print(matching_file_id_list)
+            # print(type(matching_file_id_list))
+            if any(matching_file_id_list):
+                return matching_file_id_list[-1]
+            else:
+                return None
 
 
     def set_time_range(self, time_start=None, time_end=None, time=None, file_id=None, file_type='mit'):
@@ -515,6 +541,10 @@ class FileHandler(object):
         self.current_data['mit'] = self.get_data_within_time_range('mit', self.current_time_start, self.current_time_end)
         self.current_data['co2'] = self.get_data_within_time_range('co2', self.current_time_start, self.current_time_end)
 
+        print('Load data')
+        print('mit', len(self.current_data['mit']))
+        print('co2', len(self.current_data['co2']))
+
     def reset_data(self):
         self.current_data = {}
         self.current_merge_data = pd.DataFrame()
@@ -558,13 +588,19 @@ class FileHandler(object):
             df = df.append(object_dict.get(file_id).get_df())
 
         if not len(df):
-            raise TavastlandExceptionNoCO2data('in time range {} - {}'.format(time_start, time_end))
+            raise TavastlandExceptionNoCO2data('No data in time range {} - {}'.format(time_start, time_end))
         else:
             df.sort_values('time', inplace=True)
 
         # Add file type to header
         df.columns = ['{}_{}'.format(file_type, item) for item in df.columns]
         df['time'] = df['{}_time'.format(file_type)]
+
+        # Strip dates
+        time_start = time_start - self.time_delta
+        time_end = time_end + self.time_delta
+        time_boolean = (df.time >= time_start) & (df.time <= time_end)
+        df = df.loc[time_boolean]
 
         return df
 
@@ -622,6 +658,12 @@ class FileHandler(object):
 
         self.current_merge_data['diff_lon'] = self.current_merge_data['{}_lon'.format(left)] - \
                                                self.current_merge_data['{}_lon'.format(right)]
+
+        if not any(self.current_merge_data['diff_time']):
+            raise TavastlandExceptionNoMatchWhenMerging('No match in data between {} and {} '
+                                                        'with time tolerance {} seconds'.format(self.current_time_start,
+                                                                                                 self.current_time_end,
+                                                                                                 self.time_delta.seconds))
 
     def remove_areas(self, file_path):
         """
@@ -831,6 +873,12 @@ class FileHandler(object):
         """
         index_list = []
         file_id = self.get_file_id(time=time_object, file_type='co2')
+        if not file_id:
+            # Cannot find file id for the given time stamp. Need to find the latest file id.
+            file_id = self.get_previous_file_id(time_stamp=time_object, file_type='co2')
+        if not file_id:
+            raise TavastlandExceptionNoCO2data('No CO2 file found for time {} or earlier!'.format(time_object))
+
         while file_id and not index_list:
             # print('=' * 40)
             # print('file_id:', file_id)
@@ -846,7 +894,7 @@ class FileHandler(object):
             if not index_list:
                 # No STD values found
                 # print('-', file_id)
-                file_id = self.get_pervious_file_id(file_id, file_type='co2')
+                file_id = self.get_previous_file_id(file_id=file_id, file_type='co2')
                 # print('-', file_id)
 
         index_list.reverse()
