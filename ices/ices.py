@@ -13,7 +13,7 @@ import pandas as pd
 import codecs
 import datetime
 
-import mapping_lib as mapping
+import mappinglib as mapping
 
 
 class CodeList(dict): 

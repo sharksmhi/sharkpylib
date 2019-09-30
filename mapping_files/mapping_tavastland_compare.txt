@@ -1,0 +1,83 @@
+internal	new_file	old_file	IOCFTP_tavastland
+	Pequ		1
+	Tequ		2
+	VP_H2O		3
+CO2 um/m	co2_CO2 um/m	CO2 um/m_from_co2	4
+	co2_CO2a W		5
+	co2_CO2b W		6
+	co2_H2O flow		7
+	co2_H2O mm/m		8
+	co2_H2Oa W		9
+	co2_H2Ob W		10
+	co2_N/A		11
+	co2_PC Date		12
+	co2_PC Time		13
+	co2_Type		14
+	co2_atm cond		15
+	co2_cond temp		16
+	co2_drip 1		17
+	co2_dry box temp		18
+	co2_equ cond		19
+equ press	co2_equ press	equ press_from_co2	20
+	co2_equ pump		21
+equ temp	co2_equ temp	equ temp_from_co2	8160
+	co2_error		23
+	co2_lat		24
+	co2_licor flow		25
+licor press	co2_licor press	licor press_from_co2	26
+licor temp	co2_licor temp	licor temp_from_co2	27
+	co2_lon		28
+	co2_source_file		29
+	co2_std val		30
+	co2_time		31
+	co2_vent flow		32
+	diff_lat		33
+	diff_lon		34
+	diff_time		35
+fCO2 SST	fCO2 SST	fCO2 SST_from_co2	36
+k	k	k_from_co2	37
+lat	lat	Lat_from_ferrybox	8002
+lon	lon	Lon_from_ferrybox	8003
+m	m	m_from_co2	40
+	mit_CAL		41
+	mit_Date		42
+	mit_Lat		43
+	mit_Lat_		44
+	mit_Lon		45
+	mit_Lon_		46
+	mit_PT1		47
+	mit_PT2		48
+	mit_PT3		49
+Soapres	mit_Soapres	Soapres_from_ferrybox	50
+	mit_Soatemp	Soatemp_from_ferrybox	51
+	mit_Socdom	Socdom_from_ferrybox	52
+	mit_Sochlfl	Sochlfl_from_ferrybox	53
+	mit_Soflow	Soflow_from_ferrybox	8172
+	mit_Sooxy	Sooxy_from_ferrybox	55
+	mit_SopH15	SopH15_from_ferrybox	56
+	mit_SopHins	SopHins_from_ferrybox	57
+	mit_SopHmeas	SopHmeas_from_ferrybox	58
+	mit_SopHstd	SopHstd_from_ferrybox	59
+	mit_Sopar	Sopar_from_ferrybox	60
+	mit_Sopcfl	Sopcfl_from_ferrybox	61
+Sosal	mit_Sosal	Sosal_from_ferrybox	8180
+Sospd	mit_Sospd	Sospd_from_ferrybox	8171
+	mit_Sotemp	Sotemp_from_ferrybox	64
+	mit_Soturb	Soturb_from_ferrybox	65
+	mit_Sovar16		66
+	mit_Sovar17		67
+	mit_Sovar18		68
+	mit_Sovar19		69
+	mit_Sovar25		70
+Soxtemp	mit_Soxtemp	Soxtemp_from_ferrybox	8179
+	mit_Time		72
+	mit_Wsample		73
+	mit_lat		74
+	mit_lon		75
+	mit_source_file		76
+	mit_time		77
+pCO2	pCO2	pCO2_from_co2	8177
+pCO2 dry air	pCO2 dry air	pCO2 dry air_from_co2	79
+time	time	time	38055
+time_since_latest_std	time_since_latest_std		81
+xCO2	xCO2	xCO2_from_co2	82

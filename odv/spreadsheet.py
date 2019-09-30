@@ -25,7 +25,7 @@ lib_path = os.path.dirname(odv_directory_path)
 if lib_path not in sys.path:
     sys.path.append(lib_path)
 
-import mapping_lib as mapping
+import mappinglib as mapping
 import geography
 
 

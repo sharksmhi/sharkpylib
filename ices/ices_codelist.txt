@@ -185,7 +185,7 @@ AM4CP	2-Amino-4-chlorophenol	PARAM
 AMON	ammonium (NH4-N)	PARAM
 AMTR	ametryn	PARAM
 ANCI MYT	Ancistrum mytili	PARAM
-ANISAKIX	ANISAKIDAE nematodes (Rubin ö1)	PARAM
+ANISAKIX	ANISAKIDAE nematodes (Rubin ï¿½1)	PARAM
 ANL	Aniline	PARAM
 ANT	anthracene	PARAM
 ANT2M	2-methylanthracene	PARAM
@@ -1845,11 +1845,11 @@ w	week	MUNIT
 y	year	MUNIT
 yes	yes to be used when reporting PRSNT "species present"	MUNIT
 AGRF	Ahma Group (Rovaniemi)	RLABO
-AHHG	Umweltbehörde  Hygienisches Institut  Hamburg	RLABO
+AHHG	Umweltbehï¿½rde  Hygienisches Institut  Hamburg	RLABO
 AHZL	Arbeithygienisches Zentrum der Chemischen Industri	RLABO
-ALGL	ALS Scandinavia - Luleå	RLABO
-ALGT	ALS Scandinavia - Täby	RLABO
-ALLS	SYNLAB Analytics & Services Sweden AB  Linköping  Sweden	RLABO
+ALGL	ALS Scandinavia - Luleï¿½	RLABO
+ALGT	ALS Scandinavia - Tï¿½by	RLABO
+ALLS	SYNLAB Analytics & Services Sweden AB  Linkï¿½ping  Sweden	RLABO
 ALNG	Dr. Schumacher GmbH	RLABO
 ALUK	Fisheries Research Services  Aberdeen	RLABO
 AMAP	AMAP Secretariat	RLABO
@@ -1857,7 +1857,7 @@ AMHF	Alands Landskapregering (Mariehamn)	RLABO
 ANBF	ANSAB  Bordeaux	RLABO
 ANCH	Vrije Universiteit Brussel	RLABO
 APEM	APEM Ltd  Manchester Laboratory	RLABO
-APNN	Akvaplan-NIVA A/S  Polar Environmental Center  Tromsø	RLABO
+APNN	Akvaplan-NIVA A/S  Polar Environmental Center  Tromsï¿½	RLABO
 AQEG	AquaEcology  Oldenburg	RLABO
 AQFG	Aquafact Environmental Survey Specialists  Galway	RLABO
 ASLR	Latvian Institute of Aquatic Ecology	RLABO
@@ -1867,13 +1867,13 @@ AWUK	Environment Agency  Peterborough	RLABO
 AZUK	AstraZeneca  Brixham Laboratory	RLABO
 BAHG	Biologische Anstalt Helgoland	RLABO
 BEUK	Biological Effects Laboratory  Waterloo	RLABO
-BFAG	Institut für Seefischerei der VTIG Hamburg	RLABO
-BFCG	Bundesforschungsanstalt für Fischerei  Cuxhaven	RLABO
-BFGG	Bundesanstalt für Gewässerkunde  Federal Institute of Hydrology	RLABO
-BFKB	Küsten- und Binnenfischerei	RLABO
-BFKG	Bundesforschungsanstalt für Fischerei  Hamburg	RLABO
-BFRG	Bundesforschungsanstalt für Fischerei  Institut für Fischereiökologie  Hamburg	RLABO
-BGAG	Umweltbundesamt  Institut für Wasser-  Boden- und Lufthygiene	RLABO
+BFAG	Institut fï¿½r Seefischerei der VTIG Hamburg	RLABO
+BFCG	Bundesforschungsanstalt fï¿½r Fischerei  Cuxhaven	RLABO
+BFGG	Bundesanstalt fï¿½r Gewï¿½sserkunde  Federal Institute of Hydrology	RLABO
+BFKB	Kï¿½sten- und Binnenfischerei	RLABO
+BFKG	Bundesforschungsanstalt fï¿½r Fischerei  Hamburg	RLABO
+BFRG	Bundesforschungsanstalt fï¿½r Fischerei  Institut fï¿½r Fischereiï¿½kologie  Hamburg	RLABO
+BGAG	Umweltbundesamt  Institut fï¿½r Wasser-  Boden- und Lufthygiene	RLABO
 BGMG	University of Hamburg  Institute of Biogeochemistry and Marine Chemistry  Centre for Marine and Climate Research	RLABO
 BHIR	Bezirkshygiene-Institut Rostock	RLABO
 BIOC	Bedford Institute of Oceanography  Department of Fisheries and Oceans  Nova Scotia	RLABO
@@ -1881,7 +1881,7 @@ BIOR	Institute of Food Safety  Animal Health and Environment	RLABO
 BIOS	Aarhus University  Department of Bioscience  Marine Ecology Roskilde	RLABO
 BLUK	Centre for Environment  Fisheries and Aquaculture Science	RLABO
 BODC	British Oceanographic Data Centre	RLABO
-BSHG	Bundesamt für Seeschiffahrt und Hydrographie	RLABO
+BSHG	Bundesamt fï¿½r Seeschiffahrt und Hydrographie	RLABO
 BTNW	Battelle  Northwest Division  Marine Sciences Laboratory  Washington	RLABO
 CALU	CALLUNA AB	RLABO
 CHAR	Unidentified laboratory from US in 1970s	RLABO
@@ -1889,7 +1889,7 @@ CIRA	CIRAD - Montpellier	RLABO
 CLSI	Complete lab solutions / Saotharlann Chonamara Teo	RLABO
 CMAC	CMACS Ltd	RLABO
 CQ14	CQEL Caen	RLABO
-CQ29	CQEL Finistère	RLABO
+CQ29	CQEL Finistï¿½re	RLABO
 CQ33	CQEL Gironde	RLABO
 CQ40	CQEL Landes	RLABO
 CQ44	CQEL Loire-Atlantique	RLABO
@@ -1897,16 +1897,16 @@ CQ50	CQEL de la Manche	RLABO
 CQ56	CQEL Lorient	RLABO
 CQ59	CQEL Nord	RLABO
 CQ62	CQEL Boulogne	RLABO
-CQ64	CQEL Pyrénées Atlantiques	RLABO
+CQ64	CQEL Pyrï¿½nï¿½es Atlantiques	RLABO
 CQ76	CQEL Seine-Maritime	RLABO
 CREA	CREMA/CRELA l'Houmeau	RLABO
 CRUK	Clyde River Purification Board	RLABO
-CTQC	Centre de toxicologie de Québec	RLABO
+CTQC	Centre de toxicologie de Quï¿½bec	RLABO
 CWSC	National Wildlife Research Centre	RLABO
 DANI	Department of Agriculture and Rural Affairs  Belfast	RLABO
 DBST	Academy of Sciences  Department of the Baltic Sea  Tallinn	RLABO
-DFHU	Danmarks Fiskeriundersøgelser	RLABO
-DFLH	Det Fælleskommunale Laboratorium Herning	RLABO
+DFHU	Danmarks Fiskeriundersï¿½gelser	RLABO
+DFLH	Det Fï¿½lleskommunale Laboratorium Herning	RLABO
 DGAP	Direccao Geral do Ambiente	RLABO
 DGWM	Rijkswaterstaat Dienst Getijdewateren  Middelburg	RLABO
 DGWN	Rijkswaterstaat Dienst Getijdewateren  Public Works Department  Tidal Waters Division	RLABO
@@ -1924,9 +1924,9 @@ EFDA	Eurofins Danmark A/S Aalborg SV	RLABO
 EFDH	Eurofins Danmark A/S Albertslund	RLABO
 EFGH	Eurofins GfA Hamburg	RLABO
 EFGJ	Eurofins Umwelt Ost Jena	RLABO
-EFGM	Eurofins GfA Lab Service GmbH  Münster	RLABO
-EGMH	EGMASA Laboratorio de Vigilancia y Control de la Contaminación de Huelva	RLABO
-EGMM	EGMASA Laboratorio de Vigilancia y Control de la Contaminación de Motril	RLABO
+EFGM	Eurofins GfA Lab Service GmbH  Mï¿½nster	RLABO
+EGMH	EGMASA Laboratorio de Vigilancia y Control de la Contaminaciï¿½n de Huelva	RLABO
+EGMM	EGMASA Laboratorio de Vigilancia y Control de la Contaminaciï¿½n de Motril	RLABO
 EMUL	Emu Ltd  Southampton Laboratory	RLABO
 EPAD	Environmental Protection Agency (Regional Inspectorate Dublin)	RLABO
 ERGO	ERGO Forschungsgesellschaft mbH  Hamburg	RLABO
@@ -1940,7 +1940,7 @@ FERA	The Food and Environment Research Agency	RLABO
 FFLF	Faroese Fisheries Laboratory	RLABO
 FGEG	Flussgebietsgemeinschaft Elbe -River Basin Community Elbe	RLABO
 FGFR	Finnish Game and Fisheries Research Institute	RLABO
-FIER	Institute of Nutrition  Directorate of Fisheries (Fiskeridirektoratets Ernæringsinstitutt)	RLABO
+FIER	Institute of Nutrition  Directorate of Fisheries (Fiskeridirektoratets Ernï¿½ringsinstitutt)	RLABO
 FIME	Fraunhofer Institute for Molecular Biology and Applied Ecology  Schmallenberg-Grafschaft	RLABO
 FITG	Fresenius Institut	RLABO
 FIUC	Freshwater Institute  Department of Fisheries and Oceans  Winnipeg	RLABO
@@ -1949,7 +1949,7 @@ FOCH	Fisheries Laboratory	RLABO
 FOLB	FITO-Lab	RLABO
 FORC	FORCE Institute	RLABO
 FRCI	Marine Institute (Abbottstown)  Dublin	RLABO
-FREI	Forschungsinstitut für NE-Metalle  Bergakademie  Freiberg	RLABO
+FREI	Forschungsinstitut fï¿½r NE-Metalle  Bergakademie  Freiberg	RLABO
 FRUK	Forth River Purification Board  Edinburgh	RLABO
 FSAN	Institute of Marine Research	RLABO
 FSSA	Food Standards Scotland (FSS)	RLABO
@@ -1965,19 +1965,19 @@ GLOU	National Marine Fisheries Service	RLABO
 GRUC	GRECAN  University of Caen	RLABO
 GSCO	Geological Survey of Canada	RLABO
 GSDD	Geological Survey of Denmark	RLABO
-GUMI	Göteborg University - Marine Geology	RLABO
-GUZI	Göteborg University - Zoology	RLABO
+GUMI	Gï¿½teborg University - Marine Geology	RLABO
+GUZI	Gï¿½teborg University - Zoology	RLABO
 HEUK	Hebog Environmental Ltd  Bangor Laboratory	RLABO
-HFLD	Miljøstyrelsens Havforureningslaboratorium  Charlottenlund	RLABO
-HFSF	Heilsufrøðiliga Starvsstovan	RLABO
-HGOS	HydroGIS AB  Ödsmål	RLABO
+HFLD	Miljï¿½styrelsens Havforureningslaboratorium  Charlottenlund	RLABO
+HFSF	Heilsufrï¿½ï¿½iliga Starvsstovan	RLABO
+HGOS	HydroGIS AB  ï¿½dsmï¿½l	RLABO
 HGUK	Humber Estuary Management Group	RLABO
 HKYF	City of Helsinki Environment Centre	RLABO
 HLUK	AEA Technology  Harwell Laboratory  Didcot  Oxfordshire	RLABO
-HMKE	Holstebro Miljøkontrol Enhed	RLABO
+HMKE	Holstebro Miljï¿½kontrol Enhed	RLABO
 HRFS	National Board of Fisheries	RLABO
-HUTF	Helsinki University  Tvärminne Zoological Station	RLABO
-IAMK	Göteborg University - Analytical and Marine Chemistry	RLABO
+HUTF	Helsinki University  Tvï¿½rminne Zoological Station	RLABO
+IAMK	Gï¿½teborg University - Analytical and Marine Chemistry	RLABO
 IARC	IFREMER station Arcachon	RLABO
 IBOU	IFREMER station Boulogne	RLABO
 IBSS	Institute of Biology of the Southern Seas	RLABO
@@ -1990,18 +1990,18 @@ ICNF	IFREMER Nantes	RLABO
 ICON	IFREMER station Concarneau	RLABO
 IDIN	IFREMER station Dinard	RLABO
 IECS	The University of Hull  Institute of Estuarine and Coastal Studies	RLABO
-IEOC	Instituto Español de Oceanografia Madrid	RLABO
-IEOM	Instituto Español de Oceanografia Murcia	RLABO
+IEOC	Instituto Espaï¿½ol de Oceanografia Madrid	RLABO
+IEOM	Instituto Espaï¿½ol de Oceanografia Murcia	RLABO
 IEOT	Centro Oceanografico de Canarias  Tenerife	RLABO
-IEOV	Instituto Español de Oceanografia Vigo	RLABO
-IFAG	Institut für Angewandte Ökosystemforschung GmbH	RLABO
+IEOV	Instituto Espaï¿½ol de Oceanografia Vigo	RLABO
+IFAG	Institut fï¿½r Angewandte ï¿½kosystemforschung GmbH	RLABO
 IFEN	Institute for Energy Technology	RLABO
 IFLI	Icelandic Fisheries Laboratory	RLABO
-IFOG	Institut für Ostseeforschung	RLABO
-IGDR	Institut für Meereskunde	RLABO
+IFOG	Institut fï¿½r Ostseeforschung	RLABO
+IGDR	Institut fï¿½r Meereskunde	RLABO
 IGSS	Stockholm University  Institute of Geology and Geochemistry	RLABO
-IHEB	Institut d'Hygiène et d'Epidémiologie  Brussels	RLABO
-IHFG	University of Hamburg  Institut für Hydrobiologie und Fischereiwissenschaft  Hydrobiol. Abt.	RLABO
+IHEB	Institut d'Hygiï¿½ne et d'Epidï¿½miologie  Brussels	RLABO
+IHFG	University of Hamburg  Institut fï¿½r Hydrobiologie und Fischereiwissenschaft  Hydrobiol. Abt.	RLABO
 IHLP	Instituto Hidrografico	RLABO
 IIAP	Agriculture Academy  Institute of Ichthyology  Szczecin	RLABO
 IMAR	Wageningen IMARES	RLABO
@@ -2018,44 +2018,44 @@ IPLF	Institut Pasteur de Lille	RLABO
 IPOR	IFREMER station Port-en-Bessin	RLABO
 IPRA	ISPRA  Italian National Institute for Environmental Protection and Research	RLABO
 IROC	IFREMER station La Rochelle	RLABO
-IRSN	Institut de Radioprotection et de Sureté Nucléaire	RLABO
+IRSN	Institut de Radioprotection et de Suretï¿½ Nuclï¿½aire	RLABO
 ISHG	Institut Schumacher	RLABO
-ISMF	Institut des Sciences Moléculaires  Group LPTC  Université Bordeaux1	RLABO
+ISMF	Institut des Sciences Molï¿½culaires  Group LPTC  Universitï¿½ Bordeaux1	RLABO
 ISOB	Veterinary and Agrochemical Research Centre	RLABO
 ISUK	Environment and Heritage Service  Lisburn	RLABO
 ITRE	IFREMER station La Tremblade	RLABO
-ITRI	IFREMER station La Trinité	RLABO
-IUKG	Institut für Meereskunde an der Universität Kiel	RLABO
-IUQG	Institut für Umweltschutz und Qualitätssicherung	RLABO
+ITRI	IFREMER station La Trinitï¿½	RLABO
+IUKG	Institut fï¿½r Meereskunde an der Universitï¿½t Kiel	RLABO
+IUQG	Institut fï¿½r Umweltschutz und Qualitï¿½tssicherung	RLABO
 IVLS	IVL Swedish Environmental Research Institure - Stockholm	RLABO
 IVMA	Vrije Universiteit Amsterdam IVM	RLABO
 IVPT	Instituut voor Visserij Producten-TNO  Ijmuiden	RLABO
 IWWG	IWW Consulting Service  Mulheim an der Ruhr	RLABO
 JWGU	Johann Wolfgang Goethe University Frankfurt am Main	RLABO
-JYUF	University of Jyväskylä	RLABO
+JYUF	University of Jyvï¿½skylï¿½	RLABO
 KASF	Southeast Finland Regional Environment Centre	RLABO
-KAWG	Handels- und Umweltschutzlabor Dr. Kaiser & Dr. Woldmann oHG	RLABO
+KAWG	Handles- und Umweltschutzlabor Dr. Kaiser & Dr. Woldmann oHG	RLABO
 KMFS	Kristineberg Marine Research Station	RLABO
-KVSF	Kokemäenjoen vesistön vsy.  Hatanpää Tampere	RLABO
+KVSF	Kokemï¿½enjoen vesistï¿½n vsy.  Hatanpï¿½ï¿½ Tampere	RLABO
 KVTF	Kala- ja vesitutkimus Ltd	RLABO
-KVVF	Kokemäenjoen vesistön vesiensuojeluyhdistys ry  Finland	RLABO
+KVVF	Kokemï¿½enjoen vesistï¿½n vesiensuojeluyhdistys ry  Finland	RLABO
 KYMF	The Association for Water and Environment of Kymijoki region	RLABO
 KYYF	Kymi Environmental Laboratory Ltd	RLABO
 KZPP	Regional Inspectorate of Environmental Protection in Szczecin - Branch in Koszalin	RLABO
-LABF	Laboratoire Municipal de Brest - Océan	RLABO
+LABF	Laboratoire Municipal de Brest - Ocï¿½an	RLABO
 LADG	Laboratorien Dr. Doering GmbH	RLABO
-LALG	Landesamt für Landwirtschaft  Lebensmittelsicherheit	RLABO
+LALG	Landesamt fï¿½r Landwirtschaft  Lebensmittelsicherheit	RLABO
 LAPF	Lapland Regional Environment Centre	RLABO
 LASE	LASEM Cherbourg	RLABO
 LCRS	Swedish Environmental Protection Agency	RLABO
-LDAM	Laboratorie Départemental d'analyses de la Manche	RLABO
-LDFD	Laboratorie Départemental Frank Duncombe	RLABO
+LDAM	Laboratorie Dï¿½partemental d'analyses de la Manche	RLABO
+LDFD	Laboratorie Dï¿½partemental Frank Duncombe	RLABO
 LDHN	Institut Departemental d'Analyse et de Conseil	RLABO
-LEBI	Laboratoire d'étude des Bio-Indicateurs Marin (Ile d'Yeu)	RLABO
-LEMA	Laboratoire d'Ecotoxicologie - Milieux Aquatiques LEMA - EA 3222  Université du Havre	RLABO
-LFMG	Landesforschungsanstalt für Landwirtschaft und Fischerei	RLABO
+LEBI	Laboratoire d'ï¿½tude des Bio-Indicateurs Marin (Ile d'Yeu)	RLABO
+LEMA	Laboratoire d'Ecotoxicologie - Milieux Aquatiques LEMA - EA 3222  Universitï¿½ du Havre	RLABO
+LFMG	Landesforschungsanstalt fï¿½r Landwirtschaft und Fischerei	RLABO
 LGCT	LGC  Teddington	RLABO
-LMBF	Institut Européen de l'Envronnement de Bordeaux	RLABO
+LMBF	Institut Europï¿½en de l'Envronnement de Bordeaux	RLABO
 LMHG	LimnoMar  Hamburg	RLABO
 LMRF	Laboratoire Municipal de Rouen	RLABO
 LOMI	Estonian Marine Institute (University of Tartu)	RLABO
@@ -2064,17 +2064,17 @@ LPTC	Lab of physico- and toxico chemistry  University of Bordeaux  Talence Cedex
 LSCC	Loring SedChem Consultants	RLABO
 LSKF	West Finland Regional Environment Centre  Kokkola branch	RLABO
 LSUF	West Finland Regional Environment Centre	RLABO
-LSYF	Lounais-Suomen vesi- ja ympäristötutkimus Oy	RLABO
-LUAB	Landesuntersuchungsamt für Chemie  Hygiene und Veterinämedizin  Bremen	RLABO
+LSYF	Lounais-Suomen vesi- ja ympï¿½ristï¿½tutkimus Oy	RLABO
+LUAB	Landesuntersuchungsamt fï¿½r Chemie  Hygiene und Veterinï¿½medizin  Bremen	RLABO
 LUKF	Natural Resources Institute Finland  Turku Laboratory	RLABO
-LUNG	Landesamt für Umwelt  Naturschutz und Geologie in Mecklenburg-Vorpommern	RLABO
+LUNG	Landesamt fï¿½r Umwelt  Naturschutz und Geologie in Mecklenburg-Vorpommern	RLABO
 LUVF	Association for Water and Environment of Western Uusimaa	RLABO
 LVLG	Landeshygieneinstitut	RLABO
-LVMG	Landesveterinär- und Lebensmitteluntersuchungsamt	RLABO
-LVUG	Lebensmittel- und Veterinäruntersuchungsamt des Landes Schleswig-Holstein	RLABO
-LWKG	Landesamt für Wasserhaushalt und Küsten  Schleswig-Holstein  Kiel	RLABO
+LVMG	Landesveterinï¿½r- und Lebensmitteluntersuchungsamt	RLABO
+LVUG	Lebensmittel- und Veterinï¿½runtersuchungsamt des Landes Schleswig-Holstein	RLABO
+LWKG	Landesamt fï¿½r Wasserhaushalt und Kï¿½sten  Schleswig-Holstein  Kiel	RLABO
 MAFL	Centre for Environment  Fisheries and Aquaculture Science	RLABO
-MARI	MariLim Aquatic Research GmbH  Schönkirchen	RLABO
+MARI	MariLim Aquatic Research GmbH  Schï¿½nkirchen	RLABO
 MATI	Icelandic Food and Biotech R&D	RLABO
 MESL	Marine Ecological Surveys Ltd  Bath Laboratory	RLABO
 METF	MetropoliLab  Helsinki	RLABO
@@ -2090,27 +2090,27 @@ MTTU	Marine Systems Institute at Tallinn University of Technology	RLABO
 MUIF	University of Joensuu  R/V Muikku Laboratory	RLABO
 MUMM	Management Unit of the North Sea and Scheldt Estuary	RLABO
 NACE	Nordisk Analyse Center	RLABO
-NAJF	Nab Labs  Jyväskylä laboratory	RLABO
+NAJF	Nab Labs  Jyvï¿½skylï¿½ laboratory	RLABO
 NAOF	Nab Labs  Oulu laboratory	RLABO
 NBWF	National Board of Waters  Helsinki	RLABO
 NEDS	Environment Agency  Bath	RLABO
 NENS	National office for environment and nature Stralsund	RLABO
-NEPE	Natural England – Marine Office  Peterborough	RLABO
+NEPE	Natural England ï¿½ Marine Office  Peterborough	RLABO
 NERI	National Environmental Research Institute	RLABO
 NGUN	Geological Survey of Norway	RLABO
 NILU	Norwegian Institute for Air Research	RLABO
 NIOZ	Nederlands Instituut voor Onderzoek der Zee	RLABO
 NIVA	Norwegian Institute for Water Research	RLABO
-NLEG	Niedersächsisches Landesamt für Ökologie  Norderney	RLABO
-NLKG	Niedersächsischer Landesbetrieb für Wasserwirtschaft	RLABO
-NLWG	Niedersächsisches Landesamt für Wasserwirtschaft  Hildesheim	RLABO
+NLEG	Niedersï¿½chsisches Landesamt fï¿½r ï¿½kologie  Norderney	RLABO
+NLKG	Niedersï¿½chsischer Landesbetrieb fï¿½r Wasserwirtschaft	RLABO
+NLWG	Niedersï¿½chsisches Landesamt fï¿½r Wasserwirtschaft  Hildesheim	RLABO
 NMFS	NMFS Office of Science & Technology	RLABO
 NOAM	National Marine Fisheries Service Milford	RLABO
 NOAS	National Marine Fisheries Service Northeast Fisheries Science Center	RLABO
 NOAW	National Marine Fisheries Service Northwest Fisheries Science Center Washington	RLABO
 NOCS	National Oceanographic Centre Southampton	RLABO
 NODC	National Oceanographic Data Center	RLABO
-NORG	Institut für Umwelt und Analytik GmbH  Rostock	RLABO
+NORG	Institut fï¿½r Umwelt und Analytik GmbH  Rostock	RLABO
 NOWG	Limnologisches Institut Dr. Nowak	RLABO
 NPIN	Norwegian Polar Institute	RLABO
 NRCC	Chemical Metrology Group	RLABO
@@ -2118,29 +2118,29 @@ NRNS	Naturvatten Roslagen AB  Norrtalje	RLABO
 NRUK	NRA Northumbrian Region	RLABO
 NRWG	Landesumweltamt Nordrhein-Westfalen	RLABO
 NSLS	Stockholm University	RLABO
-NSTO	Nature Agency Nykøbing F	RLABO
+NSTO	Nature Agency Nykï¿½bing F	RLABO
 NWLS	Swedish Environmental Protection Agency	RLABO
 NWOC	National Water Research Institute	RLABO
 NWUK	Environment Agency  North West Region  Warrington	RLABO
 OMCG	University of Hamburg  Abteilung fur Organomeereschemie	RLABO
-ORUM	Man-Technology-Environment Research Centre  Örebro University	RLABO
+ORUM	Man-Technology-Environment Research Centre  ï¿½rebro University	RLABO
 OSBC	Institute of Ocean Sciences	RLABO
 OUES	Association Ouessant  Ouessant	RLABO
 OUUF	University of Oulu	RLABO
 OWMP	Regional Inspectorate of Environmental Protection in Olsztyn	RLABO
-PAGS	PAG Miljöundersökningar	RLABO
+PAGS	PAG Miljï¿½undersï¿½kningar	RLABO
 PFHN	The Norwegian Crop Research Institute (Planteforsk Holt Forskingssenter)	RLABO
 PGIP	Polish Geological Institute	RLABO
 PLUK	Scottish Office Agriculture	RLABO
 PMLK	Plymouth Marine Laboratory	RLABO
-POYF	Pöyry Finland (Former Maa ja Vesi Ltd)	RLABO
+POYF	Pï¿½yry Finland (Former Maa ja Vesi Ltd)	RLABO
 PPOF	North Ostrobothnia Regional Environment Centre	RLABO
-RAKD	Ringkøbing Amtskommune Danmark	RLABO
+RAKD	Ringkï¿½bing Amtskommune Danmark	RLABO
 RALF	Ramboll Analytics (Lahti)	RLABO
 RCMA	Regional Center "Monitoring of the Arctic" of Roshydromet	RLABO
 RCMH	ROSHYDROMET  Moscow	RLABO
 RIKZ	National Institute for Coastal and Marine Manageme	RLABO
-RISO	Risø National Laboratory for Sustainable Energy	RLABO
+RISO	Risï¿½ National Laboratory for Sustainable Energy	RLABO
 RIVM	Rijksinstituut voor Volksgezondheid en Milieuhygie	RLABO
 RIVO	Rijksinstituut voor Vissery Onderzoek  Ijmuiden	RLABO
 RIZA	Rijksinstituut voor Zuivering van Afvalwater	RLABO
@@ -2151,7 +2151,7 @@ RVZB	ILVO Fisheries	RLABO
 RWAU	RWTH Aachen University  Aachen	RLABO
 RWSW	Rijkswaterstaat  Lelystad	RLABO
 SAMW	Senckenberg am Meer  Wilhelmshaven	RLABO
-SCSS	State Chemical Supervision Service  Søborg	RLABO
+SCSS	State Chemical Supervision Service  Sï¿½borg	RLABO
 SEPB	Scottish Environment Protection Agency - Aberdeen Lab	RLABO
 SEPD	Scottish Environment Protection Agency - Dingwall Lab	RLABO
 SEPE	Scottish Environment Protection Agency - Edinburgh Lab	RLABO
@@ -2189,40 +2189,40 @@ SYOF	Finnish Environment Institute  SYKE (Oulu)	RLABO
 SZPP	Regional Inspectorate of Environmental Protection in Szczecin	RLABO
 THLF	The National Institute for Health and Welfare	RLABO
 TLUG	Thueringer Landesanstalt fuer Umwelt und Geologie	RLABO
-TMBL	Tjãrnö Marine Biological Laboratory	RLABO
+TMBL	Tjï¿½rnï¿½ Marine Biological Laboratory	RLABO
 TOXE	TOXEM SARL	RLABO
 TUUF	University of Turku	RLABO
 TWUK	NRA Thames Region	RLABO
 UBGN	University of Bergen	RLABO
-UBOF	Université de Bretagne Occidentale	RLABO
+UBOF	Universitï¿½ de Bretagne Occidentale	RLABO
 UCKS	University College of Kalmar	RLABO
-UDCS	University of A Coruña	RLABO
+UDCS	University of A Coruï¿½a	RLABO
 UGAB	University of Ghent	RLABO
 UHEF	Laboratory of Dept of Environmental Sciences  Helsinki University	RLABO
 UIPT	University of Iceland	RLABO
-ULBB	Université Libre de Bruxelles	RLABO
-ULGB	Université de Liège	RLABO
+ULBB	Universitï¿½ Libre de Bruxelles	RLABO
+ULGB	Universitï¿½ de Liï¿½ge	RLABO
 UMKU	Umea University  Biochemical Laboratory	RLABO
-UMSC	Umeå University	RLABO
+UMSC	Umeï¿½ University	RLABO
 UNIC	Unicomarine Ltd  Letchworth Laboratory	RLABO
 UNIN	Unilab Analyse A/S	RLABO
 UPBB	Umweltprobenbank im Umweltbundesamt  Berlin	RLABO
-USFO	Umhvørvisstovan	RLABO
+USFO	Umhvï¿½rvisstovan	RLABO
 USOU	University of Southampton	RLABO
 UUSF	Uusimaa Regional Environment Centre	RLABO
 UVIG	University of Vigo	RLABO
-VETN	Veterinærinstituttet	RLABO
+VETN	Veterinï¿½rinstituttet	RLABO
 VHRP	Veterinary Hygiene Research Station	RLABO
 VHVF	Water Protection Association of the River Vantaa and Helsinki Region	RLABO
 VKID	DHI Water and Environment	RLABO
 VKYF	City of Vaasa Environmental Laboratory	RLABO
 VUBB	Vrije Universiteit Brussel	RLABO
-VUCG	Staatliches Veterinäruntersuchungsamt für Fische- und Fischwaren	RLABO
-VUNG	Lebensmittel- und Veterinäruntersuchungsamt des Landes Schleswig-Holstein  Neumünster	RLABO
-WASG	Staatliches Amt für Wasser und Abfall Stade	RLABO
-WEAQ	WEAQ AB  Ängelholm	RLABO
+VUCG	Staatliches Veterinï¿½runtersuchungsamt fï¿½r Fische- und Fischwaren	RLABO
+VUNG	Lebensmittel- und Veterinï¿½runtersuchungsamt des Landes Schleswig-Holstein  Neumï¿½nster	RLABO
+WASG	Staatliches Amt fï¿½r Wasser und Abfall Stade	RLABO
+WEAQ	WEAQ AB  ï¿½ngelholm	RLABO
 WEJG	Dr. Wiertz  Eggert und Dr. Joerissen Laboratorium	RLABO
-WGEG	Wassergütestelle Elbe	RLABO
+WGEG	Wassergï¿½testelle Elbe	RLABO
 WLUK	Environment Agency Llanelli Laboratory	RLABO
 WRCK	WRc plc	RLABO
 WSGA	WESSLING GmbH  Altenberge	RLABO
@@ -4140,7 +4140,7 @@ YWUK	NRA Yorkshire Region	RLABO
 29IN	INVESTIGADOR I	SHIPC
 29JC	JAFUDA CRESQUES	SHIPC
 29JN	JOSE MARIA NAVAZ	SHIPC
-29JR	JOSÉ RIOJA	SHIPC
+29JR	JOSï¿½ RIOJA	SHIPC
 29LA	LAYA	SHIPC
 29LG	ALCALA GALIANO	SHIPC
 29LP	Las Palmas	SHIPC

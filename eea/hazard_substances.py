@@ -13,7 +13,7 @@ lib_path = os.path.dirname(os.path.dirname(__file__))
 if lib_path not in sys.path:
     sys.path.append(lib_path)
 
-import mapping_lib
+import mappinglib
 
 
 class HazardSubstances(object):
@@ -62,8 +62,8 @@ class HazardSubstances(object):
             lat, lon = '', ''
             try:
                 lat, lon = self.station_mapping.get_position(statn)
-                lat = mapping_lib.to_decmin(lat)
-                lon = mapping_lib.to_decmin(lon)
+                lat = mappinglib.to_decmin(lat)
+                lon = mappinglib.to_decmin(lon)
 
                 # self.row_df['LATIT'] = mapping_lib.to_decmin(lat)
                 # self.row_df['LONGI'] = mapping_lib.to_decmin(lon)

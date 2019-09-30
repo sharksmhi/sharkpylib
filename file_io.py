@@ -11,7 +11,7 @@ import pandas as pd
 import numpy as np
 import os
 import shutil
-
+import codecs
 
 
 """
@@ -140,6 +140,22 @@ def move_files_in_list(file_paths, to_directory, **kwargs):
             shutil.move(file_path, dest)
             nr_files_moved += 1
     print('{} files moved'.format(nr_files_moved))
+
+
+def get_list_from_file(file_path, **kwargs):
+    """
+    Returns a list of the content in file_path. Each row is an element in list.
+    :param file_path:
+    :return:
+    """
+    return_list = []
+    with codecs.open(file_path, **kwargs) as fid:
+        for line in fid:
+            stripped_line = line.strip()
+            if stripped_line:
+                return_list.append(stripped_line)
+    return return_list
+
 
 
 

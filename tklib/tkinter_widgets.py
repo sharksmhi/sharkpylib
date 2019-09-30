@@ -2915,16 +2915,17 @@ class TimeWidgetMonthSelector(tk.Frame):
 
         tk.Label(self, text='Year:').grid(row=0, column=0, **self.grid_items)
         self.combobox_year = ComboboxWidget(self, items=self.year_list, prop_combobox=prop_month, row=0, column=1)
-        self.combobox_year.set_value(datetime.datetime.now().year()+1)
+        self.combobox_year.set_value(datetime.datetime.now().year+1)
 
         tk.Label(self, text='Month:').grid(row=1, column=0, **self.grid_items)
         self.combobox_month = ComboboxWidget(self, items=self.month_list, prop_combobox=prop_month, row=1, column=1)
-        self.combobox_year.set_value(self.num_to_name[datetime.datetime.now().month()])
+        self.combobox_year.set_value(self.num_to_name[datetime.datetime.now().month])
 
         grid_configure(self, nr_rows=2, nr_columns=3)
 
     def set_year_span(self, from_year, to_year):
         self.year_list = list(range(from_year, to_year+1))
+
 
 class TimeWidget(tk.LabelFrame):
     """

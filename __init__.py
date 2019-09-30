@@ -13,7 +13,7 @@ from . import ices
 from . import odv
 from . import file_io
 from . import geography
-from . import mapping_lib
+from . import mappinglib
 from . import utils
 from . import loglib
 
