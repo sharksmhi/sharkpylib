@@ -2857,15 +2857,14 @@ class TimeWidgetSeason(tk.Frame):
         self.combobox['day_to'].set_value('31')
 
 
-class TimeWidgetMonthSelector(tk.Frame):
+class TimeWidgetMonthSelector(ttk.LabelFrame):
     """
     Widget to select month and year.
     """
-
     def __init__(self,
                  parent=False,
+                 title='',
                  prop_frame={},
-                 prop_combobox={},
                  grid_items={},
                  callback_target=None,
                  **kwargs):
@@ -2874,12 +2873,9 @@ class TimeWidgetMonthSelector(tk.Frame):
 
         self.callback_target = callback_target
 
-        self.prop_frame = {}
+        self.prop_frame = {'text': title}
         self.prop_frame.update(prop_frame)
 
-        self.prop_combobox = {'width': 8,
-                              'state': 'readonly'}
-        self.prop_combobox.update(prop_combobox)
 
         self.grid_frame = {'sticky': 'nsew'}
         self.grid_frame.update(kwargs)
@@ -2890,10 +2886,10 @@ class TimeWidgetMonthSelector(tk.Frame):
         self.grid_items.update(grid_items)
 
         # Create frame
-        tk.Frame.__init__(self, parent, **self.prop_frame)
+        ttk.LabelFrame.__init__(self, parent, **self.prop_frame)
         self.grid(**self.grid_frame)
 
-        self.year_list = list(range(1990, datetime.datetime.now().year))
+        # self.year_list = list(range(1990, datetime.datetime.now().year))
         self.month_list = ['January', 'February', 'Mars', 'April', 'May', 'June',
                            'July', 'August', 'September', 'October', 'November', 'December']
 
@@ -2903,28 +2899,78 @@ class TimeWidgetMonthSelector(tk.Frame):
             self.name_to_num[name] = nr+1
             self.num_to_name[nr+1] = name
 
+        self.year = datetime.datetime.now().year
+        self.month = datetime.datetime.now().month
+
         self._set_frame()
+        self.set()
 
     # ===========================================================================
     def _set_frame(self):
 
-        self.combobox = {}
+        self.string_length = 14
+        self.stringvar_year_month = tk.StringVar()
+        self.stringvar_year_month.set(' '*self.string_length)
 
-        prop_month = {'width': 25}
-        prop_day = {'width': 5}
+        self.button_back = tk.Button(self, text='<<', command=self._back)
+        self.button_back.grid(row=0, column=0, sticky='w')
 
-        tk.Label(self, text='Year:').grid(row=0, column=0, **self.grid_items)
-        self.combobox_year = ComboboxWidget(self, items=self.year_list, prop_combobox=prop_month, row=0, column=1)
-        self.combobox_year.set_value(datetime.datetime.now().year+1)
+        self.label_year_month = tk.Label(self, textvariable=self.stringvar_year_month, font="Consolas\ Sans 9", width=self.string_length)
+        self.label_year_month.grid(row=0, column=1, sticky='ew')
 
-        tk.Label(self, text='Month:').grid(row=1, column=0, **self.grid_items)
-        self.combobox_month = ComboboxWidget(self, items=self.month_list, prop_combobox=prop_month, row=1, column=1)
-        self.combobox_year.set_value(self.num_to_name[datetime.datetime.now().month])
+        self.button_forward = tk.Button(self, text='>>', command=self._forward)
+        self.button_forward.grid(row=0, column=2, sticky='e')
 
-        grid_configure(self, nr_rows=2, nr_columns=3)
+        grid_configure(self, nr_rows=1, nr_columns=3)
 
-    def set_year_span(self, from_year, to_year):
-        self.year_list = list(range(from_year, to_year+1))
+    def set(self, year=None, month=None, callback=False):
+        if not year:
+            year = self.year
+        if not month:
+            month = self.month
+
+        year_month_str = '{} {}'.format(year, self._get_month_str(month))
+        year_month_str = year_month_str.rjust(self.string_length, ' ')
+        self.stringvar_year_month.set(year_month_str)
+
+        if callback and self.callback_target:
+            self.callback_target()
+
+    def get(self):
+        year_month_string = self.stringvar_year_month.get().strip()
+        year, month = year_month_string.split(' ')
+        return int(year), int(self._get_month_num(month))
+
+    def _back(self):
+        year, month = self.get()
+        if month == 1:
+            month = 12
+            year -= 1
+        else:
+            month -= 1
+        self.set(year=year, month=month, callback=True)
+
+    def _forward(self):
+        year, month = self.get()
+
+        if month == 12:
+            month = 1
+            year += 1
+        else:
+            month += 1
+        self.set(year=year, month=month, callback=True)
+
+    def _get_month_str(self, month):
+        return self.num_to_name.get(month, month)
+
+    def _get_month_num(self, month):
+        return self.name_to_num.get(month, month)
+
+    def disable_widget(self):
+        disable_widgets(self.button_back, self.button_forward)
+
+    def enable_widget(self):
+        enable_widgets(self.button_back, self.button_forward)
 
 
 class TimeWidget(tk.LabelFrame):

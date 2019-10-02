@@ -7,9 +7,11 @@ import re
 import codecs
 import pandas as pd
 import datetime
+import time
 import numpy as np
 import loglib
 import mappinglib
+import exceptionlib
 
 import sys
 parent_directory = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -386,6 +388,8 @@ class FileHandler(object):
 
         self.export_time_format_str = '%Y%m%d%H%M%S'
 
+        self.file_prefix = 'ferrybox-tavastland'
+
         self.objects = dict()
         self.dfs = dict()
 
@@ -548,6 +552,7 @@ class FileHandler(object):
         Loades data in time range. Time range is set in method select_time_range.
         :return:
         """
+        t0 = time.time()
         if not all([self.current_time_start, self.current_time_end]):
             raise Exception
 
@@ -564,6 +569,7 @@ class FileHandler(object):
         print('Load data')
         print('mit', len(self.current_data['mit']))
         print('co2', len(self.current_data['co2']))
+        print('Loaded in: {}'.format(time.time()-t0))
 
     def reset_data(self):
         self.current_data = {}
@@ -690,15 +696,15 @@ class FileHandler(object):
         # Add time par
         self.current_merge_data['time'] = self.current_merge_data['mit_time']
         # Add position par
-        self.current_merge_data['lat'] = self.current_merge_data['mit_time']
-        self.current_merge_data['lon'] = self.current_merge_data['mit_time']
+        self.current_merge_data['lat'] = self.current_merge_data['mit_lat']
+        self.current_merge_data['lon'] = self.current_merge_data['mit_lon']
 
         self.mit_columns = [col for col in self.current_merge_data.columns if col.startswith('mit_')]
         self.co2_columns = [col for col in self.current_merge_data.columns if col.startswith('co2_')]
 
         # Add diffs
         self.current_merge_data['diff_time'] = abs(self.current_merge_data['co2_time'] - \
-                                                   self.current_merge_data['mit_time'])
+                                                   self.current_merge_data['mit_time']).astype('timedelta64[s]')
 
         self.current_merge_data['diff_lat'] = self.current_merge_data['co2_lat'] - \
                                               self.current_merge_data['mit_lat']
@@ -937,7 +943,7 @@ class FileHandler(object):
             # Check time since latest standard gas
             time_since_latest_std = np.nan
             if self.std_latest_time:
-                time_since_latest_std = abs(self.std_latest_time - series['time'])
+                time_since_latest_std = int(abs((self.std_latest_time - series['time']).total_seconds()))
 
 
             return_dict = {'calc_k': k,
@@ -1044,8 +1050,9 @@ class FileHandler(object):
         time_list = df['time'].values
 
         file_path = os.path.join(directory,
-                                 'mit_data_{}_{}.txt'.format(pd.to_datetime(time_list[0]).strftime(self.export_time_format_str),
-                                                             pd.to_datetime(time_list[-1]).strftime(self.export_time_format_str)))
+                                 'mit_{}_{}_{}.txt'.format(self.file_prefix,
+                                                           pd.to_datetime(time_list[0]).strftime(self.export_time_format_str),
+                                                           pd.to_datetime(time_list[-1]).strftime(self.export_time_format_str)))
         df.to_csv(file_path, sep='\t', index=False)
 
 
@@ -1061,8 +1068,9 @@ class FileHandler(object):
         time_list = df['time'].values
 
         file_path = os.path.join(directory,
-                                 'co2_data_{}_{}.txt'.format(pd.to_datetime(time_list[0]).strftime(self.export_time_format_str),
-                                                             pd.to_datetime(time_list[-1]).strftime(self.export_time_format_str)))
+                                 'co2_{}_{}_{}.txt'.format(self.file_prefix,
+                                                           pd.to_datetime(time_list[0]).strftime(self.export_time_format_str),
+                                                           pd.to_datetime(time_list[-1]).strftime(self.export_time_format_str)))
         df.to_csv(file_path, sep='\t', index=False)
 
 
@@ -1070,8 +1078,9 @@ class FileHandler(object):
 
         directory = self._get_export_directory(directory)
 
-        file_path = os.path.join(directory, 'merge_data_{}_{}.txt'.format(self.current_time_start.strftime(
-                                                                              self.export_time_format_str),
+        file_path = os.path.join(directory, 'merge_{}_{}_{}.txt'.format(self.file_prefix,
+                                                                        self.current_time_start.strftime(
+                                                                            self.export_time_format_str),
                                                                           self.current_time_end.strftime(
                                                                               self.export_time_format_str)))
         kw = dict(sep='\t',
@@ -1103,6 +1112,116 @@ class FileHandler(object):
 
         return directory
 
+
+class MergeIOCFTPfile(object):
+    def __init__(self, iocftp_file_path=None, data_file_path=None, **kwargs):
+        """
+        Class to merge (and save) an iocftp file with its original data.
+        Time span and "name" must be the same in the two file names. Time is checked in files so that they match.
+        :param iocftp_df:
+        :param df:
+        """
+        assert iocftp_file_path
+        assert data_file_path
+
+        self.iocftp_file_path = iocftp_file_path
+        self.data_file_path = data_file_path
+
+        self._check_files()
+
+        self._load_files()
+        self._merge_files()
+
+        save_file = kwargs.pop('save_file', None)
+        save_directory = kwargs.pop('save_directory', None)
+
+        if save_file:
+            self.save_merged_file(directory=save_directory)
+
+    def _check_files(self):
+        iocftp_parts = self.iocftp_file_path.split('_')
+        data_parts = self.data_file_path.split('_')
+        if not (iocftp_parts[-1] == data_parts[-1]) & (iocftp_parts[-2] == data_parts[-2]):
+            raise exceptionlib.NonMatchingInformation('Timestamps are not the same in the given files')
+
+    def _load_files(self):
+        self.df_iocftp = pd.read_csv(self.iocftp_file_path, sep='\t')
+        self.df_data = pd.read_csv(self.data_file_path, sep='\t')
+
+        if len(self.df_iocftp) != len(self.df_data):
+            raise exceptionlib.NonMatchingData('Files ar of different length')
+
+    def _merge_files(self):
+        """
+        Combines files and add a QC0 column
+        :return:
+        """
+        mapping_directory_object = mappinglib.MappingDirectory()
+        platform_mapping_object = mapping_directory_object.get_mapping_object('mapping_iocftp_platforms')
+        parameter_mapping_object = mapping_directory_object.get_mapping_object('mapping_tavastland')
+
+        # IOCFTP prep
+        mapped_iocftp_columns = []
+        for col in self.df_iocftp.columns[:]:
+            if len(col) == 5:
+                # QC column
+                mapped_col = parameter_mapping_object.get(col[1:], 'iocftp_number', 'co2_merged_file')
+                col_name = 'QC0_{}'.format(mapped_col)
+            elif len(col) == 4:
+                col_name = parameter_mapping_object.get(col[1:], 'iocftp_number', 'co2_merged_file')
+            else:
+                # Platform number
+                col_name = 'time'
+            mapped_iocftp_columns.append(col_name)
+
+        self.df_iocftp.columns = mapped_iocftp_columns
+
+        # DATA prep
+        self.df_merged = self.df_data.copy().fillna('').astype(str)
+        # Create QC0 columns
+        added_columns = []
+        parent_added_column = []
+        updated_data_columns_order = []
+        qc0_flag_series = np.zeros(len(self.df_merged)).astype(int).astype(str)
+        for col in self.df_merged.columns:
+            updated_data_columns_order.append(col)
+            qc0_col = 'QC0_{}'.format(col)
+            updated_data_columns_order.append(qc0_col)
+            parent_added_column.append(col)
+            added_columns.append(qc0_col)
+
+        # Add columns
+        for col, parent_col in zip(added_columns, parent_added_column):
+            boolean = self.df_merged[parent_col] == ''
+            add_series = qc0_flag_series.copy()
+            add_series[boolean] = ''  # Check if this should be included
+            self.df_merged[col] = add_series
+
+        # Set column order
+        self.df_merged = self.df_merged[updated_data_columns_order]
+
+        # COMBINE
+        for col in self.df_merged.columns:
+            if col in self.df_iocftp.columns:
+                self.df_merged[col] = self.df_iocftp[col]
+
+    def save_merged_file(self, directory=None):
+        """
+        If directory is not given the file is saved in tha same directory as the data file.
+        File name is set according to data_file_name.
+        :param directory:
+        :return:
+        """
+        if directory is None:
+            directory = os.path.dirname(self.data_file_path)
+        if not os.path.exists(directory):
+            os.makedirs(directory)
+
+        data_file_name = os.path.basename(self.data_file_path)
+
+        file_name = 'QC0_{}'.format(data_file_name)
+        file_path = os.path.join(directory, file_name)
+        self.df_merged.to_csv(file_path, sep='\t', index=False)
 
 
 def as_float(item):

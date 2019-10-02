@@ -156,8 +156,21 @@ def get_list_from_file(file_path, **kwargs):
                 return_list.append(stripped_line)
     return return_list
 
+def get_list_from_column_file(file_path, column_name, **kwargs):
+    """
+    Returns a list of the content in file_path in the column column name. Each row of named column is an element in list.
+    :param file_path:
+    :return:
+    """
+    sep = kwargs.pop('sep', '\t')
+    df = pd.read_csv(file_path, sep=sep, dtype=str)
+    sort = kwargs.pop('sort', False)
 
+    boolean = ~pd.isna(df[column_name])
+    column_list = list(df.loc[boolean, column_name].values)
 
+    if sort:
+        column_list = sorted(column_list)
 
+    return column_list
 
-    

@@ -1,75 +1,75 @@
-internal	IOCFTP_tavastland
+co2_merged_file	iocftp_number
 time	38055
 lat	8002
 lon	8003
-calc_Pequ	4
-calc_Tequ	5
-calc_VP_H2O	6
-calc_fCO2 SST	7
-calc_k	8
-calc_m	9
+calc_Pequ	
+calc_Tequ	
+calc_VP_H2O	
+calc_fCO2 SST	
+calc_k	
+calc_m	
 calc_pCO2	8177
-calc_pCO2 dry air	11
-calc_time_since_latest_std	12
-calc_xCO2	13
-co2_CO2 um/m	14
-co2_CO2a W	15
-co2_CO2b W	16
-co2_H2O flow	17
-co2_H2O mm/m	18
-co2_H2Oa W	19
-co2_H2Ob W	20
-co2_N/A	21
-co2_Type	22
-co2_atm cond	23
-co2_cond temp	24
-co2_drip 1	25
-co2_dry box temp	26
-co2_equ cond	27
-co2_equ press	28
-co2_equ pump	29
+calc_pCO2 dry air	
+calc_time_since_latest_std	
+calc_xCO2	
+co2_CO2 um/m	
+co2_CO2a W	
+co2_CO2b W	
+co2_H2O flow	
+co2_H2O mm/m	
+co2_H2Oa W	
+co2_H2Ob W	
+co2_N/A	
+co2_Type	
+co2_atm cond	
+co2_cond temp	
+co2_drip 1	
+co2_dry box temp	
+co2_equ cond	
+co2_equ press	
+co2_equ pump	
 co2_equ temp	8160
-co2_error	31
-co2_lat	32
-co2_licor flow	33
-co2_licor press	34
-co2_licor temp	35
-co2_lon	36
-co2_source_file	37
-co2_std val	38
-co2_time	39
-co2_vent flow	40
-diff_lat	41
-diff_lon	42
-diff_time	43
-mit_CAL	44
-mit_PT1	45
-mit_PT2	46
-mit_PT3	47
-mit_Soapres	48
-mit_Soatemp	49
-mit_Socdom	50
-mit_Sochlfl	51
+co2_error	
+co2_lat	
+co2_licor flow	
+co2_licor press	
+co2_licor temp	
+co2_lon	
+co2_source_file	
+co2_std val	
+co2_time	
+co2_vent flow	
+diff_lat	
+diff_lon	
+diff_time	
+mit_CAL	
+mit_PT1	
+mit_PT2	
+mit_PT3	
+mit_Soapres	
+mit_Soatemp	
+mit_Socdom	
+mit_Sochlfl	
 mit_Soflow	8172
-mit_Sooxy	53
-mit_SopH15	54
-mit_SopHins	55
-mit_SopHmeas	56
-mit_SopHstd	57
-mit_Sopar	58
-mit_Sopcfl	59
+mit_Sooxy	
+mit_SopH15	
+mit_SopHins	
+mit_SopHmeas	
+mit_SopHstd	
+mit_Sopar	
+mit_Sopcfl	
 mit_Sosal	8181
 mit_Sospd	8171
 mit_Sotemp	8180
-mit_Soturb	63
-mit_Sovar16	64
-mit_Sovar17	65
-mit_Sovar18	66
-mit_Sovar19	67
-mit_Sovar25	68
+mit_Soturb	
+mit_Sovar16	
+mit_Sovar17	
+mit_Sovar18	
+mit_Sovar19	
+mit_Sovar25	
 mit_Soxtemp	8179
-mit_Wsample	70
-mit_lat	71
-mit_lon	72
-mit_source_file	73
-mit_time	74
+mit_Wsample	
+mit_lat	
+mit_lon	
+mit_source_file	
+mit_time	

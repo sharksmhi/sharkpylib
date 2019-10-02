@@ -11,6 +11,8 @@ import pandas as pd
 import datetime
 import numpy as np
 import codecs
+import file_io
+import exceptionlib
         
 class Directory(object):
     """
@@ -18,10 +20,7 @@ class Directory(object):
     """
 
     def __init__(self, directory=None):
-        if directory:
-            self.directory = directory
-        else:
-            self.directory = os.path.join(os.path.dirname(__file__), 'mapping_files')
+        assert directory
 
         self._list_files()
 
@@ -56,8 +55,14 @@ class Directory(object):
         """
         pass
 
-    def get_available_files(self):
+    def get_file_list(self):
         return sorted(self.mapping_paths)
+
+    def get_file_path(self, file_name):
+        file_path = self.mapping_paths.get(file_name, None)
+        if not file_path:
+            raise exceptionlib.MissingMappingFile('Cant find file: {}'.format(file_name))
+        return file_path
 
     def get_mapping_object(self, file_id, **kwargs):
         self._check_loaded(file_id, **kwargs)
@@ -74,8 +79,11 @@ class MappingDirectory(Directory):
     """
 
     def __init__(self, directory=None):
+        self.directory = directory
+        if directory is None:
+            self.directory = os.path.join(os.path.dirname(__file__), 'mapping_files')
         self.files_id = 'mapping'
-        Directory.__init__(self, directory)
+        Directory.__init__(self, self.directory)
 
     def load_file(self, file_id, **kwargs):
         self._check_valid(file_id)
@@ -101,7 +109,8 @@ class MappingFile(object):
     def __init__(self, file_path=None, from_col=None, to_col=None, **kwargs):
 
         kw = {'sep': '\t',
-              'encoding': 'cp1252'}
+              'encoding': 'cp1252',
+              'dtype': 'str'}
         kw.update(kwargs)
 
         self.from_col = from_col
@@ -112,6 +121,7 @@ class MappingFile(object):
             self.df = pd.read_csv(file_path, **kw)
         else:
             self.df = pd.DataFrame()
+        self.df.replace(np.nan, '', regex=True, inplace=True)
 
     def get(self, item, from_col=None, to_col=None, missing_value=None, **kwargs):
         if not self.file_path:
@@ -127,8 +137,12 @@ class MappingFile(object):
         self.to_col = to_col
 
         result = self.df.loc[self.df[from_col] == item, to_col]
+        value = ''
         if len(result):
-            return str(result.values[0])
+            value = result.values[0]
+
+        if value:
+            return str(value)
         else:
             if missing_value is not None:
                 return missing_value
@@ -196,7 +210,73 @@ class SynonymFile(object):
             output_list = np.array(output_list)
 
         return output_list
-        
+
+
+class MapAndFilterPandasDataframe(object):
+    def __init__(self, df):
+        """
+        Class to map pandas dataframe. Class will hold information about what has been maped.
+        :param df:
+        """
+        self.df = df
+        self.df_filtered = pd.DataFrame()
+
+        self.original_columns = self.df.columns[:]
+        self.mapped_columns = []
+        self.filtered_columns = []
+        self.filtered_columns_list = []
+
+        self.mapping_object = None
+        self.filter_object = None
+
+    def set_mapping_file(self, file_path, from_col, to_col, **kwargs):
+        """
+        Set the file that you want to be used as mapping file. You need to specify from_col and to_col
+        :param file_path: file path for mapping file
+        :param kwargs: from column
+        :return:
+        """
+        self.mapping_object = MappingFile(file_path, from_col=from_col, to_col=to_col, **kwargs)
+
+    def set_filter_list_from_file(self, file_path, **kwargs):
+        """
+        Filter file is a "list" file extracted with "file_io.get_list_from_file"
+        containing the column names that you want to include for the output file.
+        :param file_path:
+        :return:
+        """
+        self.filtered_columns_list = file_io.get_list_from_file(file_path, **kwargs)
+
+    def set_filter_list_from_column_file(self, file_path, column_name, **kwargs):
+        """
+        Filter file is a column file extracted with "file_io.get_list_from_column_file"
+        containing the column names that you want to include for the output file.
+        :param file_path:
+        :return:
+        """
+        self.filtered_columns_list = file_io.get_list_from_column_file(file_path, column_name, **kwargs)
+
+    def map(self):
+        self.mapped_columns = []
+        if not self.mapping_object:
+            raise exceptionlib.MissingInformation('No mapping file added!')
+        for col in self.original_columns:
+            self.mapped_columns.append(self.mapping_object.get(col))
+        self.df.columns = self.mapped_columns[:]
+
+    def filter(self):
+        """
+        Filters columns in the dataframe. Also sort according to list.
+        :return:
+        """
+        self.filtered_columns = []
+        for col in self.filtered_columns_list:
+            if col in self.df.columns:
+                self.filtered_columns.append(col)
+
+        self.df_filtered = self.df[self.filtered_columns]
+
+
 def to_decmin(pos):
     """
     Converts a position form decimal degree to decimal minute. 
@@ -284,6 +364,12 @@ def stime_from_datetime(datetime_object, format='%H:%M'):
     Converts a datetime object to STIME string. 
     """ 
     return datetime_object.strftime(format)
+
+def get_mapping_file_paths():
+    """
+    Retuns a dictionary
+    :return:
+    """
     
     
     
