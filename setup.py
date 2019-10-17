@@ -7,8 +7,9 @@ include_files = []
 for root, dirs, files in os.walk('.', topdown=False):
     for name in files:
         if name.endswith('.txt'):
-            file_path = os.path.join(root, name)
+            file_path = os.path.join(root, name).strip('.\\sharkpylib\\')
             include_files.append(file_path)
+            print(file_path)
 
 setup(name='sharkpylib',
     version=__version__,
