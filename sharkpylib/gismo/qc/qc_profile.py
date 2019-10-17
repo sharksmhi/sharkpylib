@@ -4,17 +4,19 @@
 # Copyright (c) 2018 SMHI, Swedish Meteorological and Hydrological Institute
 # License: MIT License (see LICENSE.txt or http://opensource.org/licenses/mit).
 
-
-
 import os
-import pandas as pd
-import numpy as np
 import codecs
 import datetime
 
+try:
+    import pandas as pd
+    import numpy as np
+except:
+	pass
+
 from . import QCprofile
-from gismo.exceptions import *
-import utils
+from ..gismo.exceptions import *
+from ...import utils
 
 import logging
 gismo_logger = logging.getLogger('gismo_session')

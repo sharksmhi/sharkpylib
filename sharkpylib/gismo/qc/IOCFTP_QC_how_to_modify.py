@@ -1,7 +1,10 @@
 #!/usr/bin/python
 
+try:
+	import numpy
+except:
+	pass
 
-import numpy
 import logging
 import os
 from math import radians, cos, sin, sqrt, atan2

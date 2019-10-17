@@ -14,12 +14,12 @@ if lib_path not in sys.path:
     sys.path.append(lib_path)
 
 #import gismo_object
-import gismo
-from gismo import GISMOsession
-from gismo import sampling_types
-from gismo import qc_routines
+from .. import gismo
+from ...gismo import GISMOsession
+from ...gismo import sampling_types
+from ...gismo import qc_routines
 
-import gismo.libs.IOCFTP_QC as iocftpqc
+# from ...gismo.libs import IOCFTP_QC as iocftpqc
 
 class IocftpQC(object):
 
