@@ -1,4 +1,4 @@
-from setuptools import setup
+from setuptools import setup, find_packages
 
 from sharkpylib import __version__
 
@@ -18,6 +18,7 @@ setup(name='sharkpylib',
     author_email='shark@smhi.se',
     license='MIT',
     packages=['sharkpylib'],
+    packages=find_packages(),
 #    install_requires=requirements,
 #    setup_requires=requirements,
     zip_safe=False)
