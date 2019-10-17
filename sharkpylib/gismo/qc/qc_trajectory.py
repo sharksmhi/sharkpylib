@@ -7,7 +7,7 @@
 import os
 import codecs
 
-from ..gismo.exceptions import *
+from ...gismo.exceptions import *
 
 
 class FlagAreas(object):
