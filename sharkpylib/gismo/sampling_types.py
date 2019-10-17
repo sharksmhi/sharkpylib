@@ -972,7 +972,7 @@ class SHARKmetadataStandardBase(object):
             pass
 
         def get_rows(self):
-            return self.data
+            return self.data[:] # Make sure to return copy
 
         def get_metadata_tree(self):
             return_dict = {}
@@ -1068,7 +1068,6 @@ class SHARKmetadataStandardBase(object):
                     return_dict[par]['children'][item] = {'value': line_dict[item]}
             return return_dict
 
-
     class Information(MetadataBase):
         """ Class to handle the INFORMATION """
         def __init__(self, **kwargs):
@@ -1118,7 +1117,7 @@ class SHARKmetadataStandardBase(object):
             pass
 
         def get_rows(self):
-            return self.data
+            return self.data[:]
 
         def get_metadata_tree(self):
             return_dict = {}
@@ -1137,7 +1136,7 @@ class SHARKmetadataStandardBase(object):
             self.data.append(self.delimiter.join([self.metadata_string, time_string, comment.strip()]))
 
         def get_rows(self):
-            return self.data
+            return self.data[:]
 
     # ==========================================================================
     def __init__(self, metadata_raw_lines, **kwargs):
