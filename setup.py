@@ -7,7 +7,7 @@ include_files = []
 for root, dirs, files in os.walk('.', topdown=False):
     for name in files:
         if name.endswith('.txt'):
-            file_path = os.path.join(root, name).strip('.\\')
+            file_path = os.path.join(root, name).strip('.\\sharkpylib\\')
             include_files.append(file_path)
             # print(file_path)
 
@@ -20,7 +20,7 @@ setup(name='sharkpylib',
     license='MIT',
     include_package_data=False,  # False fo include sub packages
     packages=find_packages(),
-    package_data={'sharkpylib': [os.path.join('gismo', 'qc', 'data', 'calc_density_parameters.txt')]},
+    package_data={'sharkpylib': include_files},
     zip_safe=False)
 
 
