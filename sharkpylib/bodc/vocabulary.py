@@ -8,7 +8,6 @@ Created on 30 jun 2016
 '''
 
 import urllib
-import numpy as np
 #from openpyxl import Workbook
 import codecs
 import re
