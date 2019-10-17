@@ -15,7 +15,7 @@ except:
 	pass
 
 from . import QCprofile
-from ..gismo.exceptions import *
+from ...gismo.exceptions import *
 from ...import utils
 
 import logging
