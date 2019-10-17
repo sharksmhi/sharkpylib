@@ -1,4 +1,5 @@
 from setuptools import setup
+import importlib
 
 from sharkpylib import __version__
 
@@ -6,7 +7,9 @@ requirements = []
 with open('requirements.txt') as fid:
     for line in fid:
         if not line.startswith('#'):
-            requirements.append(line.strip())
+            module = line.strip()
+            requirements.append(module)
+            importlib.import_module(module)
 print(requirements)
 
 setup(name='sharkpylib',
