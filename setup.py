@@ -1,14 +1,14 @@
 from setuptools import setup, find_packages
+import os
 
 from sharkpylib import __version__
 
-requirements = []
-with open('requirements.txt') as fid:
-    for line in fid:
-        if not line.startswith('#'):
-            module = line.strip()
-            requirements.append(module)
-print(requirements)
+include_files = []
+for root, dirs, files in os.walk('.', topdown=False):
+    for name in files:
+        if name.endswith('.txt'):
+            file_path = os.path.join(root, name)
+            include_files.append(file_path)
 
 setup(name='sharkpylib',
     version=__version__,
@@ -17,9 +17,7 @@ setup(name='sharkpylib',
     author='SHARK SMHI',
     author_email='shark@smhi.se',
     license='MIT',
-    include_package_data=False,
-    # packages=['sharkpylib'],
+    include_package_data=False,  # False fo include sub packages
     packages=find_packages(),
-#    install_requires=requirements,
-#    setup_requires=requirements,
+    package_data={'sharkpylib': include_files},
     zip_safe=False)
