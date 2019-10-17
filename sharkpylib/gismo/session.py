@@ -512,8 +512,8 @@ class GISMOsession(object):
         if not file_id:
             raise GISMOExceptionMissingKey
 
-        print(data_file_path)
-        print(data_file_path_settings)
+        # print(data_file_path)
+        # print(data_file_path_settings)
 
         # Check type of file and load
         if kwargs.get('reload') or not os.path.exists(data_file_path_pkl):

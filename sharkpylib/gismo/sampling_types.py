@@ -82,7 +82,6 @@ class GISMOfile(GISMOdata):
     Base class for a GISMO data file.
     A GISMO-file only has data from one sampling type.
     """
-    # TODO: filter_data, flag_options, flag_data
     # ==========================================================================
     def __init__(self, data_file_path=None, settings_file_path=None, root_directory=None, mapping_files_directory=None, **kwargs):
 
@@ -172,10 +171,9 @@ class GISMOfile(GISMOdata):
         :return:
         """
 
-        logger.info('Loading file {}'.format(self.file_id))
-        logger.info('    encoding {}'.format(self.file_encoding))
-        logger.info('         sep {}'.format(self.column_separator))
-        logger.info('  comment_id {}'.format(self.comment_id))
+        logger.info('   Loading file {}'.format(self.file_id))
+        logger.info('       encoding {}'.format(self.file_encoding))
+        logger.info('     comment_id {}'.format(self.comment_id))
 
         # Looping through the file seems to be faster then pd.read_csv regardless if there are comment lines or not.
         # Note that all values are of type str.
@@ -188,6 +186,10 @@ class GISMOfile(GISMOdata):
                     # We have comments and need to load all lines in file
                     self.metadata_raw.append(line)
                 else:
+                    if self.metadata_raw and not self.metadata:
+                        self.metadata = SHARKmetadataStandardBase(self.metadata_raw, comment_id=self.comment_id)
+                        self.column_separator = self.metadata.data_delimiter
+                    logger.info('data deliimiter {}'.format(self.column_separator))
                     split_line = re.split(self.column_separator, line.strip('\n\r'))
                     # split_line = line.strip('\n\r').split(self.column_separator)
                     split_line = [item.strip() for item in split_line]
@@ -364,6 +366,14 @@ class GISMOfile(GISMOdata):
         self.df['visit_depth_id'] = self.df['lat'].astype(str) + self.df['lon'].astype(str) + self.df['time'].astype(
             str) + self.df['depth'].astype(str)
 
+    def add_qc_comment(self, comment):
+        """
+        :param comment:
+        :return:
+        """
+        if not self.has_metadata:
+            raise GISMOExceptionNoMetadata
+        self.metadata.add_qc_comment(comment)
 
     def flag_data(self, flag, *args, **kwargs):
         """
@@ -883,7 +893,7 @@ class SHARKfileStandardCTD(GISMOfile):
         self.flag_data_options = self.flag_data_options + ['depth', 'depth_min', 'depth_max']
         self.mask_data_options = self.mask_data_options + []
 
-        self.metadata = SHARKmetadataStandardBase(self.metadata_raw, **kwargs)
+        # self.metadata = SHARKmetadataStandardBase(self.metadata_raw, **kwargs)
 
         self.valid_qc_routines = ['Profile range simple', 'Profile report']
 
@@ -910,16 +920,48 @@ class SHARKmetadataStandardBase(object):
 
     Class holds metadata information of a GISMO file.
     """
+    class MetadataBase(object):
+        def __init__(self, **kwargs):
+            self.comment_id = kwargs.get('comment_id', '//')
+            self.delimiter = None
+            self.metadata_string = None
+            self.metadata_id = None
+            self.data = None
 
-    class FileInfo(object):
+        @property
+        def metadata_id(self):
+            return self.__metadata_id
+
+        @metadata_id.setter
+        def metadata_id(self, string):
+            self.__metadata_id = string
+            self.metadata_string = '{}{}'.format(self.comment_id, self.__metadata_id)
+
+        @property
+        def has_data(self):
+            if len(self.data):  # To bie able to check pandas dataframe
+                return True
+            else:
+                return False
+
+        def add(self, comment):
+            raise GISMOExceptionMethodNotImplemented
+
+        def get_rows(self):
+            raise GISMOExceptionMethodNotImplemented
+
+        def set(self):
+            raise GISMOExceptionMethodNotImplemented
+
+        def get_metadata_tree(self):
+            raise GISMOExceptionMethodNotImplemented
+
+
+    class FileInfo(MetadataBase):
         """ Class to handle the file info found at the top of the file """
         def __init__(self, **kwargs):
-            self.has_data = False
-            self.metadata_string = ''
+            super().__init__(**kwargs)
             self.data = []
-            self.column_sep = '='
-            self.comment_id = kwargs.get('comment_id', '//')
-            self.metadata_id = ''
 
         def add(self, line):
             """ Whole line is given in line """
@@ -934,42 +976,35 @@ class SHARKmetadataStandardBase(object):
         def get_metadata_tree(self):
             return_dict = {}
             for line in self.data:
-                split_line = line.strip().strip('//').split(self.column_sep)
+                split_line = line.strip().strip(self.comment_id).split(self.delimiter)
                 return_dict[split_line[0]] = {'value': split_line[1]}
             return return_dict
 
-    class Metadata(object):
+    class Metadata(MetadataBase):
         """ Class to handle the METADATA """
         def __init__(self, **kwargs):
-            self.has_data = False
-            self.metadata_string = 'METADATA'
+            super().__init__(**kwargs)
+            self.metadata_id = 'METADATA'
             self.data = {}
-            self.column_sep = kwargs.get('column_sep', ';')
-            self.comment_id = kwargs.get('comment_id', '//')
-            self.metadata_id = '{}METADATA'.format(self.comment_id)
             self.item_order = []
 
         def add(self, item_list, **kwargs):
             """
-            item is expected to be a list of length 2:
-                item_list[0] = metadata variable
-                item_list[1] = value of the metadata variable
+
+            :param item_list:
+            :param kwargs:
+            :return:
             """
-            if item_list[0] != self.metadata_id:
-                raise GISMOExceptionMetadataError('Non matching metadata string')
+            if self.metadata_id not in item_list[0]:
+                raise GISMOExceptionMetadataError('Non matching metadata string: {}'.format(item_list[0]))
             self.data[item_list[1]] = item_list[2]
             self.item_order.append(item_list[1])
-            self.has_data = True
-
-        def set(self, **kwargs):
-            for key, value in kwargs.items():
-                self.data[key] = value
 
         def get_rows(self):
             return_list = []
             for key in self.item_order:
-                line_list = [self.metadata_id, key, self.data[key]]
-                return_list.append(self.column_sep.join(line_list))
+                line_list = [self.metadata_string, key, self.data[key]]
+                return_list.append(self.delimiter.join(line_list))
 
             return return_list
 
@@ -982,20 +1017,18 @@ class SHARKmetadataStandardBase(object):
         def get_statn(self):
             return self.data.get('STATN')
 
-    class SensorInfo(object):
+    class SensorInfo(MetadataBase):
         def __init__(self, **kwargs):
-            self.has_data = False
-            self.metadata_string = 'SENSORINFO'
+            super().__init__(**kwargs)
+            self.metadata_id = 'SENSORINFO'
             self.data = None
-            self.column_sep = kwargs.get('column_sep', ';')
-            self.metadata_id = '{}SENSORINFO'.format(kwargs.get('comment_id', '//'))
 
         def add(self, item_list, **kwargs):
             """
             If self.data is empty item_list is the header to the dataframe.
             """
-            if item_list[0] != self.metadata_id:
-                raise GISMOExceptionMetadataError('Non matching metadata string')
+            if self.metadata_id not in item_list[0]:
+                raise GISMOExceptionMetadataError('Non matching metadata string: {}'.format(item_list[0]))
 
             row_list = item_list[1:]
 
@@ -1007,18 +1040,17 @@ class SHARKmetadataStandardBase(object):
                 self.data = self.data.append(df)
                 self.data.reset_index(inplace=True)
                 self.data.pop('index')
-                self.has_data = True
 
         def set(self, **kwargs):
             pass
 
         def get_rows(self):
             return_list = []
-            line_list = [self.metadata_id] + self.header
-            return_list.append(self.column_sep.join(line_list))
+            line_list = [self.metadata_string] + self.header
+            return_list.append(self.delimiter.join(line_list))
             for i in self.data.index:
-                line_list = [self.metadata_id] + list(self.data.iloc[i].values)
-                return_list.append(self.column_sep.join(line_list))
+                line_list = [self.metadata_string] + list(self.data.iloc[i].values)
+                return_list.append(self.delimiter.join(line_list))
 
             return return_list
 
@@ -1036,22 +1068,19 @@ class SHARKmetadataStandardBase(object):
             return return_dict
 
 
-    class Information(object):
+    class Information(MetadataBase):
         """ Class to handle the INFORMATION """
         def __init__(self, **kwargs):
-            self.has_data = False
-            self.metadata_string = 'INFORMATION'
+            super().__init__(**kwargs)
+            self.metadata_id = 'INFORMATION'
             self.data = []
-            self.column_sep = kwargs.get('column_sep', ';')
-            self.metadata_id = '{}INFORMATION'.format(kwargs.get('comment_id', '//'))
 
         def add(self, item_list, **kwargs):
             """
             """
-            if self.metadata_string not in item_list[0]:
-                raise GISMOExceptionMetadataError('Non matching metadata string')
-            self.data.append(self.column_sep.join(item_list[1:]))
-            self.has_data = True
+            if self.metadata_id not in item_list[0]:
+                raise GISMOExceptionMetadataError('Non matching metadata string: {}'.format(item_list[0]))
+            self.data.append(self.delimiter.join(item_list[1:]))
 
         def set(self, **kwargs):
             pass
@@ -1059,7 +1088,7 @@ class SHARKmetadataStandardBase(object):
         def get_rows(self):
             return_list = []
             for item in self.data:
-                return_list.append(self.column_sep.join([self.metadata_id, item]))
+                return_list.append(self.delimiter.join([self.metadata_string, item]))
 
             return return_list
 
@@ -1069,23 +1098,20 @@ class SHARKmetadataStandardBase(object):
                 return_dict['Comment nr {}'.format(k+1)] = {'value': item}
             return return_dict
 
-    class InstrumentMetadata(object):
+    class InstrumentMetadata(MetadataBase):
         """ Class to handle the INFORMATION """
 
         def __init__(self, **kwargs):
-            self.has_data = False
-            self.metadata_string = 'INSTRUMENT_METADATA'
+            super().__init__(**kwargs)
+            self.metadata_id = 'INSTRUMENT_METADATA'
             self.data = []
-            self.column_sep = kwargs.get('column_sep', ';')
-            self.metadata_id = '{}INSTRUMENT_METADATA'.format(kwargs.get('comment_id', '//'))
 
         def add(self, item_list, **kwargs):
             """
             """
-            if item_list[0] != self.metadata_id:
-                raise GISMOExceptionMetadataError('Non matching metadata string')
+            if self.metadata_id not in item_list[0]:
+                raise GISMOExceptionMetadataError('Non matching metadata string: {}'.format(item_list[0]))
             self.data.append(kwargs.get('original_line').strip('\r\n'))
-            self.has_data = True
 
         def set(self, **kwargs):
             pass
@@ -1099,67 +1125,93 @@ class SHARKmetadataStandardBase(object):
                 return_dict['line {}'.format(k + 1)] = {'value': item}
             return return_dict
 
+    class CommentQC(MetadataBase):
+        def __init__(self, **kwargs):
+            super().__init__(**kwargs)
+            self.metadata_id = 'QC_COMMENT'
+            self.data = []
+
+        def add(self, comment):
+            time_string = datetime.datetime.now().strftime('%Y-%m-%d %H:%M')
+            self.data.append(self.delimiter.join([self.metadata_string, time_string, comment.strip()]))
+
+        def get_rows(self):
+            return self.data
+
     # ==========================================================================
     def __init__(self, metadata_raw_lines, **kwargs):
-        super().__init__()
         self.metadata_raw_lines = metadata_raw_lines
 
-        self.column_sep = kwargs.get('metadata_column_sep', ';')
         self.comment_id = kwargs.get('comment_id', '//')
 
-        self._load_meatadata()
+        self.has_data = False
+
+        self._load_metadata()
 
     # ==========================================================================
-    def _load_meatadata(self):
+    def _load_metadata(self):
         """
         Updated 20181003     
         """
-        kw = dict(column_sep=self.column_sep,
-                  comment_id=self.comment_id)
+        kw = dict(comment_id=self.comment_id)
 
         self.file_info = self.FileInfo(**kw)
 
         self.data = {'METADATA': self.Metadata(**kw),
                      'SENSORINFO': self.SensorInfo(**kw),
                      'INFORMATION': self.Information(**kw),
-                     'INSTRUMENT_METADATA': self.InstrumentMetadata(**kw)}
+                     'INSTRUMENT_METADATA': self.InstrumentMetadata(**kw),
+                     'COMMENT_QC': self.CommentQC(**kw)}
 
         self.metadata_order = []
 
+        self.metadata_delimiter = None
+        self.data_delimiter = None
+        self.file_format = None
+
         for k, original_line in enumerate(self.metadata_raw_lines):
             line = original_line.strip()
-
-            # First line is FORMAT id line
-            if k <= 2:
-                if 'FORMAT' in line:
-                    self.file_format = line.split('=')[-1]
-
+            if line.startswith('{}FORMAT'.format(self.comment_id)):
+                self.file_format = line.split('=')[-1].strip()
                 self.file_info.add(line)
-
+            elif line.startswith('{}METADATA_DELIMITER'.format(self.comment_id)):
+                self.metadata_delimiter = line.split('=')[-1].strip()
+                for key, mdata in self.data.items():
+                    mdata.delimiter = self.metadata_delimiter
+                self.file_info.add(line)
+            elif line.startswith('{}DATA_DELIMITER'.format(self.comment_id)):
+                delim = line.split('=')[-1].strip()
+                if delim == '\\t':
+                    delim = '\t'
+                self.data_delimiter = delim
+                self.file_info.add(line)
             else:
-                split_line = line.split(self.column_sep)
-                metadata_type = split_line[0].strip(self.comment_id)
+                metadata_id = line.split(self.metadata_delimiter)[0].strip(self.comment_id)
+                if metadata_id in self.data:
+                    split_line = line.split(self.metadata_delimiter)
+                    self.data[metadata_id].add(split_line, original_line=original_line)
+                    if metadata_id not in self.metadata_order:
+                        self.metadata_order.append(metadata_id)
+                else:
+                    raise GISMOExceptionMetadataError('New field in metadata is not handled properly: {}'.format(metadata_id))
 
-                if metadata_type not in self.data:
-                    raise GISMOExceptionMetadataError('New field in metadata is not handled properly: {}'.format(metadata_type))
-
-                if self.data.get(metadata_type):
-                    self.data[metadata_type].add(split_line, original_line=original_line)
-                # else:
-                #     self.data['unhandled'].add(line)
-                if metadata_type not in self.metadata_order:
-                    self.metadata_order.append(metadata_type)
             self.has_data = True
 
-    def get_metadata(self):
-        metadata_dict = {}
-        for metadata_type in self.metadata_order:
-            metadata_dict[metadata_type] = self.data[metadata_type].get_metadata()
+        self.metadata_order.append('COMMENT_QC')
+
+    def add_qc_comment(self, comment):
+        self.data['COMMENT_QC'].add(comment)
 
     def get_lines(self):
+        print('self.file_info.get_rows()', self.file_info.get_rows())
         all_lines = self.file_info.get_rows()
         for metadata_type in self.metadata_order:
-            all_lines.extend(self.data[metadata_type].get_rows())
+            if self.data[metadata_type].has_data:
+                print('metadata_type', metadata_type)
+                print('len(self.data[metadata_type].get_rows())', len(self.data[metadata_type].get_rows()))
+                # all_lines = all_lines + self.data[metadata_type].get_rows()
+                all_lines.extend(self.data[metadata_type].get_rows())
+                print('len(all_lines)', len(all_lines))
         return all_lines
 
     def get_metadata_tree(self):

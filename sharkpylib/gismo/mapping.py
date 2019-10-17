@@ -201,7 +201,7 @@ class StationMapping():
         #         [source_file_path, local_file_path, header_starts_with, external_column, internal_column]):
         if not settings_object or all(
                 [local_file_path, header_starts_with, external_column, internal_column, mapping_files]):
-            print('Not enyough input arguments to create ColumnMapping file')
+            print('Not enough input arguments to create ColumnMapping file')
             return
             
         if settings_object:

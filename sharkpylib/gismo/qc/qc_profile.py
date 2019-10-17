@@ -14,6 +14,7 @@ import datetime
 
 from . import QCprofile
 from gismo.exceptions import *
+import utils
 
 import logging
 gismo_logger = logging.getLogger('gismo_session')
@@ -116,7 +117,10 @@ class ProfileQCreportTXT(object):
         time_str2 = t.strftime('%Y-%m-%d %H:%M')
         file_name = 'gismo_qc_report_{}.txt'.format(time_str1)
         directory = kwargs.get('save_directory')
-        file_path = os.path.join(directory, file_name)
+        try:
+            file_path = os.path.join(directory, file_name)
+        except TypeError as e:
+            raise GISMOExceptionInvalidOption(e)
 
         ignore_qf = list(kwargs.get('ignore_qf', ['B', 'S', '?']))
 
@@ -128,6 +132,7 @@ class ProfileQCreportTXT(object):
         with codecs.open(file_path, 'w') as fid:
             # Write header
             fid.write('Report on automatic quality control performed: {}\n'.format(time_str2))
+            fid.write('Employee: {}\n'.format(utils.get_employee_name()))
             fid.write('User: {}\n'.format(kwargs.get('user', '')))
             fid.write('GISMO version: {}\n'.format(kwargs.get('gismo_version', '')))
             fid.write('Ignoring quality flags: {}\n'.format(', '.join(ignore_qf)))

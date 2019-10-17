@@ -169,6 +169,14 @@ class GISMOExceptionMethodNotImplemented(GISMOException):
     message = 'Method not implemented'
 
 # ==============================================================================
+class GISMOExceptionNoMetadata(GISMOException):
+    """
+    Created     20191016
+    """
+    code = ''
+    message = 'No metadata in file'
+
+# ==============================================================================
 class GISMOExceptionInvalidTimeFormat(GISMOException):
     """
     Created     20181019

@@ -3,6 +3,9 @@
 # License: MIT License (see LICENSE.txt or http://opensource.org/licenses/mit).
 
 import re
+import os
+import socket
+import json
 
 try:
     import matplotlib.colors as mcolors
@@ -81,5 +84,48 @@ def sorted_int(list_to_sort):
         return [atoi(c) for c in re.split('(\d+)', text)]
 
     return sorted(list_to_sort, key=natural_keys)
+
+
+def get_computer_name():
+    return socket.gethostname()
+
+
+def get_employee_name():
+    return os.path.expanduser('~').split('\\')[-1]
+
+
+def save_json(data, *args, **kwargs):
+    """
+    :param data:
+    :param args: file path or parts of file path.
+    :param kwargs: Options for json output format.
+    :return:
+    """
+    file_path = os.path.join(args)
+    if not file_path.endswith('.json'):
+        raise ValueError
+
+    kw = dict(sort_keys=True,
+              indent='\t',
+              separators=(',', ': '))
+    kw.update(**kwargs)
+    with open(file_path, 'w') as fid:
+        json.dump(data, fid, **kw)
+
+
+def load_json(*args):
+    """
+    :param args: file path or parts of file path.
+    :return:
+    """
+    file_path = os.path.join(args)
+    if not os.path.exists(file_path):
+        raise FileNotFoundError
+    if not file_path.endswith('.json'):
+        raise ValueError
+    if not os.path.exists(file_path):
+        with open(file_path) as fid:
+            data = json.load(fid)
+    return data
 
 
