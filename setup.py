@@ -20,7 +20,7 @@ setup(name='sharkpylib',
     license='MIT',
     include_package_data=False,  # False fo include sub packages
     packages=find_packages(),
-    package_data={'sharkpylib': include_files},
+    package_data={'sharkpylib': [os.path.join('gismo', 'qc', 'data', 'calc_density_parameters.txt')]},
     zip_safe=False)
 
 
