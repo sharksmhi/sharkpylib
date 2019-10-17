@@ -8,9 +8,12 @@
 
 import os
 import codecs
-import pandas as pd
-import numpy as np
-import datetime
+try:
+    import pandas as pd
+    import numpy as np
+except:
+    pass
+
 from . import odvfile
 
 

@@ -9,13 +9,16 @@ Created on Thu Oct 25 2018
 """
 import os
 import codecs
-import numpy as np
-import pandas as pd
 import datetime
-import odv
-from odv import create
-import geography
-from bodc import vocabulary
+
+try:
+    import numpy as np
+    import pandas as pd
+except:
+    pass
+
+from .. import geography
+from ..bodc import vocabulary
 
 class CreateODVfilesBaseRow(object):
 

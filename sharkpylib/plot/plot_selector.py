@@ -5,27 +5,30 @@
 #import matplotlib.pyplot as plt
 # plt.style.use('ggplot')
 #matplotlib.use(u'TkAgg')
-
-#from mpl_toolkits.axes_grid1 import host_subplot
-#import mpl_toolkits.axisartist as axisartist
-import matplotlib
-from matplotlib.figure import Figure
-#from matplotlib.widgets import Cursor
-
-from matplotlib.widgets import LassoSelector
-from matplotlib.path import Path
-
-#from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg, NavigationToolbar2TkAgg
-import tkinter as tk
-from tkinter import ttk
-
 import random
 import numpy as np
 import datetime
-import matplotlib.dates as dates
-import matplotlib.dates as mdates
-from mpl_toolkits.axes_grid1.inset_locator import inset_axes
-import pandas as pd
+#from mpl_toolkits.axes_grid1 import host_subplot
+#import mpl_toolkits.axisartist as axisartist
+try:
+    import matplotlib
+    from matplotlib.figure import Figure
+    #from matplotlib.widgets import Cursor
+
+    from matplotlib.widgets import LassoSelector
+    from matplotlib.path import Path
+
+    #from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg, NavigationToolbar2TkAgg
+    import tkinter as tk
+    from tkinter import ttk
+
+
+    import matplotlib.dates as dates
+    import matplotlib.dates as mdates
+    from mpl_toolkits.axes_grid1.inset_locator import inset_axes
+    import pandas as pd
+except:
+    pass
 
 class PlotSeries():
     

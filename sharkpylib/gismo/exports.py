@@ -4,18 +4,9 @@
 # Copyright (c) 2018 SMHI, Swedish Meteorological and Hydrological Institute
 # License: MIT License (see LICENSE.txt or http://opensource.org/licenses/mit).
 
-import os
-import shutil
 
-import numpy as np
-import logging
-import datetime
-import pandas as pd
-
-from .gismo import GISMOqc
 from .exceptions import *
 
-from .qc import IOCFTP_QC
 
 """
 ========================================================================

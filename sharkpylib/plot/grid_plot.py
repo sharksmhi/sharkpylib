@@ -4,11 +4,14 @@ Created on 4 jun 2016
 @author:
 '''
 
-import matplotlib.pyplot as plt
-import matplotlib.widgets as widgets
-import matplotlib.dates as mdates
-import numpy as np
-from matplotlib.backends.backend_pdf import PdfPages
+try:
+    import matplotlib.pyplot as plt
+    import matplotlib.widgets as widgets
+    import matplotlib.dates as mdates
+    import numpy as np
+    from matplotlib.backends.backend_pdf import PdfPages
+except:
+    pass
  
  
 """

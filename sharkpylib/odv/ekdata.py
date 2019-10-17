@@ -5,10 +5,10 @@
 """
 @author:
 """
-import os
-import codecs
-import pandas as pd
-
+try:
+    import pandas as pd
+except:
+    pass
 
 class DataFile(object):
     """

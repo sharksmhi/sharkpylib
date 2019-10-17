@@ -1,12 +1,16 @@
 # -*- coding: utf-8 -*-
 # Copyright (c) 2019 SMHI, Swedish Meteorological and Hydrological Institute
 # License: MIT License (see LICENSE.txt or http://opensource.org/licenses/mit).
-import pandas as pd
 import os
-import numpy as np
 
-import mappinglib
-import exceptionlib
+try:
+    import pandas as pd
+    import numpy as np
+except:
+    pass
+
+
+from . import mappinglib
 
 
 class CreateIOCFTPfile(object):

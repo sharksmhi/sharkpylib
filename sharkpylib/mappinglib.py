@@ -6,13 +6,18 @@ Created on Thu Aug 30 15:53:08 2018
 
 @author: a001985
 """
-import os 
-import pandas as pd 
+import os
 import datetime
-import numpy as np
 import codecs
-import file_io
-import exceptionlib
+
+try:
+    import pandas as pd
+    import numpy as np
+except:
+    pass
+
+from . import file_io
+from . import exceptionlib
         
 class Directory(object):
     """

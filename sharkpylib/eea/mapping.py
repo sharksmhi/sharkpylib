@@ -1,7 +1,10 @@
 # -*- coding: utf-8 -*-
 
 import os
-import pandas as pd
+try:
+    import pandas as pd
+except:
+    pass
 
 class Codelist():
     """

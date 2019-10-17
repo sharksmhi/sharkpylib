@@ -5,25 +5,27 @@ Created on Thu Mar 16 15:37:10 2017
 
 @author:
 """
-import numpy as np
 import random
 
-from . import tkinter_widgets as tkw
+import numpy as np
 
-import matplotlib
-import matplotlib.pyplot as plt
-from matplotlib.font_manager import FontProperties
-from matplotlib.patches import Polygon
-from matplotlib.dates import DateFormatter, DayLocator 
-from matplotlib.text import Text
+try:
+    import matplotlib
+    import matplotlib.pyplot as plt
+    from matplotlib.font_manager import FontProperties
+    from matplotlib.patches import Polygon
+    from matplotlib.dates import DateFormatter, DayLocator
+    from matplotlib.text import Text
 
-import tkinter as tk 
+    import tkinter as tk
 
-matplotlib.use(u'TkAgg')
-from mpl_toolkits.basemap import Basemap
-from matplotlib.figure import Figure
-from matplotlib.backends.backend_pdf import PdfPages
-from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg, NavigationToolbar2Tk
+    matplotlib.use(u'TkAgg')
+    from mpl_toolkits.basemap import Basemap
+    from matplotlib.figure import Figure
+    from matplotlib.backends.backend_pdf import PdfPages
+    from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg, NavigationToolbar2Tk
+except:
+    pass
 
 
 # class MapWidget(tk.Frame):

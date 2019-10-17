@@ -8,25 +8,21 @@ Created on 30 jun 2016
 @author: a001985
 '''
 
-#import urllib2
-import numpy as np
-#from openpyxl import Workbook
 import codecs
 import re
 import os
-import time 
-import pandas as pd 
 import datetime
 import time
 import sys
 
-odv_directory_path = os.path.dirname(os.path.abspath(__file__))
-lib_path = os.path.dirname(odv_directory_path)
-if lib_path not in sys.path:
-    sys.path.append(lib_path)
+try:
+    import pandas as pd
+except:
+    pass
 
-import mappinglib as mapping
-import geography
+odv_directory_path = os.path.dirname(os.path.abspath(__file__))
+
+from .. import mappinglib as mapping
 
 
 

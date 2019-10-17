@@ -1,18 +1,20 @@
 # Copyright (c) 2018 SMHI, Swedish Meteorological and Hydrological Institute
 # License: MIT License (see LICENSE.txt or http://opensource.org/licenses/mit).
-
-import tkinter as tk
-from tkinter import ttk
-from tkinter import font
-import numpy as np
-import pandas as pd
 import re
 import datetime
-import calendar
-from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg, NavigationToolbar2Tk
-import matplotlib.dates as dates
 
-import utils
+try:
+    import tkinter as tk
+    from tkinter import ttk
+    from tkinter import font
+    import numpy as np
+    import pandas as pd
+    from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg, NavigationToolbar2Tk
+    import matplotlib.dates as dates
+except:
+    pass
+
+from . import utils
 
 
 class CheckbuttonWidgetSingle(tk.Frame):

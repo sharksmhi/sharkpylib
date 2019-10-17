@@ -5,10 +5,12 @@ Created on 4 jun 2016
 
 @author:
 '''
-import matplotlib.pyplot as plt
-import matplotlib.dates as mdates
-from matplotlib.backends.backend_pdf import PdfPages
-import numpy as np
+try:
+    import matplotlib.pyplot as plt
+    import matplotlib.dates as mdates
+    from matplotlib.backends.backend_pdf import PdfPages
+except:
+    pass
 
 """
 ===============================================================================

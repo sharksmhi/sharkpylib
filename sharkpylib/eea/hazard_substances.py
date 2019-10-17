@@ -4,16 +4,16 @@
 
 import os
 import sys
-import pandas as pd
+try:
+    import pandas as pd
+except:
+    pass
 import numpy as np
 
 from . import mapping
 
-lib_path = os.path.dirname(os.path.dirname(__file__))
-if lib_path not in sys.path:
-    sys.path.append(lib_path)
+from .. import mappinglib
 
-import mappinglib
 
 
 class HazardSubstances(object):

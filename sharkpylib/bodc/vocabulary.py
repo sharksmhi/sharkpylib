@@ -12,7 +12,10 @@ import numpy as np
 #from openpyxl import Workbook
 import codecs
 import re
-import pandas as pd
+try:
+    import pandas as pd
+except:
+    pass
 import os
 import time 
 

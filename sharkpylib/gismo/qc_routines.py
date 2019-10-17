@@ -5,12 +5,13 @@
 # License: MIT License (see LICENSE.txt or http://opensource.org/licenses/mit).
 
 import os
-import shutil
-
-import numpy as np
-import logging
 import datetime
-import pandas as pd
+
+try:
+    import numpy as np
+    import pandas as pd
+except:
+    pass
 
 from .gismo import GISMOqc
 from .exceptions import *

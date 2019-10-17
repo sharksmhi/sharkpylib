@@ -2,7 +2,6 @@
 # License: MIT License (see LICENSE.txt or http://opensource.org/licenses/mit).
 import os
 import codecs
-import re
 
 class ODVdirectory(object):
     def __init__(self, directory, **kwargs):

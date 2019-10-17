@@ -5,10 +5,14 @@
 Created on Wed Aug  8 12:05:15 2018
 
 @author:
-""" 
-import plotly.graph_objs as go 
-import plotly.offline as ply 
-#import plotly.plotly as ply
+"""
+try:
+    import plotly.graph_objs as go
+    import plotly.offline as ply
+    # import plotly.plotly as ply
+except:
+    pass
+
 
 class PlotlyPlot():
     """

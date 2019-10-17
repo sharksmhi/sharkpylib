@@ -5,18 +5,19 @@
 # License: MIT License (see LICENSE.txt or http://opensource.org/licenses/mit).
 
 import os
-import numpy as np
 import datetime
-import pandas as pd
 import codecs
 import re
-import matplotlib.dates as dates
+try:
+    import numpy as np
+    import pandas as pd
+except:
+    pass
 
 from .mapping import StationMapping, ParameterMapping
 from .gismo import GISMOdata
 
 from .exceptions import *
-
 
 import logging
 logger = logging.getLogger('gismo_session')

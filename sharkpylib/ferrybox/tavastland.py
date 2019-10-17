@@ -5,19 +5,24 @@
 import os
 import re
 import codecs
-import pandas as pd
+
 import datetime
 import time
 import numpy as np
-import loglib
-import mappinglib
-import exceptionlib
+from .. import loglib
+from .. import mappinglib
+from .. import exceptionlib
+
+try:
+    import pandas as pd
+except:
+    pass
 
 import sys
 parent_directory = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 if parent_directory not in sys.path:
     sys.path.append(parent_directory)
-import gismo
+from .. import gismo
 
 
 # def get_logger(**kwargs):

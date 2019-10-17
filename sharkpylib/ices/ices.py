@@ -9,11 +9,15 @@ Created on Thu Aug 30 15:30:28 2018
 """
 
 import os
-import pandas as pd 
 import codecs
 import datetime
 
-import mappinglib as mapping
+try:
+    import pandas as pd
+except:
+    pass
+
+from .. import mappinglib as mapping
 
 
 class CodeList(dict): 

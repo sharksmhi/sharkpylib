@@ -14,8 +14,13 @@ This module contains classes that handles ODV history files.
 """
 import os 
 import codecs
-import pandas as pd
 import re
+
+try:
+    import pandas as pd
+except:
+    pass
+
 
 #==============================================================================
 #==============================================================================

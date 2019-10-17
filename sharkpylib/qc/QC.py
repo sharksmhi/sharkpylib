@@ -4,9 +4,11 @@
 # Copyright (c) 2018-2019 SMHI, Swedish Meteorological and Hydrological Institute
 # License: MIT License (see LICENSE.txt or http://opensource.org/licenses/mit).
 
-
-import numpy as np
-import seawater as sw
+try:
+    import numpy as np
+    import seawater as sw
+except:
+    pass
 
 class QC(object):
 

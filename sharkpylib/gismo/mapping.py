@@ -7,8 +7,6 @@ Created on Tue Mar 07 09:36:32 2017
 @author:
 """
 import codecs
-import os
-import shutil
 
 
 """

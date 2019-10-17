@@ -13,7 +13,6 @@ from .exceptions import *
 from .gismo import GISMOdataManager
 from .gismo import GISMOqcManager
 
-from . import gismo
 
 import os 
 import json 

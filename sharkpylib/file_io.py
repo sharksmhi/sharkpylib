@@ -7,8 +7,11 @@ Created on Tue Sep 12 14:38:54 2017
 @author: a001985
 """
 
-import pandas as pd 
-import numpy as np
+try:
+    import pandas as pd
+    import numpy as np
+except:
+    pass
 import os
 import shutil
 import codecs
