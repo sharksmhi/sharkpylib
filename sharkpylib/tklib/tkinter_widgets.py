@@ -3002,6 +3002,9 @@ class TimeWidget(tk.LabelFrame):
                 break
 
         self.callback_target = callback_target
+
+        self.from_time = None
+        self.to_time = None
         
         self.prop_frame = {}
         self.prop_frame.update(prop_frame)
@@ -3107,8 +3110,6 @@ class TimeWidget(tk.LabelFrame):
             from_time = pd.to_datetime(from_time)
             to_time = pd.to_datetime(to_time)
 
-
-
         self.from_time = from_time
         self.to_time = to_time
         
@@ -3142,10 +3143,10 @@ class TimeWidget(tk.LabelFrame):
                 else:
                     self.time_lists[part] = self._get_padded_string_list(range(1, 24), 2)
             elif part == 'minute':
-                self.time_lists[part] = self._get_padded_string_list(range(1, 60), 2)
+                self.time_lists[part] = self._get_padded_string_list(range(60), 2)
             
             elif part == 'second':
-                self.time_lists[part] = self._get_padded_string_list(range(1, 60), 2)
+                self.time_lists[part] = self._get_padded_string_list(range(60), 2)
                 
             self.combobox[part]['values'] = tuple(self.time_lists[part])
 #             print(self.combobox[part]['values']

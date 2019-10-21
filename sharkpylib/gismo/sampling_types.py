@@ -1203,15 +1203,11 @@ class SHARKmetadataStandardBase(object):
         self.data['COMMENT_QC'].add(comment)
 
     def get_lines(self):
-        print('self.file_info.get_rows()', self.file_info.get_rows())
         all_lines = self.file_info.get_rows()
         for metadata_type in self.metadata_order:
             if self.data[metadata_type].has_data:
-                print('metadata_type', metadata_type)
-                print('len(self.data[metadata_type].get_rows())', len(self.data[metadata_type].get_rows()))
                 # all_lines = all_lines + self.data[metadata_type].get_rows()
                 all_lines.extend(self.data[metadata_type].get_rows())
-                print('len(all_lines)', len(all_lines))
         return all_lines
 
     def get_metadata_tree(self):
