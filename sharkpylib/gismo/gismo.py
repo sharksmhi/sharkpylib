@@ -6,7 +6,6 @@ Created on Tue Mar 07 11:48:49 2017
 
 @author:
 """
-
 try:
     import pandas as pd
     import numpy as np

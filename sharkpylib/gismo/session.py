@@ -258,6 +258,8 @@ class GISMOsession(object):
         if not all([users_directory, user, sampling_types_factory, mapping_files_directory, settings_files_directory]):
             raise GISMOExceptionMissingInputArgument
 
+        print('HELP')
+
         self.root_directory = root_directory
         self.users_directory = users_directory
         self.log_directory = log_directory
