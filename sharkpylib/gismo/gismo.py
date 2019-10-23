@@ -37,6 +37,8 @@ class GISMOdataManager(object):
 
         self.match_objects = {}
 
+        self.has_been_flaged = {}
+
     def has_file_id(self, *arg, **kwargs):
         try:
             self._check_file_id()
@@ -86,7 +88,6 @@ class GISMOdataManager(object):
                     self.objects_by_sampling_type[sampling_type].pop(file_id)
                     break
 
-
     def flag_data(self, file_id, flag, *args, **kwargs):
         """
         Created 20181004     
@@ -100,6 +101,8 @@ class GISMOdataManager(object):
         self._check_file_id(file_id)
         gismo_object = self.objects.get(file_id)
 
+        user = kwargs.pop('user', 'unknown user')
+
         flag = str(flag)
         if flag not in gismo_object.valid_flags:
             raise GISMOExceptionInvalidFlag('"{}", valid flags are "{}"'.format(flag, ', '.join(gismo_object.valid_flags)))
@@ -109,7 +112,15 @@ class GISMOdataManager(object):
             if key not in gismo_object.flag_data_options:
                 raise GISMOExceptionInvalidOption('{} is not a valid filter option'.format(key))
 
-        return self.objects.get(file_id).flag_data(flag, *args, **kwargs)
+        gismo_object = self.objects.get(file_id)
+        all_ok = gismo_object.flag_data(flag, *args, **kwargs)
+
+        if all_ok:
+            # Add comment in metadata
+            self.has_been_flaged[file_id] = True
+
+        return all_ok
+
 
     def get_data_object(self, file_id, *args, **kwargs):
         """ Should not be used """
@@ -361,7 +372,13 @@ class GISMOdataManager(object):
             if key not in self.get_save_data_options(file_id):
                 raise GISMOExceptionInvalidOption('{} is not a valid save data option'.format(key))
 
-        self.objects.get(file_id).save_file(**kwargs)
+        gismo_object = self.objects.get(file_id)
+
+        # Add manual qc comment
+        if self.has_been_flaged.get(file_id):
+            add_qc_comment_in_metadata(gismo_object, text='Manual', user=kwargs.get('user', 'unknown user'))
+
+        gismo_object.save_file(**kwargs)
 
 
 # ==============================================================================
@@ -581,17 +598,7 @@ class GISMOqcManager(object):
 
         # Add comment in metadata
         user = kwargs.pop('user', 'unknown user')
-        employee = utils.get_employee_name()
-        computer = utils.get_computer_name()
-
-        # date/time will be set later
-        comment = '{} ({} / {} / {})'.format(qc_routine, employee, computer, user)
-
-        for gismo_object in gismo_objects:
-            if gismo_object.has_metadata:
-                gismo_object.add_qc_comment(comment)
-
-
+        add_qc_comment_in_metadata(gismo_objects=gismo_objects, text=qc_routine, user=user)
 
     def get_qc_options(self, qc_routine):
         self._check_qc_routine(qc_routine)
@@ -878,8 +885,20 @@ def latlon_distance_array(lat_point, lon_point, lat_array, lon_array):
     return km
 
 
+def add_qc_comment_in_metadata(gismo_objects=None, text=None, user=None):
+    if not user:
+        user = 'unknown user'
+    employee = utils.get_employee_name()
+    computer = utils.get_computer_name()
 
-    
+    # date/time will be set later
+    comment = '{} ({} / {} / {})'.format(text, employee, computer, user)
+
+    if type(gismo_objects) != list:
+        gismo_objects = [gismo_objects]
+    for gismo_object in gismo_objects:
+        if gismo_object.has_metadata:
+            gismo_object.add_qc_comment(comment)
     
     
     

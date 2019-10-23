@@ -847,12 +847,14 @@ class FileHandler(object):
 
         salinity_par = 'mit_Sosal'
         temp_par = 'mit_Soxtemp'
+        equ_temp_par = 'co2_equ_temp'
 
         # Tequ = self.current_merge_data['co2_equ temp'].astype(float) + 273.15  # temp in Kelvin
-        Tequ = np.array([as_float(item) for item in self.current_merge_data['co2_equ temp']]) + 273.15  # temp in Kelvin
+        Tequ = np.array([as_float(item) for item in self.current_merge_data[equ_temp_par]]) + 273.15  # temp in Kelvin
         self.current_merge_data['calc_Tequ'] = Tequ
 
-        Pequ = self.current_merge_data['co2_equ press'].astype(float) + self.current_merge_data['co2_licor press'].astype(float)
+        Pequ = self.current_merge_data['calc_Pequ']
+        # Pequ = self.current_merge_data['co2_equ press'].astype(float) + self.current_merge_data['co2_licor press'].astype(float)
         # Pequ is not in the same order as the previous calculated self.current_merge_data['calc_Pequ'] (has * 1e-3)
 
         VP_H2O = np.exp(24.4543 - 67.4509 * 100 / Tequ -
@@ -940,7 +942,7 @@ class FileHandler(object):
             xCO2 = co2_value + (1 - k) * x + m
             # value = measured Value + correction (correction = diff between y = x and y = kx + m)
 
-            Pequ = (equ_press_value + licor_press_value) * 1e-3  # 1e-3
+            Pequ = (equ_press_value + licor_press_value)
             # pressure due to EQU press and licor press
 
             pCO2_dry_air = xCO2 * Pequ
