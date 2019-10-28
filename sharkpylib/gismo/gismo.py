@@ -87,6 +87,17 @@ class GISMOdataManager(object):
                     self.objects_by_sampling_type[sampling_type].pop(file_id)
                     break
 
+    def get_valid_flags(self, file_id):
+        """
+        Returns the valid flags of the gismo object with the given file_id.
+        :param file_id:
+        :return:
+        """
+
+        self._check_file_id(file_id)
+        gismo_object = self.objects.get(file_id)
+        return sorted(gismo_object.valid_flags)
+
     def flag_data(self, file_id, flag, *args, **kwargs):
         """
         Created 20181004     
@@ -112,13 +123,9 @@ class GISMOdataManager(object):
                 raise GISMOExceptionInvalidOption('{} is not a valid filter option'.format(key))
 
         gismo_object = self.objects.get(file_id)
-        all_ok = gismo_object.flag_data(flag, *args, **kwargs)
-
-        if all_ok:
-            # Add comment in metadata
-            self.has_been_flaged[file_id] = True
-
-        return all_ok
+        gismo_object.flag_data(flag, *args, **kwargs)
+        # Add comment in metadata
+        self.has_been_flaged[file_id] = True
 
 
     def get_data_object(self, file_id, *args, **kwargs):
@@ -367,6 +374,9 @@ class GISMOdataManager(object):
                                                                          self.objects.get(match_file_id), **kwargs)
 
     def save_file(self, file_id, **kwargs):
+        user = kwargs.pop('user', 'unknown user')
+        for key in sorted(kwargs):
+            print(key, kwargs[key])
         for key in kwargs:
             if key not in self.get_save_data_options(file_id):
                 raise GISMOExceptionInvalidOption('{} is not a valid save data option'.format(key))
@@ -374,8 +384,9 @@ class GISMOdataManager(object):
         gismo_object = self.objects.get(file_id)
 
         # Add manual qc comment
+        print('self.has_been_flaged', self.has_been_flaged)
         if self.has_been_flaged.get(file_id):
-            add_qc_comment_in_metadata(gismo_object, text='Manual', user=kwargs.get('user', 'unknown user'))
+            add_qc_comment_in_metadata(gismo_object, text='Manual', user=user)
 
         gismo_object.save_file(**kwargs)
 
@@ -401,7 +412,7 @@ class GISMOdata(object):
 
         self.save_data_options = []     # Options for saving data
 
-        self.valid_flags = []
+        self.valid_flags = []           # Valid quality control flags
 
         self.valid_qc_routines = []     # Specify the valid qc routines
 

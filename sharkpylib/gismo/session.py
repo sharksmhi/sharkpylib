@@ -320,6 +320,14 @@ class GISMOsession(object):
     def add_compare_object(self, main_file_id, compare_file_id, **kwargs):
         pass
 
+    def get_valid_flags(self, file_id):
+        """
+        Returns the valid flags of the gismo object with the given file_id.
+        :param file_id:
+        :return:
+        """
+        return self.data_manager.get_valid_flags(file_id)
+
     def flag_data(self, file_id, flag, *args, **kwargs):
         """
         Created 20181005       
@@ -362,7 +370,8 @@ class GISMOsession(object):
         """
         Returns the file path for the given file_id
         """
-        return self.user_info.get_file_path(file_id)
+        gismo_object = self.get_gismo_object(file_id)
+        return os.path.abspath(gismo_object.file_path)
 
     def get_filter_options(self, file_id, **kwargs):
         """
@@ -592,8 +601,6 @@ class GISMOsession(object):
     
         return gismo_object
 
-
-
     def save_file(self, file_id, **kwargs):
         """
         Created 20181106
@@ -603,16 +610,6 @@ class GISMOsession(object):
         :return: None
         """
         self.data_manager.save_file(file_id, **kwargs)
-
-    # # ==========================================================================
-    # def get_file_id_list(self, sampling_type):
-    #     """
-    #     Created 20180713
-    #     Updated
-    #
-    #     Returns a list of the loaded files (file_id) for the given sampling type.
-    #     """
-    #     return self.user_info.get_file_id_list(sampling_type)
 
     # ==========================================================================
     def get_file_id_list(self, sampling_type=None):
