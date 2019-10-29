@@ -26,6 +26,7 @@ class GISMOdataManager(object):
     Created 20181003     
 
     Class manager to handle qc of GISMO-objects.
+    test
     """
 
     def __init__(self, factory, *args, **kwargs):
