@@ -111,8 +111,6 @@ class GISMOdataManager(object):
         self._check_file_id(file_id)
         gismo_object = self.objects.get(file_id)
 
-        user = kwargs.pop('user', 'unknown user')
-
         flag = str(flag)
         if flag not in gismo_object.valid_flags:
             raise GISMOExceptionInvalidFlag('"{}", valid flags are "{}"'.format(flag, ', '.join(gismo_object.valid_flags)))
@@ -384,9 +382,9 @@ class GISMOdataManager(object):
         gismo_object = self.objects.get(file_id)
 
         # Add manual qc comment
-        print('self.has_been_flaged', self.has_been_flaged)
         if self.has_been_flaged.get(file_id):
             add_qc_comment_in_metadata(gismo_object, text='Manual', user=user)
+            self.has_been_flaged[file_id] = False # Reset to not get duplicates
 
         gismo_object.save_file(**kwargs)
 
