@@ -6,7 +6,7 @@ from sharkpylib import __version__
 include_files = []
 for root, dirs, files in os.walk('.', topdown=False):
     for name in files:
-        if name.endswith('.txt'):
+        if name.endswith('.txt') or name.endswith('.json'):
             file_path = os.path.join(root, name).strip('.\\sharkpylib\\')
             include_files.append(file_path)
             # print(file_path)
