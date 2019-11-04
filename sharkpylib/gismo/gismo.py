@@ -419,6 +419,8 @@ class GISMOdata(object):
 
         self.metadata = None
 
+        self.nr_q_columns = 1
+
     def add_qc_comment(self, comment):
         """
 

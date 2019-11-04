@@ -288,7 +288,7 @@ class GISMOsession(object):
             os.makedirs(self.settings_files_directory)
         self.settings_files = {}
         for file_name in os.listdir(self.settings_files_directory):
-            if not file_name.endswith('ini'):
+            if not file_name.endswith('.json'):
                 continue
             self.settings_files[file_name] = os.path.join(self.settings_files_directory, file_name)
 
@@ -477,9 +477,10 @@ class GISMOsession(object):
             raise GISMOExceptionInvalidSamplingType(sampling_type)
         # print('=', self.settings_files)
         # print('-', settings_file)
-        if not settings_file.endswith('.ini'):
-            settings_file = settings_file + '.ini'
+        if not settings_file.endswith('.json'):
+            settings_file = settings_file + '.json'
         settings_file_path = self.settings_files.get(settings_file, None)
+        print(settings_file_path)
         if not settings_file_path:
             raise GISMOExceptionMissingSettingsFile
 

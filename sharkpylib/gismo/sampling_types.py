@@ -16,6 +16,7 @@ except:
 
 from .mapping import StationMapping, ParameterMapping
 from .gismo import GISMOdata
+from .. import utils
 
 from .exceptions import *
 
@@ -103,9 +104,9 @@ class GISMOfile(GISMOdata):
         self._load_station_mapping()
         self._load_parameter_mapping()
 
-        self.comment_id = self.settings.info.get('comment_id', None)
-        self.file_encoding = self.settings.info.get('encoding', 'cp1252')
-        self.column_separator = self.settings.info.get('column_separator', '\t')
+        self.comment_id = self.settings.get_data('properties', 'comment_id')
+        self.file_encoding = self.settings.get_data('properties', 'encoding')
+        self.column_separator = self.settings.get_data('properties', 'column_separator')
         if self.column_separator == 'tab':
             self.column_separator = '\t'
 
@@ -122,23 +123,25 @@ class GISMOfile(GISMOdata):
 
         self.save_data_options = ['file_path', 'overwrite']
 
-        self.valid_flags = self.settings.flag_list[:]
+        # TODO: self.valid_flags = self.settings.flag_list[:]
+        self.valid_flags = self.settings.get_flag_list()
 
         self.valid_qc_routines = []
 
     # ==========================================================================
     def _load_settings_file(self):
-        self.settings = SamplingTypeSettings(self.settings_file_path, root_directory=self.root_directory)
+        # TODO: self.settings = SamplingTypeSettings(self.settings_file_path, root_directory=self.root_directory)
+        self.settings = SamplingTypeSettings(self.settings_file_path)
 
-        self.missing_value = str(self.settings.info.missing_value)
+        # TODO: self.missing_value = str(self.settings.info.missing_value)
+        self.missing_value = self.settings.get_data('properties', 'missing_value')
 
-        nr_decimals = self.settings.info.number_of_decimals_for_float
+        # TODO: nr_decimals = self.settings.info.number_of_decimals_for_float
+        nr_decimals = self.settings.get_data('properties', 'number_of_decimals_for_float')
         if nr_decimals:
             self.nr_decimals = '%s.%sf' % ('%', nr_decimals)
         else:
             self.nr_decimals = None
-
-        # self.file_encoding = self.settings
 
     def _find_mapping_files(self):
         # Mapping files
@@ -211,22 +214,10 @@ class GISMOfile(GISMOdata):
 
         self.df.fillna('', inplace=True)
 
-
-#        metadata_raw = []
-#        if kwargs.get('comment_id'):
-#            with codecs.open(self.file_path, encoding=kwargs.get('encoding', 'cp1252')) as fid:
-#                for line in fid:
-#                    if line.startswith(kwargs.get('comment_id')):
-#                        metadata_raw.append(line.strip())  # remove newline
-#                    else:
-#                        # No more comments
-#                        break
-#
-#        self.df = pd.read_csv(self.file_path, sep='\t', skipinitialspace=True, dtype={0: str},
-#                              encoding=self.file_encoding, comment=kwargs.get('comment_id', None))
-
         # Find station id (platform type)
-        station = self.settings.column.station
+        # TODO: station = self.settings.column.station
+        station = self.settings.get_data('mandatory_columns', 'station')
+
         if 'index' in station:
             col = int(station.split('=')[-1].strip())
             self.external_station_name = self.df.columns[col]
@@ -248,9 +239,6 @@ class GISMOfile(GISMOdata):
         self.qpar_list = sorted([par for par in self.parameters_external if self.get_qf_par(par) not in [None, False]])
         self.mapped_parameters = [self.parameter_mapping.get_internal(par) for par in self.qpar_list]
 
-        # Set type of flags to str
-#        for qpar in self.qpar_list:
-#            self.df[qpar] = self.df[qpar].astype(str)
 
     # ==========================================================================
     def _do_import_changes(self, **kwargs):
@@ -315,15 +303,16 @@ class GISMOfile(GISMOdata):
                         '%Y-%m-%d%H.%M']
         self.time_format = None
         datetime_list = []
-        time_par = self.settings.column.time
+        # TODO: time_par = self.settings.column.time
+        time_par = self.settings.get_data('mandatory_columns', 'time')
         if 'index' in time_par:
             # At this moment mainly for CMEMS-files
             time_par = self.df.columns[int(time_par.split('=')[-1].strip())]
             self.df['time'] = pd.to_datetime(self.df[time_par], format=self.time_format)
         else:
-            time_pars = self.settings.column.get_list('time')
-
-            self.df['time'] = self.df[time_pars].apply(apply_datetime_object_to_df, axis=1)
+            # TODO: time_pars = self.settings.column.get_list('time')
+            # TODO: self.df['time'] = self.df[time_pars].apply(apply_datetime_object_to_df, axis=1)
+            self.df['time'] = self.df[time_par].apply(apply_datetime_object_to_df, axis=1)
             # print(time_pars)
             # for i in range(len(self.df)):
             #     # First look in settings and combine
@@ -348,8 +337,10 @@ class GISMOfile(GISMOdata):
 
         # ----------------------------------------------------------------------
         # Position
-        lat_par = self.parameter_mapping.get_external(self.settings.column.lat)
-        lon_par = self.parameter_mapping.get_external(self.settings.column.lon)
+        # TODO: lat_par = self.parameter_mapping.get_external(self.settings.column.lat)
+        # TODO: lon_par = self.parameter_mapping.get_external(self.settings.column.lon)
+        lat_par = self.parameter_mapping.get_external(self.settings.get_data('mandatory_columns', 'lat'))
+        lon_par = self.parameter_mapping.get_external(self.settings.get_data('mandatory_columns', 'lon'))
 
         self.df['lat'] = self.df[lat_par]
         self.df['lon'] = self.df[lon_par]
@@ -362,7 +353,8 @@ class GISMOfile(GISMOdata):
         if kwargs.get('depth', None) is not None:
             self.df['depth'] = kwargs.get('depth')
         else:
-            depth_par = self.parameter_mapping.get_external(self.settings.column.depth)
+            # TODO: depth_par = self.parameter_mapping.get_external(self.settings.column.depth)
+            depth_par = self.parameter_mapping.get_external(self.settings.get_data('mandatory_columns', 'depth'))
             self.df['depth'] = self.df[depth_par].astype(float)
         self.df['visit_depth_id'] = self.df['lat'].astype(str) + self.df['lon'].astype(str) + self.df['time'].astype(
             str) + self.df['depth'].astype(str)
@@ -633,7 +625,7 @@ class GISMOfile(GISMOdata):
 
         par = self.parameter_mapping.get_external(par)
         # print('FLAG, dependent', par, type(par))
-        return self.settings['dependencies'].get(par, [])
+        return self.settings.get_data('dependent_parameters', par, [])
 
     def get_parameter_list(self, **kwargs):
         if kwargs.get('external'):
@@ -717,8 +709,10 @@ class GISMOfile(GISMOdata):
         :param par:
         :return:
         """
-        prefix = self.settings.parameter_mapping.qf_prefix
-        suffix = self.settings.parameter_mapping.qf_suffix
+        # TODO: prefix = self.settings.parameter_mapping.qf_prefix
+        # TODO: suffix = self.settings.parameter_mapping.qf_suffix
+        prefix = self.settings.get_data('parameter_mapping', 'qf_prefix')
+        suffix = self.settings.get_data('parameter_mapping', 'qf_suffix')
         # First check if prefix and/or suffix is given
         if not any([prefix, suffix]):
             print('No prefix or suffix given to this QF parameter')
@@ -727,9 +721,12 @@ class GISMOfile(GISMOdata):
         if par in self.parameters_internal:
             par = self.internal_to_external[par]
 
-        #         print 'par=', par
-        if self.settings.parameter_mapping.unit_starts_with:
-            par = par.split(self.settings.parameter_mapping.unit_starts_with)[0].strip()
+        # TODO:
+        # if self.settings.parameter_mapping.unit_starts_with:
+        #     par = par.split(self.settings.parameter_mapping.unit_starts_with)[0].strip()
+        unit_starts_with = self.settings.get_data('parameter_mapping', 'unit_starts_with')
+        if unit_starts_with:
+            par = par.split(unit_starts_with)[0].strip()
         #             print 'par-', par
 
         # QF parameter is found whenever prefix or suffix matches the given par.
@@ -799,8 +796,21 @@ class GISMOfile(GISMOdata):
                 fid.write('\n')
 
 
-# ==============================================================================
-# ==============================================================================
+class StandardFormatNODC(GISMOfile):
+    """
+    The standard format for NODC includes 3 qc columns for each parameter.
+    """
+
+    def __init__(self, **kwargs):
+        GISMOfile.__init__(self, **kwargs)
+
+    def __str__(self):
+        return f'Standard format NODC file: {self.file_id}'
+
+    def __repr__(self):
+        return f'{self.__class__.__name__}({self.file_id}'
+
+
 class CMEMSferrybox(GISMOfile):
     """
     A GISMO-file only has data from one platform.
@@ -1128,7 +1138,7 @@ class SHARKmetadataStandardBase(object):
     class CommentQC(MetadataBase):
         def __init__(self, **kwargs):
             super().__init__(**kwargs)
-            self.metadata_id = 'QC_COMMENT'
+            self.metadata_id = 'COMMENT_QC'
             self.data = []
 
         def add(self, comment):
@@ -1219,7 +1229,7 @@ class SHARKmetadataStandardBase(object):
 
 # ==============================================================================
 # ==============================================================================
-class SamplingTypeSettings(dict):
+class old_SamplingTypeSettings(dict):
     """
     Reads and stores information from a "GISMO" Settings file.
     """
@@ -1431,9 +1441,103 @@ class SamplingTypeSettings(dict):
     def _get_default_dict(self):
         pass
 
+class SamplingTypeSettings(object):
+    def __init__(self, file_name, directory=None, data={}):
+        self.file_name = file_name
+        self.directory = directory
+        self.data = data
 
-# ==============================================================================
-# ==============================================================================
+        if not self.directory:
+            self.directory = self._get_settings_files_directory()
+
+        self.file_path = os.path.join(self.directory, self.file_name)
+
+        if not data:
+            self._load(True)
+
+    def __str__(self):
+        return f'Settings file: {self.file_name}'
+
+    def __repr__(self):
+        return f'{self.__class__.__name__}({self.file_name, self.directory}'
+
+    @property
+    def file_name(self):
+        return self.__file_name
+
+    @file_name.setter
+    def file_name(self, file_name, directory=None):
+        if not directory:
+            directory = self._get_settings_files_directory()
+        self.__file_name = file_name
+        self.directory = directory
+        self.file_path = os.path.join(self.directory, self.file_name)
+
+    def _get_settings_files_directory(self):
+        return os.path.join(os.path.dirname(__file__), 'settings_files')
+
+    def _save(self):
+        utils.save_json(self.data, self.file_path, encoding='cp1252')
+
+    def _load(self, create_if_missing=False):
+        self.data = utils.load_json(self.file_path, create_if_missing=create_if_missing, encoding='cp1252')
+
+    def get_all_data(self):
+        return self.data.copy()
+
+    def save(self):
+        self._save()
+
+    def get_data(self, info_type, key, default=None):
+        """
+        Returns data from the info_type from the given key.
+        :param info_type:
+        :param key:
+        :return:
+        """
+        if self.data.get(info_type, None) is None:
+            raise GISMOExceptionInvalidOption(f'info_type: {info_type}')
+
+        value = self.data.get(info_type).get('data').get(key, None)
+        if value is None:
+            if default is None:
+                raise GISMOExceptionInvalidOption(f'key: {key}')
+            else:
+                value = default
+        return value
+
+    def set_data(self, info_type, key, value):
+        type_value = type(self.get_data(info_type, key))
+        if type_value != type(value):
+            raise TypeError(f'{value} must be of type {type_value} not {type(value)}')
+        self.data[info_type]['data'][key] = value
+
+    def get_flag_list(self):
+        return self.data.get('flags').get('data').keys()
+
+    def get_flag_description(self, flag):
+        return self.data.get('flags').get('data').get(flag)
+
+    def get_flag_description_list(self):
+        return self.data.get('flags').get('data').values()
+
+    def get_flag_from_description(self, description):
+        for key, value in self.data.get('flags').get('data').items():
+            if value == description:
+                return key
+
+    def old_get_flag_prop_dict(self, flag):
+        flag = str(flag)
+        if self:
+            dont_include = ['qf', 'description']
+            # print('='*50)
+            # print(self['flags'][flag])
+            # print('=' * 50)
+            return {par: item for par, item in self['flags'][flag].items() if par not in dont_include}
+        else:
+            return {}
+
+
 class SHARKfilePhysicalChemichal(GISMOfile):
     """
     Class to hold data from SHARK (Svenskt HAvsaRKiv).

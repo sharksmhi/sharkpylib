@@ -7,6 +7,7 @@ from . import mapping
 from . import qc_routines
 from . import sampling_types
 from . import session
+from . import files
 
 from .qc import *
 

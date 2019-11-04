@@ -161,14 +161,22 @@ class ParameterMapping(ColumnMapping):
     def __init__(self, settings_object=None, mapping_files=None):
 
         self.mapping_files = mapping_files
-        local_file_path = self.mapping_files.get(settings_object.parameter_mapping.file_name)
+        # TODO: local_file_path = self.mapping_files.get(settings_object.parameter_mapping.file_name)
+        local_file_path = self.mapping_files.get(settings_object.get_data('parameter_mapping', 'file_name'))
         ColumnMapping.__init__(self,
                                # source_file_path=settings_object.parameter_mapping.source_file_path,
                                # local_file_path=settings_object.parameter_mapping.local_file_path,
                                local_file_path=local_file_path,
-                               internal_column=settings_object.parameter_mapping.internal_column, 
-                               external_column=settings_object.parameter_mapping.external_column,
-                               unit_column=settings_object.parameter_mapping.unit_column)
+                               internal_column=settings_object.get_data('parameter_mapping', 'internal_column'),
+                               external_column=settings_object.get_data('parameter_mapping', 'external_column'),
+                               unit_column=settings_object.get_data('parameter_mapping', 'unit_column'))
+        # ColumnMapping.__init__(self,
+        #                        # source_file_path=settings_object.parameter_mapping.source_file_path,
+        #                        # local_file_path=settings_object.parameter_mapping.local_file_path,
+        #                        local_file_path=local_file_path,
+        #                        internal_column=settings_object.parameter_mapping.internal_column,
+        #                        external_column=settings_object.parameter_mapping.external_column,
+        #                        unit_column=settings_object.parameter_mapping.unit_column)
 
 
 
@@ -208,10 +216,13 @@ class StationMapping():
             for item in ['header_starts_with', 'external_column',
                          'internal_column', 'platform_type_column', 'encoding']:
                 try:
-                    setattr(self, item, getattr(settings_object.station_mapping, item))
+                    # TODO: setattr(self, item, getattr(settings_object.station_mapping, item))
+                    setattr(self, item, settings_object.get_data('station_mapping', item))
                 except:
-                    print('Could not add attribute: %s' % item)
-            self.local_file_path = self.mapping_files.get(settings_object.station_mapping.file_name)
+                    raise ValueError('Could not add attribute: %s' % item)
+
+            # TODO: self.local_file_path = self.mapping_files.get(settings_object.station_mapping.file_name)
+            self.local_file_path = self.mapping_files.get(settings_object.get_data('station_mapping', 'file_name'))
         else:
             # self.source_file_path = source_file_path
             self.local_file_path = local_file_path
@@ -222,27 +233,6 @@ class StationMapping():
             self.encoding = encoding
 
         self._load_file()
-        # self.update_file()
-    
-    # #===========================================================================
-    # def update_file(self):
-    #     """
-    #     Copies the current version of the file from the source.
-    #     """
-    #     if os.path.exists(self.source_file_path):
-    #
-    #         if os.path.exists(self.local_file_path):
-    #             os.remove(self.local_file_path)
-    #
-    #         try:
-    #             if self.source_file_path != self.local_file_path:
-    #                 shutil.copy2(self.source_file_path, self.local_file_path)
-    #         except:
-    #             print('Could not copy file...')
-    #             print('From: "%s"' % self.source_file_path)
-    #             print('To: "%s"' % self.local_file_path)
-    #
-    #     self._load_file()
         
     #===========================================================================
     def _load_file(self):

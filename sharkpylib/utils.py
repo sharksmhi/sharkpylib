@@ -6,6 +6,7 @@ import re
 import os
 import socket
 import json
+import codecs
 
 try:
     import matplotlib.colors as mcolors
@@ -101,31 +102,38 @@ def save_json(data, *args, **kwargs):
     :param kwargs: Options for json output format.
     :return:
     """
-    file_path = os.path.join(args)
+    file_path = os.path.join(*args)
     if not file_path.endswith('.json'):
         raise ValueError
+
+    encoding = kwargs.pop('encoding', 'utf-8')
 
     kw = dict(sort_keys=True,
               indent='\t',
               separators=(',', ': '))
     kw.update(**kwargs)
-    with open(file_path, 'w') as fid:
+    with codecs.open(file_path, 'w', encoding=encoding) as fid:
         json.dump(data, fid, **kw)
 
 
-def load_json(*args):
+def load_json(*args, **kwargs):
     """
     :param args: file path or parts of file path.
     :return:
     """
-    file_path = os.path.join(args)
-    if not os.path.exists(file_path):
-        raise FileNotFoundError
+    data = None
+    file_path = os.path.join(*args)
     if not file_path.endswith('.json'):
         raise ValueError
+    if kwargs.get('create_if_missing'):
+        if not os.path.exists(file_path):
+            save_json({}, file_path)
     if not os.path.exists(file_path):
-        with open(file_path) as fid:
-            data = json.load(fid)
+        raise FileNotFoundError
+
+    encoding = kwargs.pop('encoding', 'utf-8')
+    with codecs.open(file_path, encoding=encoding) as fid:
+        data = json.load(fid)
     return data
 
 
