@@ -85,7 +85,7 @@ class GISMOfile(GISMOdata):
     A GISMO-file only has data from one sampling type.
     """
     # ==========================================================================
-    def __init__(self, data_file_path=None, settings_file_path=None, root_directory=None, mapping_files_directory=None, **kwargs):
+    def __init__(self, data_file_path=None, settings_file_path=None, root_directory=None, mapping_files=None, **kwargs):
 
         GISMOdata.__init__(self, **kwargs)
         # super().__init__()
@@ -95,11 +95,10 @@ class GISMOfile(GISMOdata):
         self.settings_file_path = settings_file_path
         self.export_df = None
         self.root_directory = root_directory
-        self.mapping_files_directory = mapping_files_directory
+        self.mapping_files = mapping_files
 
         self.sampling_type = kwargs.get('sampling_type', '')
 
-        self._find_mapping_files()
         self._load_settings_file()
         self._load_station_mapping()
         self._load_parameter_mapping()
@@ -143,15 +142,15 @@ class GISMOfile(GISMOdata):
         else:
             self.nr_decimals = None
 
-    def _find_mapping_files(self):
-        # Mapping files
-        if not os.path.exists(self.mapping_files_directory):
-            os.makedirs(self.mapping_files_directory)
-        self.mapping_files = {}
-        for file_name in os.listdir(self.mapping_files_directory):
-            if not file_name.endswith('txt'):
-                continue
-            self.mapping_files[file_name] = os.path.join(self.mapping_files_directory, file_name)
+    # def _find_mapping_files(self):
+    #     # Mapping files
+    #     if not os.path.exists(self.mapping_files_directory):
+    #         os.makedirs(self.mapping_files_directory)
+    #     self.mapping_files = {}
+    #     for file_name in os.listdir(self.mapping_files_directory):
+    #         if not file_name.endswith('txt'):
+    #             continue
+    #         self.mapping_files[file_name] = os.path.join(self.mapping_files_directory, file_name)
 
     # ==========================================================================
     def _load_station_mapping(self):

@@ -162,7 +162,10 @@ class ParameterMapping(ColumnMapping):
 
         self.mapping_files = mapping_files
         # TODO: local_file_path = self.mapping_files.get(settings_object.parameter_mapping.file_name)
-        local_file_path = self.mapping_files.get(settings_object.get_data('parameter_mapping', 'file_name'))
+        # local_file_path = self.mapping_files.get(settings_object.get_data('parameter_mapping', 'file_name'))
+        local_file_path = self.mapping_files.get_path(settings_object.get_data('parameter_mapping', 'file_name'))
+        if not local_file_path:
+            raise FileNotFoundError(settings_object.get_data('parameter_mapping', 'file_name'))
         ColumnMapping.__init__(self,
                                # source_file_path=settings_object.parameter_mapping.source_file_path,
                                # local_file_path=settings_object.parameter_mapping.local_file_path,
@@ -197,7 +200,7 @@ class StationMapping():
                  internal_column=None,
                  platform_type_column=None, 
                  encoding=None,
-                 mapping_files={}):
+                 mapping_files=None):
                      
         """
         kwargs is for arguments in codecs.open. 
@@ -222,7 +225,8 @@ class StationMapping():
                     raise ValueError('Could not add attribute: %s' % item)
 
             # TODO: self.local_file_path = self.mapping_files.get(settings_object.station_mapping.file_name)
-            self.local_file_path = self.mapping_files.get(settings_object.get_data('station_mapping', 'file_name'))
+            # self.local_file_path = self.mapping_files.get(settings_object.get_data('station_mapping', 'file_name'))
+            self.local_file_path = self.mapping_files.get_path(settings_object.get_data('station_mapping', 'file_name'))
         else:
             # self.source_file_path = source_file_path
             self.local_file_path = local_file_path

@@ -12,6 +12,7 @@ from .exceptions import *
 
 from .gismo import GISMOdataManager
 from .gismo import GISMOqcManager
+from .files import SettingsFiles, MappingFiles
 
 
 import os 
@@ -237,8 +238,6 @@ class GISMOsession(object):
     def __init__(self,
                  root_directory='',
                  users_directory='',
-                 mapping_files_directory='',
-                 settings_files_directory='',
                  log_directory='',
                  user='default',
                  sampling_types_factory=None,
@@ -255,7 +254,7 @@ class GISMOsession(object):
             save_pkl
         """
         gismo_logger.info('Start session')
-        if not all([users_directory, user, sampling_types_factory, mapping_files_directory, settings_files_directory]):
+        if not all([users_directory, user, sampling_types_factory]):
             raise GISMOExceptionMissingInputArgument
 
         print('HELP')
@@ -264,8 +263,6 @@ class GISMOsession(object):
         self.users_directory = users_directory
         self.log_directory = log_directory
         self.save_pkl = kwargs.get('save_pkl', False)
-        self.mapping_files_directory = mapping_files_directory
-        self.settings_files_directory = settings_files_directory
 
         self.sampling_types_factory = sampling_types_factory
         self.qc_routines_factory = qc_routines_factory
@@ -284,22 +281,25 @@ class GISMOsession(object):
 
     def _load_attributes(self):
         # Settings files
-        if not os.path.exists(self.settings_files_directory):
-            os.makedirs(self.settings_files_directory)
-        self.settings_files = {}
-        for file_name in os.listdir(self.settings_files_directory):
-            if not file_name.endswith('.json'):
-                continue
-            self.settings_files[file_name] = os.path.join(self.settings_files_directory, file_name)
+        self.settings_files = SettingsFiles()
+
+        # if not os.path.exists(self.settings_files_directory):
+        #     os.makedirs(self.settings_files_directory)
+        # self.settings_files = {}
+        # for file_name in os.listdir(self.settings_files_directory):
+        #     if not file_name.endswith('.json'):
+        #         continue
+        #     self.settings_files[file_name] = os.path.join(self.settings_files_directory, file_name)
 
         # Mapping files
-        if not os.path.exists(self.mapping_files_directory):
-            os.makedirs(self.mapping_files_directory)
-        self.mapping_files = {}
-        for file_name in os.listdir(self.mapping_files_directory):
-            if not file_name.endswith('txt'):
-                continue
-            self.mapping_files[file_name] = os.path.join(self.mapping_files_directory, file_name)
+        self.mapping_files = MappingFiles()
+        # if not os.path.exists(self.mapping_files_directory):
+        #     os.makedirs(self.mapping_files_directory)
+        # self.mapping_files = {}
+        # for file_name in os.listdir(self.mapping_files_directory):
+        #     if not file_name.endswith('txt'):
+        #         continue
+        #     self.mapping_files[file_name] = os.path.join(self.mapping_files_directory, file_name)
     
     # ==========================================================================
     def _startup_session(self):
@@ -316,6 +316,12 @@ class GISMOsession(object):
         # # Initate Boxen that will hold all data
         # self.boxen = gtb_core.Boxen(controller=self,
         #                             root_directory=self.root_directory)
+
+    def add_settings_directory(self, directory):
+        self.settings_files.add_directory(directory)
+
+    def add_mapping_directory(self, directory):
+        self.mapping_files.add_directory(directory)
 
     def add_compare_object(self, main_file_id, compare_file_id, **kwargs):
         pass
@@ -477,17 +483,19 @@ class GISMOsession(object):
             raise GISMOExceptionInvalidSamplingType(sampling_type)
         # print('=', self.settings_files)
         # print('-', settings_file)
-        if not settings_file.endswith('.json'):
-            settings_file = settings_file + '.json'
-        settings_file_path = self.settings_files.get(settings_file, None)
-        print(settings_file_path)
+        # if not settings_file.endswith('.json'):
+        #     settings_file = settings_file + '.json'
+        # settings_file_path = self.settings_files.get(settings_file, None)
+        settings_file_path = self.settings_files.get_path(settings_file)
+
         if not settings_file_path:
             raise GISMOExceptionMissingSettingsFile
 
         kw = dict(data_file_path=data_file_path,
                   settings_file_path=settings_file_path,
                   # root_directory=self.root_directory,
-                  mapping_files_directory=self.mapping_files_directory)
+                  # mapping_files_directory=self.mapping_files_directory,
+                  )
         kw.update(kwargs)
 
         # Check sampling type requirements
@@ -535,7 +543,8 @@ class GISMOsession(object):
                                         # root_directory=self.root_directory, # Given in kwargs
                                         save_pkl=self.save_pkl,
                                         pkl_file_path=data_file_path_pkl,
-                                        mapping_files_directory=self.mapping_files_directory,
+                                        mapping_files=self.mapping_files,
+                                        # mapping_files_directory=self.mapping_files_directory,
                                         **kwargs)
 
         else:
