@@ -1512,13 +1512,10 @@ class SamplingTypeSettings(object):
         self.data[info_type]['data'][key] = value
 
     def get_flag_list(self):
-        return self.data.get('flags').get('data').keys()
+        return list(self.data.get('flags').get('data').keys())
 
     def get_flag_description(self, flag):
         return self.data.get('flags').get('data').get(flag)
-
-    def get_flag_description_list(self):
-        return self.data.get('flags').get('data').values()
 
     def get_flag_from_description(self, description):
         for key, value in self.data.get('flags').get('data').items():
