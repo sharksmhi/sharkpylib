@@ -457,7 +457,11 @@ class ComboboxWidget(tk.Frame):
             self.stringvar.set('')
             
         self.selected_item = self.stringvar.get()
-        
+
+    def delete_item(self, item):
+        if item in self.items:
+            self.items.pop(self.items.index(item))
+        self.update_items(self.items, default_item=self.selected_item)
 """
 ================================================================================
 ================================================================================
@@ -1295,6 +1299,9 @@ class ListboxWidget(tk.Frame):
 #            self.items = [u'<blank>'] + self.items 
         for item in self.items:  
             self.listbox.insert('end', item)
+
+    def get_items(self):
+        return self.items[:]
     
 """
 ================================================================================

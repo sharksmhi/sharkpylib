@@ -1440,11 +1440,14 @@ class old_SamplingTypeSettings(dict):
     def _get_default_dict(self):
         pass
 
+
 class SamplingTypeSettings(object):
     def __init__(self, file_name, directory=None, data={}):
         self.file_name = file_name
         self.directory = directory
         self.data = data
+
+        self._add_suffix()
 
         if not self.directory:
             self.directory = self._get_settings_files_directory()
@@ -1460,15 +1463,30 @@ class SamplingTypeSettings(object):
     def __repr__(self):
         return f'{self.__class__.__name__}({self.file_name, self.directory}'
 
+    def _add_suffix(self):
+        if not self.file_name.endswith('.json'):
+            self.__file_name = self.file_name + '.json'
+
     @property
     def file_name(self):
         return self.__file_name
 
     @file_name.setter
-    def file_name(self, file_name, directory=None):
-        if not directory:
+    def file_name(self, items):
+        if type(items) == list or type(items) == tuple:
+            if len(items) == 2:
+                # Second item is directory
+                file_name = items[0]
+                directory = items[1]
+            else:
+                file_name = items[0]
+                directory = self._get_settings_files_directory()
+        else:
+            file_name = items
             directory = self._get_settings_files_directory()
+
         self.__file_name = file_name
+        self._add_suffix()
         self.directory = directory
         self.file_path = os.path.join(self.directory, self.file_name)
 
@@ -1487,29 +1505,46 @@ class SamplingTypeSettings(object):
     def save(self):
         self._save()
 
-    def get_data(self, info_type, key, default=None):
+    def _check_info_type(self, info_type):
+        if self.data.get(info_type, None) is None:
+            raise GISMOExceptionInvalidOption(f'info_type: {info_type}')
+
+    def get_data(self, info_type, key=None, default=None):
         """
         Returns data from the info_type from the given key.
         :param info_type:
         :param key:
         :return:
         """
-        if self.data.get(info_type, None) is None:
-            raise GISMOExceptionInvalidOption(f'info_type: {info_type}')
+        self._check_info_type(info_type)
 
-        value = self.data.get(info_type).get('data').get(key, None)
-        if value is None:
-            if default is None:
-                raise GISMOExceptionInvalidOption(f'key: {key}')
-            else:
-                value = default
-        return value
+        if key:
+            value = self.data.get(info_type).get('data').get(key, None)
+            if value is None:
+                if default is None:
+                    raise GISMOExceptionInvalidOption(f'key: {key}')
+                else:
+                    value = default
+            return value
+        else:
+            return self.data.get(info_type).get('data')
 
     def set_data(self, info_type, key, value):
         type_value = type(self.get_data(info_type, key))
         if type_value != type(value):
             raise TypeError(f'{value} must be of type {type_value} not {type(value)}')
         self.data[info_type]['data'][key] = value
+
+    def add_data(self, info_type, key, value):
+        self._check_info_type(info_type)
+        if key not in self.data[info_type]:
+            self.data[info_type]['data'][key] = value
+
+    def remove_data(self, info_type, key):
+        self._check_info_type(info_type)
+
+        if key in self.data[info_type]:
+            self.data[info_type].pop(key)
 
     def get_flag_list(self):
         return list(self.data.get('flags').get('data').keys())
@@ -1521,17 +1556,6 @@ class SamplingTypeSettings(object):
         for key, value in self.data.get('flags').get('data').items():
             if value == description:
                 return key
-
-    def old_get_flag_prop_dict(self, flag):
-        flag = str(flag)
-        if self:
-            dont_include = ['qf', 'description']
-            # print('='*50)
-            # print(self['flags'][flag])
-            # print('=' * 50)
-            return {par: item for par, item in self['flags'][flag].items() if par not in dont_include}
-        else:
-            return {}
 
 
 class SHARKfilePhysicalChemichal(GISMOfile):

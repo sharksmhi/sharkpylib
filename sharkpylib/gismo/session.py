@@ -253,6 +253,7 @@ class GISMOsession(object):
         kwargs can include:
             save_pkl
         """
+        print('SESSION')
         gismo_logger.info('Start session')
         if not all([users_directory, user, sampling_types_factory]):
             raise GISMOExceptionMissingInputArgument
