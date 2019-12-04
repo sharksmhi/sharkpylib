@@ -9,9 +9,14 @@ import codecs
 import datetime
 import time
 import numpy as np
-from .. import loglib
-from .. import mappinglib
-from .. import exceptionlib
+import sharkpylib
+from sharkpylib import loglib
+from sharkpylib import mappinglib
+from sharkpylib import exceptionlib
+
+from sharkpylib.file.file_handlers import MappingDirectory
+from sharkpylib.file.file_handlers import ListDirectory
+from sharkpylib.file.file_handlers import Directory
 
 try:
     import pandas as pd
@@ -81,6 +86,8 @@ class File(object):
         self.time_in_file_name_formats = ['TP_%Y%m%d%H%M%S.mit']
         self._add_file_path_time()
 
+        self.time_frozen_between = []
+
         if kwargs.get('load_file'):
             self.load_file()
 
@@ -138,6 +145,39 @@ class File(object):
             
         self.df['source_file'] = self.file_name
 
+    def _remove_duplicates(self):
+        # print('REMOVE DUPLICATES', self.file_id)
+        # First save missing periodes
+        dub_boolean = self.df.duplicated('time', keep=False)
+        between = []
+        missing_period = []
+        for i, t0, b0, t1, b1 in zip(self.df.index[:-1], self.df['time'].values[:-1], dub_boolean.values[:-1],
+                                     self.df['time'].values[1:], dub_boolean.values[1:]):
+            if i == 0 and b0:
+                missing_period.append('?')
+            if b1 and not b0:
+                #         t0s = pd.to_datetime(t0).strftime('%Y%m%d%H%M%S')
+                #         missing_period.append(t0s)
+                missing_period.append(t0)
+            elif b0 and not b1:
+                #         t1s = pd.to_datetime(t1).strftime('%Y%m%d%H%M%S')
+                #         missing_period.append(t1s)
+                missing_period.append(t1)
+            #     print(missing_period)
+            if len(missing_period) == 2:
+                between.append(missing_period)
+                #         between.append('-'.join(missing_period))
+                missing_period = []
+        if missing_period:
+            missing_period.append('?')
+            between.append(missing_period)
+        #     between.append('-'.join(missing_period))
+        # print('between:', len(between))
+        self.time_frozen_between = between
+
+        # Now drop all duplicates
+        self.df.drop_duplicates('time', keep=False, inplace=True)
+
     def valid_data_line(self, line):
         if 'DD.MM.YYYY' in line:
             # print('DD.MM.YYYY', self.file_path)
@@ -169,6 +209,7 @@ class File(object):
         self.original_columns = header[:]
         self.df = pd.DataFrame(data, columns=header)
         self._add_columns()
+        self._remove_duplicates()
         self.filter_data()
         self._delete_columns()
         self.data_loaded = True
@@ -389,16 +430,28 @@ class FileHandler(object):
 
         self.export_directory = kwargs.get('export_directory', None)
 
+        self.save_directory = None
+
+        self.current_merge_data = pd.DataFrame()
+
         self.df_header = ['file_id', 'file_path', 'time_start', 'time_end']
 
         self.export_time_format_str = '%Y%m%d%H%M%S'
 
-        self.file_prefix = 'ferrybox-tavastland'
+        self.package_prefix = 'ferrybox-tavastland'
 
         self.objects = dict()
         self.dfs = dict()
 
         self.files_with_errors = dict()
+
+        self.metadata = []
+        self.metadata_added = {}
+
+        self.time_frozen_between = {}
+
+        list_dir_object = ListDirectory()
+        self.exclude_co2_types = list_dir_object.get_file_object('list_tavastland_exclude_types.txt', comment='#').get()
 
         self.reset_time_range()
         self.reset_data()
@@ -509,7 +562,6 @@ class FileHandler(object):
             else:
                 return None
 
-
     def set_time_range(self, time_start=None, time_end=None, time=None, file_id=None, file_type='mit'):
         """
         Selects/sets the period to work with. You can select data by giving start and end time or by file_id.
@@ -571,10 +623,10 @@ class FileHandler(object):
         self.current_data['mit'] = self.current_data['mit'].reset_index(drop=True)
         self.current_data['co2'] = self.current_data['co2'].reset_index(drop=True)
 
-        print('Load data')
-        print('mit', len(self.current_data['mit']))
-        print('co2', len(self.current_data['co2']))
-        print('Loaded in: {}'.format(time.time()-t0))
+        # print('Load data')
+        # print('mit', len(self.current_data['mit']))
+        # print('co2', len(self.current_data['co2']))
+        # print('Loaded in: {}'.format(time.time()-t0))
 
     def reset_data(self):
         self.current_data = {}
@@ -583,6 +635,7 @@ class FileHandler(object):
         self.std_val_list = []
         self.std_co2_list = []
         self.std_latest_time = None
+        self.time_frozen_between = {}
 
     def clean_files(self, export_directory, file_list=False):
         if not self.current_data:
@@ -609,14 +662,35 @@ class FileHandler(object):
         :param time_end:
         :return:
         """
+        # print('get_data_within_time_range')
+        self.time_frozen_between[file_type] = []
         object_dict = self.objects.get(file_type)
         file_id_list = self.get_file_ids_within_time_range(file_type, time_start, time_end)
+
+        ts = np.datetime64(time_start)
+        te = np.datetime64(time_end)
+
         df = pd.DataFrame()
         for file_id in file_id_list:
             if file_id in self.files_with_errors:
                 logger.warning('Discarding file {}. File has errors!'.format(file_id))
                 continue
-            df = df.append(object_dict.get(file_id).get_df())
+            object = object_dict.get(file_id)
+            df = df.append(object.get_df())
+
+            # print('file_id', file_id)
+            # print('object.time_frozen_between', object.time_frozen_between)
+            for t in object.time_frozen_between:
+                # print(t, time_start, time_end)
+                add = False
+                # print(t[0], time_start)
+                # print(type(t[0]), type(time_start))
+                if t[0] != '?' and t[0] >= ts:
+                    add = True
+                elif t[1] != '?' and t[1] <= te:
+                    add = True
+                if add:
+                    self.time_frozen_between[file_type].append(t)
 
         if not len(df):
             raise TavastlandExceptionNoCO2data('No data in time range {} - {}'.format(time_start, time_end))
@@ -648,6 +722,9 @@ class FileHandler(object):
         ts = time_start - self.time_delta
         te = time_end + self.time_delta 
         boolean = (df['time_end'] >= ts) & (df['time_end'] <= te)
+        # | (df['time_start'] <= ts) & (df['time_start'] <= te)
+        # if not any(boolean):
+        #     boolean = (df['time_end'] >= ts) & (df['time_end'] <= te)
         return sorted(df.loc[boolean, 'file_id'])
 
     def get_files_with_errors(self, file_type):
@@ -726,6 +803,12 @@ class FileHandler(object):
                                                                                                  self.time_delta.seconds))
         self._sort_merge_data_columns()
 
+        # Add merge comment
+        if not self.metadata_added.get('time_tolerance'):
+            self.metadata = [f'COMMENT_MERGE;{self._get_time_string()};Data merged with time tolerance '
+                             f'{self.time_delta.seconds} seconds.']
+            self.metadata_added['time_tolerance'] = True
+
     def _sort_merge_data_columns(self):
         columns = sorted(self.current_merge_data.columns)
         columns.pop(columns.index('time'))
@@ -733,6 +816,16 @@ class FileHandler(object):
         columns.pop(columns.index('lon'))
         new_columns = ['time', 'lat', 'lon'] + columns
         self.current_merge_data = self.current_merge_data[new_columns]
+        self.current_merge_data.fillna('', inplace=True)
+
+    def _mapp_columns(self):
+        mapping_dir_object = MappingDirectory()
+        mapping = mapping_dir_object.get_file_object('mapping_tavastland.txt', from_col='co2_merged_file', to_col='nodc')
+        self.current_merge_data.columns = mapping.get_mapped_list(self.current_merge_data.columns)
+
+    def _remove_types(self):
+        boolean = self.current_merge_data['co2_Type'].isin(self.exclude_co2_types)
+        self.current_merge_data.loc[boolean, self.co2_columns] = ''
 
     def remove_areas(self, file_path):
         """
@@ -784,7 +877,7 @@ class FileHandler(object):
                   (self.current_merge_data['time'] <= self.current_time_end)
         return self.current_merge_data.loc[boolean, :].copy()
 
-    def map_header_like_iocftp(self):
+    def old_map_header_like_iocftp(self):
         """
         :return:
         """
@@ -799,7 +892,7 @@ class FileHandler(object):
 
         self.current_merge_data.columns = new_header
 
-    def map_header_like_internal(self):
+    def old_map_header_like_internal(self):
         """
         :return:
         """
@@ -843,14 +936,21 @@ class FileHandler(object):
 
         self._sort_merge_data_columns()
 
+        self._remove_types()
+
+        self._mapp_columns()
+
     def _calculate_pCO2(self):
 
         salinity_par = 'mit_Sosal'
         temp_par = 'mit_Soxtemp'
-        equ_temp_par = 'co2_equ_temp'
+        equ_temp_par = 'co2_equ temp'
 
         # Tequ = self.current_merge_data['co2_equ temp'].astype(float) + 273.15  # temp in Kelvin
-        Tequ = np.array([as_float(item) for item in self.current_merge_data[equ_temp_par]]) + 273.15  # temp in Kelvin
+        try:
+            Tequ = np.array([as_float(item) for item in self.current_merge_data[equ_temp_par]]) + 273.15  # temp in Kelvin
+        except:
+            raise
         self.current_merge_data['calc_Tequ'] = Tequ
 
         Pequ = self.current_merge_data['calc_Pequ']
@@ -894,6 +994,15 @@ class FileHandler(object):
         equ_press_value = as_float(series['co2_equ press'])
         licor_press_value = as_float(series['co2_licor press'])
 
+        # print('-'*30)
+        # print('SERIES')
+        # print(series['co2_time'])
+        # print(series['co2_source_file'])
+        # print(series['mit_time'])
+        # print(series['mit_source_file'])
+        if not type_value:
+            return dict()
+
         if 'STD' in type_value:
             if is_std(type_value):
                 if co2_time in self.co2_time_list:
@@ -906,12 +1015,14 @@ class FileHandler(object):
                 self.std_val_list.append(std_value)
                 self.std_co2_list.append(co2_value)
                 self.std_latest_time = series['time']
+                # print('STD: self.std_latest_time', self.std_latest_time)
                 return dict()
             else:
                 return dict()
         else:
             # Calculate/save constants if data is available
             if self.std_val_list:
+                # print('self.std_latest_time', self.std_latest_time)
                 # print()
                 # print('¤'*40)
                 # for t, st, co in zip(self.co2_time_list, self.std_val_list, self.std_co2_list):
@@ -945,7 +1056,7 @@ class FileHandler(object):
             Pequ = (equ_press_value + licor_press_value)
             # pressure due to EQU press and licor press
 
-            pCO2_dry_air = xCO2 * Pequ
+            pCO2_dry_air = xCO2 * Pequ * 1e-3
 
             # Check time since latest standard gas
             time_since_latest_std = np.nan
@@ -967,11 +1078,18 @@ class FileHandler(object):
         Returns the constants from the regression calculated from standard gases.
         :return:
         """
-        # print('#'*30)
-        # print('std_val_list', std_val_list)
-        # print('std_co2_list', std_co2_list)
-        # print(file_id)
-        adapt = np.polyfit(np.array(std_val_list), np.array(std_co2_list), 1)
+        # if len(std_val_list) < 3:
+        #     return
+        try:
+            # print('std_val_list', std_val_list, len(std_val_list)/3.)
+            # print('std_co2_list', std_co2_list, len(std_co2_list)/3.)
+            adapt = np.polyfit(np.array(std_val_list), np.array(std_co2_list), 1)
+        except:
+            # print('='*30)
+            # print(file_id)
+            # for val, co2 in zip(std_val_list, std_co2_list):
+            #     print(val, co2, type(val), type(co2))
+            raise
         self.pCO2_constants = dict(calc_k=adapt[0],
                                    calc_m=adapt[1],
                                    file_id=file_id)
@@ -1039,57 +1157,124 @@ class FileHandler(object):
         :return:
         """
         merge_data = self.get_merge_data()
-        types = []
-        for item in merge_data['co2_Type']:
-            if type(item) == str:
-                types.append(item)
-        return sorted(set(types))
+        all_types = sorted(set(merge_data['co2_Type']))
+        if '' in all_types:
+            all_types.pop(all_types.index(''))
+        return all_types
 
-    def save_mit_data(self, directory=None, **kwargs):
+    def save_data(self, directory, overwrite=False, **kwargs): 
+        self.save_dir = self._get_export_directory(directory)
+
+        if os.path.exists(self.save_dir):
+            if not overwrite:
+                raise FileExistsError('One or more files exists. Set overwrite=True to overwrite package')
+
+        if not os.path.exists(self.save_dir):
+            os.makedirs(self.save_dir)
+
+        processed_file_path = self._save_merge_data(directory=self.save_dir, **kwargs)
+        raw_mit_file_path = self._save_mit_data(directory=self.save_dir, **kwargs)
+        raw_co2_file_path = self._save_co2_data(directory=self.save_dir, **kwargs)
+
+        # Add comment to metadata
+        if not self.metadata_added.get('merged_files'):
+            mit_file_name = os.path.basename(raw_mit_file_path)
+            co2_file_name = os.path.basename(raw_co2_file_path)
+            time_string = self._get_time_string()
+            self.metadata.append(';'.join(['COMMENT_MERGE', time_string, f'Data merged are in files: {mit_file_name} and {co2_file_name}']))
+            self.metadata_added['merged_files'] = True
+
+        # Add "time frozen" comment to metadata
+        if not self.metadata_added.get('frozen_time'):
+            self._add_frozen_time_comment()
+            self.metadata_added['frozen_time'] = True
+
+        # Write metadata file
+        merge_file_base = os.path.basename(processed_file_path).split('.')[0]
+        metadata_file_path = os.path.join(self.save_dir, f'metadata_{merge_file_base}.txt')
+        self._save_metadata(metadata_file_path)
+
+        return self.save_dir
+
+    def _add_frozen_time_comment(self):
+        for file_type, between in self.time_frozen_between.items():
+            if not between:
+                continue
+            time_string = self._get_time_string()
+            between_list = []
+            for (f, t) in between:
+                if f != '?':
+                    f = pd.to_datetime(f).strftime('%Y%m%d%H%M%S')
+                if t != '?':
+                    t = pd.to_datetime(t).strftime('%Y%m%d%H%M%S')
+                between_list.append(f'{f}-{t}')
+
+            between_str = ','.join(between_list)
+
+            self.metadata.append(';'.join(
+                ['COMMENT_MERGE', time_string, f'In {file_type}-files time was frozen between: {between_str}']))
+
+    def _get_time_string(self):
+        return datetime.datetime.now().strftime('%Y-%m-%d %H:%M')
+
+    def _get_save_dir_name(self):
+        """
+        Returns the directory name to save data in. Directory name is based on platform an time span.
+        :return:
+        """
+        return '{}_{}'.format(self.package_prefix,
+                              self._get_file_time_string())
+
+    def _get_file_time_string(self):
+        return '{}_{}'.format(self.current_time_start.strftime(
+                              self.export_time_format_str),
+                              self.current_time_end.strftime(
+                              self.export_time_format_str))
+
+    def _save_metadata(self, file_path):
+        with open(file_path, 'w') as fid:
+            for item in self.metadata:
+                fid.write(f'{item}\n')
+
+    def _save_mit_data(self, directory=None, **kwargs):
         """
         Saves mit data to file. The scope is the time span used for merging. e.i the time span +- time delta.
         :param directory:
         :param kwargs:
         :return:
         """
-        directory = self._get_export_directory(directory)
         df = self.current_data['mit']
         time_list = df['time'].values
 
         file_path = os.path.join(directory,
-                                 'mit_{}_{}_{}.txt'.format(self.file_prefix,
-                                                           pd.to_datetime(time_list[0]).strftime(self.export_time_format_str),
+                                 'mit_{}_{}.txt'.format(pd.to_datetime(time_list[0]).strftime(self.export_time_format_str),
                                                            pd.to_datetime(time_list[-1]).strftime(self.export_time_format_str)))
         df.to_csv(file_path, sep='\t', index=False)
 
+        return file_path
 
-    def save_co2_data(self, directory=None, **kwargs):
+
+    def _save_co2_data(self, directory=None, **kwargs):
         """
         Saves co2 data to file. The scope is the time span used for merging. e.i the time span +- time delta.
         :param directory:
         :param kwargs:
         :return:
         """
-        directory = self._get_export_directory(directory)
         df = self.current_data['co2']
         time_list = df['time'].values
 
         file_path = os.path.join(directory,
-                                 'co2_{}_{}_{}.txt'.format(self.file_prefix,
-                                                           pd.to_datetime(time_list[0]).strftime(self.export_time_format_str),
+                                 'co2_{}_{}.txt'.format(pd.to_datetime(time_list[0]).strftime(self.export_time_format_str),
                                                            pd.to_datetime(time_list[-1]).strftime(self.export_time_format_str)))
         df.to_csv(file_path, sep='\t', index=False)
 
+        return file_path
+        
+    def _save_merge_data(self, directory=None, **kwargs):
 
-    def save_merge_data(self, directory=None, **kwargs):
-
-        directory = self._get_export_directory(directory)
-
-        file_path = os.path.join(directory, 'merge_{}_{}_{}.txt'.format(self.file_prefix,
-                                                                        self.current_time_start.strftime(
-                                                                            self.export_time_format_str),
-                                                                          self.current_time_end.strftime(
-                                                                              self.export_time_format_str)))
+        file_path = os.path.join(directory, 'merge_{}_{}.txt'.format(self.package_prefix,
+                                                                     self._get_file_time_string()))
         kw = dict(sep='\t',
                   index=False)
         merge_data = self.get_merge_data()
@@ -1109,126 +1294,66 @@ class FileHandler(object):
         :return:
         """
         if not directory:
-            directory = self.export_directory
-
+            directory = self.export_directory 
+        
         if not directory:
             raise AttributeError('No export directory found or given')
+        
+        exp_directory = os.path.join(directory, self._get_save_dir_name())
 
-        if not os.path.exists(directory):
-            os.makedirs(directory)
+        self.save_directory = exp_directory
 
-        return directory
+        return exp_directory
 
 
-class MergeIOCFTPfile(object):
-    def __init__(self, iocftp_file_path=None, data_file_path=None, **kwargs):
-        """
-        Class to merge (and save) an iocftp file with its original data.
-        Time span and "name" must be the same in the two file names. Time is checked in files so that they match.
-        :param iocftp_df:
-        :param df:
-        """
-        assert iocftp_file_path
-        assert data_file_path
+class ManageTavastlandFiles(object):
+    def __init__(self, directory):
+        self.directory = directory
+        self.files_id = 'tavastland'
+        self.match_format = '\d{14}_\d{14}'
 
-        self.iocftp_file_path = iocftp_file_path
-        self.data_file_path = data_file_path
+        self.mapping_files = MappingDirectory()
+        self.mapping_file = self.mapping_files.get_path('mapping_tavastland.txt')
+        self.col_files = 'nodc'
+        self.col_qc0 = 'iocftp_number'
 
-        self._check_files()
+        self._load_directory()
 
-        self._load_files()
-        self._merge_files()
+    def _load_directory(self):
+        self.dir_object = Directory(self.directory, match_string=self.files_id, match_format=self.match_format)
 
-        save_file = kwargs.pop('save_file', None)
-        save_directory = kwargs.pop('save_directory', None)
+    def get_file_list(self):
+        return self.dir_object.get_list()
 
-        if save_file:
-            self.save_merged_file(directory=save_directory)
+    def list_files(self):
+        print('Files in directory:')
+        for file in self.get_file_list():
+            print(f'   {file}')
 
-    def _check_files(self):
-        iocftp_parts = self.iocftp_file_path.split('_')
-        data_parts = self.data_file_path.split('_')
-        if not (iocftp_parts[-1] == data_parts[-1]) & (iocftp_parts[-2] == data_parts[-2]):
-            raise exceptionlib.NonMatchingInformation('Timestamps are not the same in the given files')
+    def _get_merge_file_path(self):
+        for fname in self.get_file_list():
+            if fname.startswith('merge_'):
+                return self.dir_object.get_path(file_id=fname)
 
-    def _load_files(self):
-        self.df_iocftp = pd.read_csv(self.iocftp_file_path, sep='\t')
-        self.df_data = pd.read_csv(self.data_file_path, sep='\t')
+    def create_qc0_file(self):
+        mappinglib.create_file_for_qc0(file_path=self._get_merge_file_path(),
+                                       mapping_file_path=self.mapping_file,
+                                       file_col=self.col_files,
+                                       qc0_col=self.col_qc0,
+                                       save_file=True)
 
-        if len(self.df_iocftp) != len(self.df_data):
-            raise exceptionlib.NonMatchingData('Files ar of different length')
+    def add_nodc_qc_columns(self):
+        mappinglib.add_nodc_qc_columns_to_df(file_path=self._get_merge_file_path(),
+                                             save_file=True)
 
-    def _merge_files(self):
-        """
-        Combines files and add a QC0 column
-        :return:
-        """
-        mapping_directory_object = mappinglib.MappingDirectory()
-        platform_mapping_object = mapping_directory_object.get_mapping_object('mapping_iocftp_platforms')
-        parameter_mapping_object = mapping_directory_object.get_mapping_object('mapping_tavastland')
+    def add_qc0_info_to_nodc_column_file(self):
+        mappinglib.merge_data_from_qc0(main_file_path=self._get_merge_file_path(),
+                                       mapping_file_path=self.mapping_file,
+                                       file_col=self.col_files,
+                                       qc0_col=self.col_qc0,
+                                       save_file=True)
 
-        # IOCFTP prep
-        mapped_iocftp_columns = []
-        for col in self.df_iocftp.columns[:]:
-            if len(col) == 5:
-                # QC column
-                mapped_col = parameter_mapping_object.get(col[1:], 'iocftp_number', 'co2_merged_file')
-                col_name = 'QC0_{}'.format(mapped_col)
-            elif len(col) == 4:
-                col_name = parameter_mapping_object.get(col[1:], 'iocftp_number', 'co2_merged_file')
-            else:
-                # Platform number
-                col_name = 'time'
-            mapped_iocftp_columns.append(col_name)
 
-        self.df_iocftp.columns = mapped_iocftp_columns
-
-        # DATA prep
-        self.df_merged = self.df_data.copy().fillna('').astype(str)
-        # Create QC0 columns
-        added_columns = []
-        parent_added_column = []
-        updated_data_columns_order = []
-        qc0_flag_series = np.zeros(len(self.df_merged)).astype(int).astype(str)
-        for col in self.df_merged.columns:
-            updated_data_columns_order.append(col)
-            qc0_col = 'QC0_{}'.format(col)
-            updated_data_columns_order.append(qc0_col)
-            parent_added_column.append(col)
-            added_columns.append(qc0_col)
-
-        # Add columns
-        for col, parent_col in zip(added_columns, parent_added_column):
-            boolean = self.df_merged[parent_col] == ''
-            add_series = qc0_flag_series.copy()
-            add_series[boolean] = ''  # Check if this should be included
-            self.df_merged[col] = add_series
-
-        # Set column order
-        self.df_merged = self.df_merged[updated_data_columns_order]
-
-        # COMBINE
-        for col in self.df_merged.columns:
-            if col in self.df_iocftp.columns:
-                self.df_merged[col] = self.df_iocftp[col]
-
-    def save_merged_file(self, directory=None):
-        """
-        If directory is not given the file is saved in tha same directory as the data file.
-        File name is set according to data_file_name.
-        :param directory:
-        :return:
-        """
-        if directory is None:
-            directory = os.path.dirname(self.data_file_path)
-        if not os.path.exists(directory):
-            os.makedirs(directory)
-
-        data_file_name = os.path.basename(self.data_file_path)
-
-        file_name = 'QC0_{}'.format(data_file_name)
-        file_path = os.path.join(directory, file_name)
-        self.df_merged.to_csv(file_path, sep='\t', index=False)
 
 
 def as_float(item):
@@ -1240,8 +1365,9 @@ def as_float(item):
 def is_std(item):
     if not item.startswith('STD'):
         return False
-    if 'DRAIN' in item:
-        return False
+    # Drain is acceptable as STD: 2019-11-20
+    # if 'DRAIN' in item:
+    #     return False
     if item[-1] in ['z', 's']:
         return False
     return True

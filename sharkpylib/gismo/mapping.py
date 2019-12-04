@@ -236,6 +236,8 @@ class StationMapping():
             self.platform_type_column = platform_type_column
             self.encoding = encoding
 
+        print(self.mapping_files.get_list())
+        print(settings_object.get_data('station_mapping', 'file_name'))
         self._load_file()
         
     #===========================================================================

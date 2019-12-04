@@ -121,6 +121,11 @@ class GISMOdataManager(object):
             if key not in gismo_object.flag_data_options:
                 raise GISMOExceptionInvalidOption('{} is not a valid filter option'.format(key))
 
+        # Check for mandatory options
+        for item in gismo_object.flag_data_options_mandatory:
+            if item not in kwargs:
+                raise GISMOExceptionMissingInputArgument('Missing mandatory flag option {}'.format(item))
+
         gismo_object = self.objects.get(file_id)
         gismo_object.flag_data(flag, *args, **kwargs)
         # Add comment in metadata
@@ -151,6 +156,16 @@ class GISMOdataManager(object):
         self._check_file_id(file_id)
         return self.objects.get(file_id).flag_data_options
 
+    def get_flag_options_mandatory(self, file_id, **kwargs):
+        """
+
+        :param file_id:
+        :param kwargs:
+        :return:
+        """
+        self._check_file_id(file_id)
+        return self.objects.get(file_id).flag_data_options_mandatory
+
     def get_filtered_file_id_list(self, **kwargs):
         """
 
@@ -180,13 +195,14 @@ class GISMOdataManager(object):
         lon_min = kwargs.get('lon_min', -180.)
         lon_max = kwargs.get('lon_max', 180.)
 
-        # ----------------------------------
+        start = kwargs.get('startswith', '')
+        if type(start) != list:
+            start = [start]
 
         matching_file_id_list = []
         for file_id in self.get_file_id_list():
             gismo_object = self.objects.get(file_id)
-
-            if not file_id.startswith(kwargs.get('startswith', '')):
+            if not any([file_id.startswith(s) for s in start]):
                 continue
             # Check station
             if station:
@@ -407,6 +423,7 @@ class GISMOdata(object):
         self.parameter_list = []        # Valid data parameters
         self.filter_data_options = []   # Options for data filter (what to return in def get_data)
         self.flag_data_options = []     # Options for flagging data (where should data be flagged)
+        self.flag_data_options_mandatory = []  # Mandatory options for flagging data
         self.mask_data_options = []     # Options for masking data (replaced by "missing value"
 
         self.save_data_options = []     # Options for saving data

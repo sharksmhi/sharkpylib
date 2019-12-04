@@ -16,15 +16,15 @@
 	},
 	"flags": {
 		"data": {
-			"": "Data kontrollerad av datav\u00e4rd eller av dataleverant\u00f6r",
-			"<": "V\u00e4rdet understiger m\u00e4tomr\u00e5dets undre gr\u00e4ns (\u00e4ven kallat rapporteringsgr\u00e4ns",
-			">": "V\u00e4rdet \u00f6verstiger m\u00e4tomr\u00e5dets \u00f6vre gr\u00e4ns",
-			"B": "D\u00e5ligt/ felaktigt v\u00e4rde",
-			"E": "Misst\u00e4nkt extremv\u00e4rde som kontrollerats och funnits korrekt",
-			"M": "V\u00e4rde saknas",
-			"R": "Uppskattat v\u00e4rde (genom interpolation eller extrapolation)",
-			"S": "Misst\u00e4nkt v\u00e4rde - anses misst\u00e4nkt baserat p\u00e5 kvalitetskontroll eller brister i provtagning/ analys",
-			"Z": "Nollv\u00e4rde per definition (t.ex. syrehalt n\u00e4r svavelv\u00e4te p\u00e5visas)"
+			"": "Data kontrollerad av datavärd eller av dataleverantör",
+			"<": "Värdet understiger mätomrädets undre gräns (även kallat rapporteringsgräns",
+			">": "Värdet äverstiger mätomrädets ävre gräns",
+			"B": "Dåligt / felaktigt värde",
+			"E": "Misstänkt extremvärde som kontrollerats och funnits korrekt",
+			"M": "Värde saknas",
+			"R": "Uppskattat värde (genom interpolation eller extrapolation)",
+			"S": "Misstänkt värde - anses misstänkt baserat pä kvalitetskontroll eller brister i provtagning/ analys",
+			"Z": "Nollvärde per definition (t.ex. syrehalt när svavelväte pävisas)"
 		},
 		"info": ""
 	},
@@ -48,7 +48,7 @@
 	"parameter_mapping": {
 		"data": {
 			"external_column": "Standard format",
-			"file_name": "parameter_mapping_shark_standard.txt",
+			"file_name": "mapping_parameters_shark_standard.txt",
 			"internal_column": "Display english",
 			"unit_column": "",
 			"encoding": "cp1252",

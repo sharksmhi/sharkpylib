@@ -7,6 +7,7 @@ import os
 import socket
 import json
 import codecs
+import pathlib
 
 try:
     import matplotlib.colors as mcolors
@@ -135,5 +136,13 @@ def load_json(*args, **kwargs):
     with codecs.open(file_path, encoding=encoding) as fid:
         data = json.load(fid)
     return data
+
+
+class PathInfo(object):
+    def __init__(self, file_path):
+        self.directory = os.path.dirname(file_path)
+        self.file_name = os.path.basename(file_path)
+        self.file_base, self.extension = self.file_name.split('.')
+
 
 

@@ -12,7 +12,7 @@ from .exceptions import *
 
 from .gismo import GISMOdataManager
 from .gismo import GISMOqcManager
-from .files import SettingsFiles, MappingFiles
+from sharkpylib.file.file_handlers import SamplingTypeSettingsDirectory, MappingDirectory
 
 
 import os 
@@ -282,7 +282,7 @@ class GISMOsession(object):
 
     def _load_attributes(self):
         # Settings files
-        self.settings_files = SettingsFiles()
+        self.settings_files = SamplingTypeSettingsDirectory()
 
         # if not os.path.exists(self.settings_files_directory):
         #     os.makedirs(self.settings_files_directory)
@@ -293,7 +293,7 @@ class GISMOsession(object):
         #     self.settings_files[file_name] = os.path.join(self.settings_files_directory, file_name)
 
         # Mapping files
-        self.mapping_files = MappingFiles()
+        self.mapping_files = MappingDirectory()
         # if not os.path.exists(self.mapping_files_directory):
         #     os.makedirs(self.mapping_files_directory)
         # self.mapping_files = {}
@@ -399,6 +399,16 @@ class GISMOsession(object):
         :return: list of flag options
         """
         return self.data_manager.get_flag_options(file_id, **kwargs)
+
+    def get_flag_options_mandatory(self, file_id, **kwargs):
+        """
+        Created 20191130
+
+        :param file_id:
+        :param kwargs:
+        :return: list of mandatory flag options
+        """
+        return self.data_manager.get_flag_options_mandatory(file_id, **kwargs)
 
     def get_filtered_file_id_list(self, **kwargs):
         """

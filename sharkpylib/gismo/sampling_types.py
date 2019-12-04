@@ -18,10 +18,15 @@ from .mapping import StationMapping, ParameterMapping
 from .gismo import GISMOdata
 from .. import utils
 
+from sharkpylib.file.file_handlers import ListDirectory
+
 from .exceptions import *
 
 import logging
 logger = logging.getLogger('gismo_session')
+
+list_dir_object = ListDirectory()
+QC1_ROUTINE_LIST = list_dir_object.get_file_object('list_qc1_routines.txt').get()
 
 class PluginFactory(object):
     """
@@ -37,7 +42,8 @@ class PluginFactory(object):
         self.classes = {'Ferrybox CMEMS': CMEMSferrybox,
                         'Fixed platforms CMEMS': CMEMSFixedPlatform,
                         'PhysicalChemical SHARK': SHARKfilePhysicalChemichal,
-                        'CTD SHARK': SHARKfileStandardCTD}
+                        'DV CTD': DVStandardFormatCTD,
+                        'NODC CTD': NODCStandardFormatCTD}
 
         # ferrybox_requirements = ['data_file_path', 'settings_file_path', 'root_directory']
         ferrybox_requirements = ['data_file_path', 'settings_file_path']
@@ -46,9 +52,8 @@ class PluginFactory(object):
         self.required_arguments = {'Ferrybox CMEMS': ferrybox_requirements,
                                    'Fixed platforms CMEMS': fixed_platform_requirements,
                                    'PhysicalChemical SHARK': shark_requirements,
-                                   'CTD SHARK': shark_requirements}
-
-
+                                   'DV CTD': shark_requirements,
+                                   'NODC CTD': shark_requirements}
 
     def get_list(self):
         return sorted(self.classes)
@@ -97,6 +102,7 @@ class GISMOfile(GISMOdata):
         self.root_directory = root_directory
         self.mapping_files = mapping_files
 
+
         self.sampling_type = kwargs.get('sampling_type', '')
 
         self._load_settings_file()
@@ -135,12 +141,12 @@ class GISMOfile(GISMOdata):
         # TODO: self.missing_value = str(self.settings.info.missing_value)
         self.missing_value = self.settings.get_data('properties', 'missing_value')
 
-        # TODO: nr_decimals = self.settings.info.number_of_decimals_for_float
-        nr_decimals = self.settings.get_data('properties', 'number_of_decimals_for_float')
-        if nr_decimals:
-            self.nr_decimals = '%s.%sf' % ('%', nr_decimals)
-        else:
-            self.nr_decimals = None
+        # # TODO: nr_decimals = self.settings.info.number_of_decimals_for_float
+        # nr_decimals = self.settings.get_data('properties', 'number_of_decimals_for_float')
+        # if nr_decimals:
+        #     self.nr_decimals = '%s.%sf' % ('%', nr_decimals)
+        # else:
+        #     self.nr_decimals = None
 
     # def _find_mapping_files(self):
     #     # Mapping files
@@ -701,7 +707,6 @@ class GISMOfile(GISMOdata):
             return_dict[par] = list(self.df[qf_par])
         return return_dict
 
-    # ==========================================================================
     def get_qf_par(self, par):
         """
         Updated 20181004
@@ -795,21 +800,6 @@ class GISMOfile(GISMOdata):
                 fid.write('\n')
 
 
-class StandardFormatNODC(GISMOfile):
-    """
-    The standard format for NODC includes 3 qc columns for each parameter.
-    """
-
-    def __init__(self, **kwargs):
-        GISMOfile.__init__(self, **kwargs)
-
-    def __str__(self):
-        return f'Standard format NODC file: {self.file_id}'
-
-    def __repr__(self):
-        return f'{self.__class__.__name__}({self.file_id}'
-
-
 class CMEMSferrybox(GISMOfile):
     """
     A GISMO-file only has data from one platform.
@@ -878,7 +868,7 @@ class CMEMSFixedPlatform(GISMOfile):
 
 # ==============================================================================
 # ==============================================================================
-class SHARKfileStandardCTD(GISMOfile):
+class DVStandardFormatCTD(GISMOfile):
     """
     A DATA-file has data from several platforms. Like SHARKweb Physical/Chemical columns.
     """
@@ -902,8 +892,6 @@ class SHARKfileStandardCTD(GISMOfile):
         self.filter_data_options = self.filter_data_options + ['depth', 'depth_min', 'depth_max']
         self.flag_data_options = self.flag_data_options + ['depth', 'depth_min', 'depth_max']
         self.mask_data_options = self.mask_data_options + []
-
-        # self.metadata = SHARKmetadataStandardBase(self.metadata_raw, **kwargs)
 
         self.valid_qc_routines = ['Profile range simple', 'Profile report']
 
@@ -1140,7 +1128,10 @@ class SHARKmetadataStandardBase(object):
             self.metadata_id = 'COMMENT_QC'
             self.data = []
 
-        def add(self, comment):
+        def add(self, comment, **kwargs):
+            if type(comment) == list:
+                comment = ';'.join(comment)
+            comment = comment.strip(self.metadata_string)
             time_string = datetime.datetime.now().strftime('%Y-%m-%d %H:%M')
             self.data.append(self.delimiter.join([self.metadata_string, time_string, comment.strip()]))
 
@@ -1494,9 +1485,13 @@ class SamplingTypeSettings(object):
         return os.path.join(os.path.dirname(__file__), 'settings_files')
 
     def _save(self):
+        if self.directory == self._get_settings_files_directory():
+            print('SET', self._get_settings_files_directory())
+            raise GISMOExceptionSaveNotAllowed(self.file_path)
         utils.save_json(self.data, self.file_path, encoding='cp1252')
 
     def _load(self, create_if_missing=False):
+        print(self.file_path)
         self.data = utils.load_json(self.file_path, create_if_missing=create_if_missing, encoding='cp1252')
 
     def get_all_data(self):
@@ -1583,7 +1578,288 @@ class SHARKfilePhysicalChemichal(GISMOfile):
         self.mask_data_options = self.mask_data_options + []
 
 
-# ==============================================================================
+class NODCStandardFormatCTD(DVStandardFormatCTD):
+    """
+    The standard format for NODC includes 3 qc columns for each parameter.
+    """
+
+    def __init__(self, **kwargs):
+        super().__init__(self, **kwargs)
+
+        self.filter_data_options = self.filter_data_options + []
+        self.flag_data_options = self.flag_data_options + ['qc_routine']
+        self.flag_data_options_mandatory = ['qc_routine']
+        self.mask_data_options = self.mask_data_options + []
+
+        self.valid_qc_routines = ['Manual', 'Profile range simple', 'Profile report']
+
+        self.mapping_qf = self.mapping_files.get_file_object('mapping_quality_flags.txt')
+
+        self.valid_flags = list(set(self.valid_flags + [self.mapping_qf.get(item, from_col='DV', to_col='CMEMS')
+                                                        for item in self.valid_flags]))
+
+    def __str__(self):
+        return f'Standard format NODC file: {self.file_id}'
+
+    def __repr__(self):
+        return f'{self.__class__.__name__}({self.file_id}'
+
+    def _get_data(self, *args, **kwargs):
+        """
+        Created 20191203
+
+        :param args: parameters that you want to have data for.
+        :param kwargs: specify filter.
+        :return: dict with args as keys and list(s) as values.
+        """
+        if not args:
+            raise GISMOExceptionMissingInputArgument
+
+        # Work on external column names
+        args = dict((self.internal_to_external.get(key, key), key) for key in args)
+
+        for arg in args:
+            if arg not in self.df.columns:
+                raise GISMOExceptionInvalidInputArgument(arg)
+            elif arg not in self.parameter_list:
+                raise GISMOExceptionInvalidInputArgument(arg)
+
+
+        # Create filter boolean
+        boolean = self._get_pandas_series(True)
+        for key, value in kwargs.get('filter_options', {}).items():
+            if value in [None, False]:
+                continue
+            if key not in self.filter_data_options:
+                raise GISMOExceptionInvalidOption('{} not in {}'.format(key, self.filter_data_options))
+            if key == 'time':
+                value_list = self._get_argument_list(value)
+                boolean = boolean & (self.df.time.isin(value_list))
+            elif key == 'time_start':
+                boolean = boolean & (self.df.time >= value)
+            elif key == 'time_end':
+                boolean = boolean & (self.df.time <= value)
+            elif key == 'visit_depth_id':
+                value_list = self._get_argument_list(value)
+                boolean = boolean & (self.df.visit_depth_id.isin(value_list))
+            elif key == 'visit_id':
+                value_list = self._get_argument_list(value)
+                boolean = boolean & (self.df.visit_id.isin(value_list))
+            elif key == 'depth':
+                value_list = self._get_argument_list(value)
+                boolean = boolean & (self.df.depth.isin(value_list))
+            elif key == 'depth_min':
+                boolean = boolean & (self.df.depth >= value)
+            elif key == 'depth_max':
+                boolean = boolean & (self.df.depth <= value)
+
+        # Extract filtered dataframe
+        # filtered_df = self.df.loc[boolean, sorted(args)].copy(deep=True)
+        filtered_df = self.df.loc[boolean].copy(deep=True)
+
+        mask_options = kwargs.get('mask_options', {})
+        # Create return dict and return
+        return_dict = {}
+        for par in args:
+            par_array = filtered_df[par].values
+            # if par == 'time':
+            #     par_array = filtered_df[par].values
+            # elif
+            # try:
+            #     par_array = filtered_df[par].astype(float).values
+            # except:
+
+
+            # Check mask options
+            qf_par = self.get_qf_par(par)
+            qc_routine = kwargs.get('qc_routine')
+
+
+            for opt, value in mask_options.items():
+                if opt not in self.mask_data_options:
+                    raise GISMOExceptionInvalidOption
+                if opt == 'include_flags':
+                    if not qf_par:
+                        continue
+                    # print('\n'.join(sorted(filtered_df.columns)))
+                    qf_list = []
+                    for v in value:
+                        if v == 'no flag':
+                            v = ''
+                        else:
+                            v = str(v)
+                        qf_list.append(v)
+                    keep_boolean = filtered_df[qf_par].astype(str).isin(qf_list)
+                    par_array[~keep_boolean] = ''
+                elif opt == 'exclude_flags':
+                    if not qf_par:
+                        continue
+                    qf_list = []
+                    for v in value:
+                        if v == 'no flag':
+                            v = ''
+                        else:
+                            v = str(v)
+                        qf_list.append(v)
+                    nan_boolean = filtered_df[qf_par].astype(str).isin(qf_list)
+                    par_array[nan_boolean] = ''
+
+            # Check output type
+            if par == 'time':
+                pass
+            elif kwargs.get('type_float') is True or par in kwargs.get('type_float', []):
+                float_par_list = []
+                for value in par_array:
+                    try:
+                        if value:
+                            float_par_list.append(float(value))
+                        else:
+                            float_par_list.append(np.nan)
+                    except:
+                        float_par_list.append(value)
+                        #raise ValueError
+                par_array = np.array(float_par_list)
+
+            elif kwargs.get('type_int') is True or par in kwargs.get('type_int', []):
+                float_par_list = []
+                for value in par_array:
+                    try:
+                        if value:
+                            float_par_list.append(float(value))
+                        else:
+                            float_par_list.append(np.nan)
+                    except:
+                        float_par_list.append(value)
+                        # raise ValueError
+                par_array = np.array(float_par_list)
+
+            # Map to given column name
+            return_dict[args[par]] = par_array
+        return return_dict
+
+    def flag_data(self, flag, *args, **kwargs):
+        """
+        Created 20181005
+
+        :param flag: The flag you want to set for the parameter
+        :param args: parameters that you want to flag.
+        :param kwargs: conditions for flagging. Options are listed in self.flag_data_options
+        :return: None
+        """
+        print('flag 1', flag)
+        flag = self.mapping_qf.get(flag, from_col='DV', to_col='CMEMS')
+        print('flag 2', flag)
+        qc_routine = kwargs.pop('qc_routine', None)
+        if qc_routine is None:
+            raise GISMOExceptionMissingInputArgument('qc_routine')
+        if qc_routine not in QC1_ROUTINE_LIST:
+            raise GISMOExceptionInvalidOption(f'{qc_routine} is not a valid qc_routine!')
+        qc_level = QC1_ROUTINE_LIST.index(qc_routine) + 1  # Level is uded from end in list ei. [-qc_level]
+        flag = str(flag)
+        if flag not in self.valid_flags:
+            raise GISMOExceptionInvalidFlag('"{}", valid flags are "{}"'.format(flag, ', '.join(self.valid_flags)))
+
+        if flag == 'no flag':
+            flag = ''
+
+        # Check dependent parameters
+        all_args = []
+        for arg in args:
+            all_args.append(arg)
+            all_args.extend(self.get_dependent_parameters(arg))
+
+        # Work on external column names
+        args = [self.internal_to_external.get(arg, arg) for arg in all_args]
+
+        # kwargs contains conditions for flagging. Options are listed in self.flag_data_options.
+        boolean = self._get_pandas_series(True)
+
+        for key, value in kwargs.items():
+            # Check valid option
+            if key not in self.flag_data_options:
+                raise GISMOExceptionInvalidOption
+            if key == 'time':
+                value_list = self._get_argument_list(value)
+                boolean = boolean & (self.df.time.isin(value_list))
+            elif key == 'time_start':
+                boolean = boolean & (self.df.time >= value)
+            elif key == 'time_end':
+                boolean = boolean & (self.df.time <= value)
+            elif key == 'depth':
+                value_list = self._get_argument_list(value)
+                boolean = boolean & (self.df.depth.isin(value_list))
+            elif key == 'depth_min':
+                boolean = boolean & (self.df.depth >= value)
+            elif key == 'depth_max':
+                boolean = boolean & (self.df.depth <= value)
+
+        # print(np.where(boolean)[0])
+        # Flag data
+        for par in args:
+            if par not in self.df.columns:
+                # print('par', par)
+                # print()
+                # print('\n'.join(sorted(self.df.columns)))
+                raise GISMOExceptionInvalidParameter('Parameter {} not in data'.format(par))
+            qf_par = f'QC1_{par.split("[")[0].strip()}'
+            if qf_par not in self.df.columns:
+                raise GISMOExceptionMissingQualityParameter('for parameter "{}"'.format(par))
+            flag_list = kwargs.get('flags', None)
+            if flag_list:
+                if type(flag_list) != list:
+                    flag_list = [flag_list]
+                if 'no flag' in flag_list:
+                    flag_list.pop(flag_list.index('no flag'))
+                    flag_list.append('')
+                par_boolean = boolean & (self.df[qf_par].isin(flag_list))
+            else:
+                par_boolean = boolean.copy(deep=True)
+                # print(par, qf_par, flag)
+
+            updated_qf_list = []
+            for item, b in zip(self.df[qf_par], par_boolean):
+                item = item.zfill(qc_level)
+                if b:
+                    item_list = list(item)
+                    item_list[-qc_level] = flag
+                    item = ''.join(item_list)
+                updated_qf_list.append(item)
+
+            # print(len(self.df.loc[par_boolean, qf_par]))
+            # print(len(updated_qf_list))
+            # print(updated_qf_list)
+            self.df[qf_par] = updated_qf_list
+            self._sync_qc_columns(par)
+
+    def _sync_qc_columns(self, par):
+        """
+        Looks in columns QC0_* and QC1_* to find correct flag for column Q_*
+        :param par: str, parameter to check
+        :return:
+        """
+        def _sync(row):
+            qc0_list = list(row[qc0_par])
+            qc1_list = list(row[qc1_par])
+            tot_list = qc0_list + qc1_list
+            man_qf = qc1_list[-1]
+            qf = '0'
+            if man_qf != '0':
+                # Manual QC
+                qf = man_qf
+            elif '4' in tot_list:
+                qf = '4'
+            else:
+                qf = str(int(max([q for q in tot_list])))
+            qf = self.mapping_qf.get(qf, from_col='CMEMS', to_col='DV')
+            return qf
+
+        par = par.split("[")[0].strip()
+        q_par = f'Q_{par}'
+        qc0_par = f'QC0_{par}'
+        qc1_par = f'QC1_{par}'
+        self.df[q_par] = self.df[[qc0_par, qc1_par]].apply(_sync, axis=1)
+
+
 def latlon_distance_array(lat_point, lon_point, lat_array, lon_array):
     '''
     Calculate the great circle distance between two points

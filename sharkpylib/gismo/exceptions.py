@@ -229,3 +229,10 @@ class GISMOExceptionMissingSettingsFile(GISMOException):
     message = ''
 
 
+class GISMOExceptionSaveNotAllowed(GISMOException):
+    """
+    """
+    code = ''
+    message = ''
+
+

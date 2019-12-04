@@ -343,7 +343,7 @@ class TkMap(object):
     def __init__(self,
                  targets,
                  figsize=(2,2), 
-                 map_resolution=u'i', 
+                 map_resolution='i',
                  left_space=0.05, 
                  right_space=0.05,
                  top_space=0.12, 

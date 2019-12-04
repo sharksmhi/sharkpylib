@@ -429,8 +429,11 @@ class ComboboxWidget(tk.Frame):
     #===========================================================================
     def update_items(self, items=[], default_item=None, default_match=None):
         self.items = items[:]
-        # print('update_items', default_item, default_match)
-        if not default_item and self.items:
+        old_value = self.get_value()
+
+        if not any([default_item, default_match]) and old_value in items:
+            self.default_item = old_value
+        elif not default_item and self.items:
             if default_match:
                 for k, item in enumerate(self.items):
                     # print('default_match', item())
@@ -516,6 +519,7 @@ class EntryWidget(tk.Entry):
                  entry_type='general',
                  entry_id='', 
                  callback_on_focus_out=None, 
+                 callback_on_focus_in=None, 
                  callback_on_return_new_row=None,
                  callback_on_change_value=None,
                  prop_entry={}, 
@@ -529,6 +533,7 @@ class EntryWidget(tk.Entry):
         self.col_in_grid = col_in_grid
         self.entry_type = entry_type
         self.callback_on_focus_out = callback_on_focus_out
+        self.callback_on_focus_in = callback_on_focus_in
         self.callback_on_return_new_row = callback_on_return_new_row
         self.callback_on_change_value = callback_on_change_value
         
@@ -595,13 +600,21 @@ class EntryWidget(tk.Entry):
     #===========================================================================
     def _on_focus_in(self, event=None):
         if self.entry_state != 'normal':
-            return
-        # First save old value
-        self.old_value = self.stringvar.get()
-        
-        # Set state to normal if not 
-        self.configure(state=u'normal')
-        self.select_range(0, u'end')   
+            pass 
+        else:
+            # First save old value
+            self.old_value = self.stringvar.get()
+            
+            # Set state to normal if not 
+            self.configure(state=u'normal')
+            self.select_range(0, u'end')
+        if not hasattr(self, 'nr_f'):
+            self.nr_f = 1
+        else:
+            self.nr_f += 1
+        print(f'focus_in: {self.nr_f}')
+        if self.callback_on_focus_in:
+            self.callback_on_focus_in(self)
         
     #===========================================================================
     def _on_focus_out(self, event=None):
@@ -674,6 +687,9 @@ class EntryWidget(tk.Entry):
     def focus_entry(self):
         self.focus_set()
 #         self._on_focus_in()
+
+    def unfocus(self):
+        self.frame.focus()
         
     #===========================================================================
     def select_text(self):
@@ -727,7 +743,7 @@ class EntryWidget(tk.Entry):
     #===========================================================================
     def set_fg_color(self, color='black'):  
         self.configure(fg=color)
-    
+
     #===========================================================================
     def set_value(self, value):
         self.old_value = self.stringvar.get()
@@ -760,6 +776,7 @@ class EntryGridWidget(tk.Frame):
                  jump_to_next_row_or_column_on_return=True, 
                  callback_on_return_new_row=None,
                  callback_on_focus_out=None, 
+                 callback_on_focus_in=None, 
                  disabled_rows=[],
                  disabled_columns=[], 
                  prop_frame={}, 
@@ -778,6 +795,7 @@ class EntryGridWidget(tk.Frame):
         self.jump_to_next_row_or_column_on_return = jump_to_next_row_or_column_on_return
         self.callback_on_return_new_row = callback_on_return_new_row
         self.callback_on_focus_out = callback_on_focus_out
+        self.callback_on_focus_in = callback_on_focus_in
         
         self.disabled_rows = disabled_rows
         self.disabled_columns = disabled_columns
@@ -855,6 +873,7 @@ class EntryGridWidget(tk.Frame):
                                   entry_id='%s:%s' %(row, col), 
                                   prop_entry=self.prop_entry, 
                                   callback_on_focus_out=self.callback_on_focus_out, 
+                                  callback_on_focus_in=self.callback_on_focus_in, 
                                   callback_on_return_new_row=self.callback_on_return_new_row, 
                                   row_in_grid=row, 
                                   col_in_grid=col, 
@@ -990,7 +1009,6 @@ class EntryGridWidget(tk.Frame):
         else:
             return all_data
             
-            
     #===========================================================================
     def set_value(self, row, col, value):
         self.entries[row][col].set_value(value)
@@ -1004,6 +1022,16 @@ class EntryGridWidget(tk.Frame):
     def set_row_entry_type(self, row, entry_type):
         for col in self.entries[row]:
             self.entries[row][col].set_entry_type(entry_type)
+
+    def set_prop(self, column=None, row=None, cell=None, **kwargs):
+        if cell:
+            self.entries[cell[0]][cell[1]].set_prop(**kwargs)
+        elif column:
+            for row in self.entries:
+                self.entries[row][col].set_prop(**kwargs)
+        elif row:
+            for col in self.entries[row]:
+                self.entries[row][col].set_prop(**kwargs)
         
     #===========================================================================
     def set_row_values(self, row, value_list=[]):
@@ -1036,14 +1064,16 @@ class EntryGridWidget(tk.Frame):
         self.entries[row][col].set_state('disabled')
     
     #===========================================================================
-    def disable_row(self, row):
-        for col in self.entries[row]:
-            self.disable_entry(row, col)
+    def disable_row(self, *row):
+        for r in row:
+            for col in self.entries[r]:
+                self.disable_entry(r, col)
             
     #===========================================================================
-    def disable_col(self, col):
+    def disable_col(self, *col):
         for row in self.entries:
-            self.disable_entry(row, col)
+            for c in col:
+                self.disable_entry(row, c)
             
     #===========================================================================
     def enable_entry(self, row, col):
@@ -3298,6 +3328,8 @@ class FlagWidget(tk.Frame):
                  **kwargs):
         
         self.flags = flags
+        if '' in self.flags:
+            self.flags[self.flags.index('')] = 'no flag'
         self.descriptions = descriptions
         self.include_flagging = include_flagging
         self.include_marker_size = include_marker_size
@@ -3479,7 +3511,8 @@ class FlagWidget(tk.Frame):
             self.booleanvar_edge.set(False)
             r+=1
         
-        grid_configure(frame, nr_rows=len(self.flags)+1, nr_columns=4)
+        # grid_configure(frame, nr_rows=len(self.flags)+1, nr_columns=4)
+        grid_configure(frame, nr_rows=r+1, nr_columns=4)
         
         
     #===========================================================================
@@ -3519,6 +3552,8 @@ class FlagWidget(tk.Frame):
         
         if self.radiobutton_widget_flags:
             self.selection.flag = self.radiobutton_widget_flags.get()
+            if self.selection.flag == 'no flag':
+                self.selection.flag = ''
         
         if self.checkbutton_widget_flags:
             self.selection.selected_descriptions = self.checkbutton_widget_flags.get_checked_item_list()
