@@ -101,7 +101,7 @@ class GISMOdataManager(object):
 
     def flag_data(self, file_id, flag, *args, **kwargs):
         """
-        Created 20181004     
+        Method to manually flag data.
 
         Flags data in file_id.
         :param file_id:
@@ -128,7 +128,8 @@ class GISMOdataManager(object):
 
         gismo_object = self.objects.get(file_id)
         gismo_object.flag_data(flag, *args, **kwargs)
-        # Add comment in metadata
+
+        # Add comment in metadata. Will be added when file is saved.
         self.has_been_flaged[file_id] = True
 
 

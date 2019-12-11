@@ -28,6 +28,7 @@ logger = logging.getLogger('gismo_session')
 list_dir_object = ListDirectory()
 QC1_ROUTINE_LIST = list_dir_object.get_file_object('list_qc1_routines.txt').get()
 
+
 class PluginFactory(object):
     """
     Class hold information about active classes in module.
@@ -1754,7 +1755,7 @@ class NODCStandardFormatCTD(DVStandardFormatCTD):
             raise GISMOExceptionMissingInputArgument('qc_routine')
         if qc_routine not in QC1_ROUTINE_LIST:
             raise GISMOExceptionInvalidOption(f'{qc_routine} is not a valid qc_routine!')
-        qc_level = QC1_ROUTINE_LIST.index(qc_routine) + 1  # Level is uded from end in list ei. [-qc_level]
+        qc_level = QC1_ROUTINE_LIST.index(qc_routine) + 1  # Level is used from end in list ei. [-qc_level]
         flag = str(flag)
         if flag not in self.valid_flags:
             raise GISMOExceptionInvalidFlag('"{}", valid flags are "{}"'.format(flag, ', '.join(self.valid_flags)))

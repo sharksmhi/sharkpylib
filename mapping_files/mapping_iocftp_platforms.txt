@@ -1,2 +1,0 @@
-standard_file_prefix	iocftp_name	iocftp_number
-ferrybox-tavastland	Tavastland	38055

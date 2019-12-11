@@ -38,7 +38,6 @@ from .. import gismo
 #     logger = log_object.get_logger()
 #     return logger
 
-# ==============================================================================
 class TavastlandException(Exception):
     """
 
@@ -54,14 +53,21 @@ class TavastlandException(Exception):
         if code:
             self.code = code
 
-# ==============================================================================
+
+class TavastlandExceptionCorrupedFile(TavastlandException):
+    """
+    """
+    code = ''
+    message = 'Corruped file'
+
+
 class TavastlandExceptionNoCO2data(TavastlandException):
     """
     """
     code = ''
     message = ''
 
-# ==============================================================================
+
 class TavastlandExceptionNoMatchWhenMerging(TavastlandException):
     """
     """
@@ -81,7 +87,7 @@ class File(object):
         self.time_start = None
         self.time_end = None
 
-        self.data_loaded = False
+        self.data_loaded = None
 
         self.time_in_file_name_formats = ['TP_%Y%m%d%H%M%S.mit']
         self._add_file_path_time()
@@ -90,6 +96,17 @@ class File(object):
 
         if kwargs.get('load_file'):
             self.load_file()
+
+    def _len_header_equals_len_data(self, file_path):
+        with open(file_path) as fid:
+            for r, line in enumerate(fid):
+                split_line = line.split('\t')
+                if r==0:
+                    header = split_line
+                else:
+                    if len(header) == len(split_line):
+                        return True
+                    return False
 
     def _add_file_path_time(self):
         self.file_path_time = None
@@ -190,8 +207,6 @@ class File(object):
     def load_file(self, **kwargs):
         if not os.path.exists(self.file_path):
             raise FileNotFoundError
-        # Log().information('Loading file: {}'.format(self.file_path))
-
         header = []
         data = []
         with codecs.open(self.file_path, encoding=kwargs.get('encoding', 'cp1252')) as fid:
@@ -201,6 +216,11 @@ class File(object):
                 if not header:
                     header = split_line
                 else:
+                    if len(header) != len(split_line):
+                        raise TavastlandExceptionCorrupedFile
+                        logger.warning('invalid file: {}'.format(row, self.file_path))
+                        self.data_loaded = False
+                        return False
                     if not self.valid_data_line(line):
                         logger.warning('Removing invalid line {} from file: {}'.format(row, self.file_path))
                         continue
@@ -213,7 +233,8 @@ class File(object):
         self.filter_data()
         self._delete_columns()
         self.data_loaded = True
-
+        return True
+    
     def filter_data(self):
         """
         Filters the data from unwanted lines etc.
@@ -245,13 +266,13 @@ class File(object):
             raise TavastlandException('Cannot export to the same directory!')
         if not os.path.exists(export_directory):
             os.makedirs(export_directory)
-        if not self.data_loaded:
+        if self.data_loaded is None:
             self.load_file()
         export_file_path = os.path.join(export_directory, self.file_name)
         self.df[self.original_columns].to_csv(export_file_path, index=False, sep='\t')
 
     def get_df(self):
-        if not len(self.df):
+        if self.data_loaded is None:
             self.load_file()
         return self.df
 
@@ -306,12 +327,19 @@ class File(object):
         """
         raise NotImplementedError
 
-    def errors(self):
+    def get_file_errors(self):
         """
         Returns a list of errors in file if any. Errors are obvious faults that can not be handled.
         :return list with description of the errors.
         """
         raise NotImplementedError
+
+    def _get_file_errors(self):
+        error_list = []
+        if not self._len_header_equals_len_data(self.file_path):
+            text = 'Header is not the same length as data in file: {}.'.format(self.file_name)
+            error_list.append(text)
+        return error_list
 
 
 class MITfile(File):
@@ -337,12 +365,13 @@ class MITfile(File):
         """
         raise NotImplementedError
 
-    def errors(self):
+    def get_file_errors(self):
         """
         Returns a list of errors in file if any. Errors are obvious faults that can not be handled.
         :return list with description of the errors.
         """
-        error_list = []
+        error_list = self._get_file_errors()
+
         # Check time
         start, end = self.get_time_range()
         d = datetime.datetime(1980, 1, 1)
@@ -370,7 +399,7 @@ class MITfile(File):
                 error_list.append(text)
 
         if error_list:
-            logger.info(text.join('; '))
+            logger.info(error_list.join('; '))
 
         return error_list
 
@@ -398,12 +427,13 @@ class CO2file(File):
         """
         raise NotImplementedError
 
-    def errors(self):
+    def get_file_errors(self):
         """
         Returns a list of errors in file if any. Errors are obvious faults that can not be handled.
         :return list with description of the errors.
         """
-        error_list = []
+        error_list = self._get_file_errors()
+
         # Check time
         start, end = self.get_time_range()
         d = datetime.datetime(1980, 1, 1)
@@ -414,7 +444,7 @@ class CO2file(File):
             error_list.append(text)
 
         if error_list:
-            logger.info(text.join('; '))
+            logger.info('; '.join(error_list))
 
         return error_list
 
@@ -444,6 +474,7 @@ class FileHandler(object):
         self.dfs = dict()
 
         self.files_with_errors = dict()
+        self.corruped_files = dict()
 
         self.metadata = []
         self.metadata_added = {}
@@ -491,6 +522,7 @@ class FileHandler(object):
             file_type_object = CO2file()
 
         self.files_with_errors[file_type] = []
+        self.corruped_files[file_type] = []
 
         self.objects[file_type] = dict()
         data_lines = []
@@ -502,7 +534,7 @@ class FileHandler(object):
                 file_object = File_type_class(file_path)
                 start, end = file_object.get_time_range()
 
-                errors = file_object.errors()
+                errors = file_object.get_file_errors()
                 if errors:
                     errors_dict = {name: errors}
                     self.files_with_errors[file_type].append(errors_dict)
@@ -676,7 +708,15 @@ class FileHandler(object):
                 logger.warning('Discarding file {}. File has errors!'.format(file_id))
                 continue
             object = object_dict.get(file_id)
-            df = df.append(object.get_df())
+
+            try:
+                object_df = object.get_df()
+            except TavastlandExceptionCorrupedFile:
+                self.corruped_files[file_type].append(file_id)
+                logger.warning('Discarding file {}. File has errors!'.format(file_id))
+                continue
+
+            df = df.append(object_df)
 
             # print('file_id', file_id)
             # print('object.time_frozen_between', object.time_frozen_between)
@@ -702,8 +742,9 @@ class FileHandler(object):
         df['time'] = df['{}_time'.format(file_type)]
 
         # Strip dates
-        time_start = time_start - self.time_delta
-        time_end = time_end + self.time_delta
+        if file_type == 'co2':
+            time_start = time_start - self.time_delta
+            time_end = time_end + self.time_delta
         time_boolean = (df.time >= time_start) & (df.time <= time_end)
         df = df.loc[time_boolean]
         df.sort_values(by='time', inplace=True)
@@ -1122,7 +1163,10 @@ class FileHandler(object):
             # print('looking for get_std_basis_for_timestamp for time: {}'.format(time_object))
             # print('in file_id:', file_id)
             obj = self.objects['co2'][file_id]
-            df = obj.get_df()
+            try:
+                df = obj.get_df()
+            except TavastlandExceptionCorrupedFile:
+                continue
             df = df.loc[df['time'] <= time_object]
             for i in list(df.index)[::-1]:
                 value = df.at[i, 'Type']

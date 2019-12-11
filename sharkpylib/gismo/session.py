@@ -337,7 +337,7 @@ class GISMOsession(object):
 
     def flag_data(self, file_id, flag, *args, **kwargs):
         """
-        Created 20181005       
+        Method to manually flag data in given file.
 
         :param file_id:
         :param flag:
