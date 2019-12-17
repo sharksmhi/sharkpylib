@@ -850,7 +850,7 @@ class CMEMSferrybox(GISMOfile):
                     break
         if self.error_in_qc_columns:
             logger.warning(f'QC columns are float in file: {self.file_id}')
-            raise GISMOExceptionQCfieldError
+            # raise GISMOExceptionQCfieldError
 
 
 # ==============================================================================

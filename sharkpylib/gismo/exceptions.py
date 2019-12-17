@@ -248,3 +248,10 @@ class GISMOExceptionQCfieldError(GISMOException):
     """
     code = ''
     message = ''
+
+
+class GISMOExceptionNoData(GISMOException):
+    """
+        """
+    code = ''
+    message = ''
