@@ -29,6 +29,13 @@ class MappingFile(object):
         self.from_col = from_col
         self.to_col = to_col
 
+        if not all([self.from_col, self.to_col]):
+            with open(file_path) as fid:
+                line = fid.readline()
+            split_line = [item.strip() for item in line.split(kw.get('sep'))]
+            self.from_col = split_line[0]
+            self.to_col = split_line[1]
+
         self.file_path = file_path
         self.df = pd.read_csv(file_path, **kw)
         self.df.replace(np.nan, '', regex=True, inplace=True)
@@ -44,9 +51,12 @@ class MappingFile(object):
         if not to_col:
             to_col = self.to_col
 
+        if not all([from_col, to_col]):
+            raise ValueError
+
         # Saving current columns
-        self.from_col = from_col
-        self.to_col = to_col
+        # self.from_col = from_col
+        # self.to_col = to_col
 
         result = self.df.loc[self.df[from_col] == item, to_col]
         value = ''
@@ -56,10 +66,10 @@ class MappingFile(object):
         if value:
             return str(value)
         else:
-            if missing_value is not None:
+            if missing_value:
                 return missing_value
             else:
-                return str(item)
+                return value
 
     def get_mapped_list(self, item_list, **kwargs):
         """

@@ -80,6 +80,8 @@ class GISMOdataManager(object):
         self.objects[gismo_object.file_id] = gismo_object
         self.objects_by_sampling_type[sampling_type][gismo_object.file_id] = gismo_object
 
+        return gismo_object.file_id
+
     def remove_file(self, file_id):
         if file_id in self.objects:
             self.objects.pop(file_id)
@@ -541,6 +543,13 @@ class GISMOdata(object):
         """
         raise GISMOExceptionMethodNotImplemented
 
+    def get_dict_with_matching_parameters(self, par_list):
+        """
+
+        :return: a dict with matching parameter names.
+        """
+        raise GISMOExceptionMethodNotImplemented
+
     @property
     def has_metadata(self):
         """
@@ -623,7 +632,7 @@ class GISMOqcManager(object):
         qc_routine_objects = self.qc_routines.get(qc_routine)
 
         # Run qc
-        qc_routine_objects.run_qc(gismo_objects, **kwargs)
+        qc_routine_objects.run_qc(gismo_objects, qc_routine=qc_routine, **kwargs)
 
         # Add comment in metadata
         user = kwargs.pop('user', 'unknown user')
@@ -647,13 +656,17 @@ class GISMOqc(object):
 
     Base class to handle quality control of GISMO-objects.
     """
+    name = ''
 
     def __init__(self, *args, **kwargs):
-        self.name = ''
+        if not self.name:
+            raise GISMOExceptionMissingQCroutineName
 
     def run_qc(self, gismo_objects, **kwargs):
         """
-        Data is generally in a pandas dataframe that can be reach under gismo_object.df
+        Data is generally in a pandas dataframe that can be reach under gismo_object.df.
+
+        To manipulate (flag) data in a gismo_object use method gismo_object.flag_data()!!!
 
         Make sure self.name is in gismo_object.valid_qc_routines
 
@@ -671,8 +684,9 @@ class GISMOqc(object):
 
     def get_options(self):
         """
-        Should return a dict with options available for the qc routine. Key is the option itself.
-        Value are tho available choices for the corresponding option. Choices can be of the following types:
+        Should return a dict with options available for the qc routine.
+        Key is the option itself.
+        Values are the available choices for the corresponding option. Choices can be of the following types:
 
         list: multi select
         empty list: free nr of inputs (ex. list of quality flags)

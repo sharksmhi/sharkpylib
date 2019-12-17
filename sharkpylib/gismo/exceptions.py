@@ -236,3 +236,15 @@ class GISMOExceptionSaveNotAllowed(GISMOException):
     message = ''
 
 
+class GISMOExceptionMissingQCroutineName(GISMOException):
+    """
+    """
+    code = ''
+    message = ''
+
+
+class GISMOExceptionQCfieldError(GISMOException):
+    """
+    """
+    code = ''
+    message = ''

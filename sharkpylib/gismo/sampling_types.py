@@ -56,6 +56,9 @@ class PluginFactory(object):
                                    'DV CTD': shark_requirements,
                                    'NODC CTD': shark_requirements}
 
+    def __str__(self):
+        return '\nSampling type factory. Available sampling types are:\n{}\n'.format('\n'.join(sorted(self.classes)))
+
     def get_list(self):
         return sorted(self.classes)
 
@@ -192,7 +195,7 @@ class GISMOfile(GISMOdata):
         data = []
         with codecs.open(self.file_path, encoding=self.file_encoding) as fid:
             for line in fid:
-                if self.comment_id is not None and line.startswith(self.comment_id):
+                if self.comment_id not in [None, '', False] and line.startswith(self.comment_id):
                     # We have comments and need to load all lines in file
                     self.metadata_raw.append(line)
                 else:
@@ -288,7 +291,6 @@ class GISMOfile(GISMOdata):
         else:
             return pd.Series([value]*len(self.df))
 
-
     # ==========================================================================
     def _add_columns(self, **kwargs):
         """
@@ -361,9 +363,17 @@ class GISMOfile(GISMOdata):
         else:
             # TODO: depth_par = self.parameter_mapping.get_external(self.settings.column.depth)
             depth_par = self.parameter_mapping.get_external(self.settings.get_data('mandatory_columns', 'depth'))
-            self.df['depth'] = self.df[depth_par].astype(float)
+            if 'meter' in depth_par:
+                self.df['depth'] = depth_par.split()[0].strip()
+            else:
+                try:
+                    self.df['depth'] = self.df[depth_par].astype(float)
+                except KeyError as e:
+                    raise GISMOExceptionInvalidParameter(e)
+
         self.df['visit_depth_id'] = self.df['lat'].astype(str) + self.df['lon'].astype(str) + self.df['time'].astype(
             str) + self.df['depth'].astype(str)
+
 
     def add_qc_comment(self, comment):
         """
@@ -396,8 +406,6 @@ class GISMOfile(GISMOdata):
             all_args.append(arg)
             all_args.extend(self.get_dependent_parameters(arg))
 
-        print('===================len(args)', len(all_args))
-        print(all_args)
         # Work on external column names
         args = [self.internal_to_external.get(arg, arg) for arg in all_args]
         # args = dict((self.internal_to_external.get(key, key), key) for key in args)
@@ -428,7 +436,6 @@ class GISMOfile(GISMOdata):
             elif key == 'depth_max':
                 boolean = boolean & (self.df.depth <= value)
 
-        print(np.where(boolean)[0])
         # Flag data
         for par in args:
             if par not in self.df.columns:
@@ -449,7 +456,7 @@ class GISMOfile(GISMOdata):
                 par_boolean = boolean & (self.df[qf_par].isin(flag_list))
             else:
                 par_boolean = boolean.copy(deep=True)
-                print(par, qf_par, flag)
+                # print(par, qf_par, flag)
             self.df.loc[par_boolean, qf_par] = flag
 
     # ==========================================================================
@@ -655,7 +662,6 @@ class GISMOfile(GISMOdata):
         :param match_parameter:
         :return:
         """
-        print('TYPE', type(match_parameter), match_parameter)
         return_dict = {}
         par_list = list(set(self.get_parameter_list(internal=True) + self.get_parameter_list(external=True)))
         for par in par_list:
@@ -689,7 +695,7 @@ class GISMOfile(GISMOdata):
 
     def get_qf_list(self, *args, **kwargs):
         """
-        Returns a list och quality flags for the parameter par.
+        Returns a list of quality flags for the parameter par.
         :param par:
         :return:
         """
@@ -820,8 +826,8 @@ class CMEMSferrybox(GISMOfile):
                            settings_file_path=settings_file_path,
                            root_directory=root_directory))
 
-        for key in sorted(kwargs):
-            print(key, kwargs[key])
+        #for key in sorted(kwargs):
+        #    print(key, kwargs[key])
 
         GISMOfile.__init__(self, **kwargs)
 
@@ -830,6 +836,21 @@ class CMEMSferrybox(GISMOfile):
         self.mask_data_options = self.mask_data_options + []
 
         self.valid_qc_routines = ['Mask areas']
+
+        self._check_qf_columns()
+
+    def _check_qf_columns(self):
+        self.error_in_qc_columns = False
+        for par in self.qpar_list:
+            qpar = self.get_qf_par(par)
+            for value in self.df[qpar]:
+                if '.' in value:
+                    self.df[qpar] = self.df[qpar].str[0]
+                    self.error_in_qc_columns = True
+                    break
+        if self.error_in_qc_columns:
+            logger.warning(f'QC columns are float in file: {self.file_id}')
+            raise GISMOExceptionQCfieldError
 
 
 # ==============================================================================
@@ -1139,6 +1160,9 @@ class SHARKmetadataStandardBase(object):
         def get_rows(self):
             return self.data[:]
 
+        def get_metadata_tree(self):
+            return self.data[:]
+
     # ==========================================================================
     def __init__(self, metadata_raw_lines, **kwargs):
         self.metadata_raw_lines = metadata_raw_lines
@@ -1148,6 +1172,9 @@ class SHARKmetadataStandardBase(object):
         self.has_data = False
 
         self._load_metadata()
+
+    def __str__(self):
+        return str(self.get_metadata_tree())
 
     # ==========================================================================
     def _load_metadata(self):
@@ -1211,11 +1238,14 @@ class SHARKmetadataStandardBase(object):
                 all_lines.extend(self.data[metadata_type].get_rows())
         return all_lines
 
-    def get_metadata_tree(self):
-        return_dict = {}
-        for key in self.metadata_order:
-            return_dict[key] = {'children': self.data[key].get_metadata_tree()}
-        return return_dict
+    def get_metadata_tree(self, subcat=False):
+        if subcat:
+            return self.data[subcat].get_metadata_tree()
+        else:
+            return_dict = {}
+            for key in self.metadata_order:
+                return_dict[key] = {'children': self.data[key].get_metadata_tree()}
+            return return_dict
 
 
 # ==============================================================================
@@ -1446,6 +1476,8 @@ class SamplingTypeSettings(object):
 
         self.file_path = os.path.join(self.directory, self.file_name)
 
+        self._save_file_id()
+
         if not data:
             self._load(True)
 
@@ -1458,6 +1490,9 @@ class SamplingTypeSettings(object):
     def _add_suffix(self):
         if not self.file_name.endswith('.json'):
             self.__file_name = self.file_name + '.json'
+
+    def _save_file_id(self):
+        self.file_id = os.path.basename(self.file_path).split('.')[0]
 
     @property
     def file_name(self):
@@ -1486,13 +1521,14 @@ class SamplingTypeSettings(object):
         return os.path.join(os.path.dirname(__file__), 'settings_files')
 
     def _save(self):
+        print('DIRECTORY', self.directory)
         if self.directory == self._get_settings_files_directory():
             print('SET', self._get_settings_files_directory())
             raise GISMOExceptionSaveNotAllowed(self.file_path)
         utils.save_json(self.data, self.file_path, encoding='cp1252')
 
     def _load(self, create_if_missing=False):
-        print(self.file_path)
+        # print(self.file_path)
         self.data = utils.load_json(self.file_path, create_if_missing=create_if_missing, encoding='cp1252')
 
     def get_all_data(self):
@@ -1539,8 +1575,8 @@ class SamplingTypeSettings(object):
     def remove_data(self, info_type, key):
         self._check_info_type(info_type)
 
-        if key in self.data[info_type]:
-            self.data[info_type].pop(key)
+        if key in self.data[info_type]['data']:
+            self.data[info_type]['data'].pop(key)
 
     def get_flag_list(self):
         return list(self.data.get('flags').get('data').keys())
@@ -1594,9 +1630,10 @@ class NODCStandardFormatCTD(DVStandardFormatCTD):
 
         self.valid_qc_routines = ['Manual', 'Profile range simple', 'Profile report']
 
-        self.mapping_qf = self.mapping_files.get_file_object('mapping_quality_flags.txt')
+        self.mapping_qf_dv_to_cmems = self.mapping_files.get_file_object('mapping_quality_flags_dv_to_cmems.txt')
+        self.mapping_qf_cmems_to_dv = self.mapping_files.get_file_object('mapping_quality_flags_cmems_to_dv.txt')
 
-        self.valid_flags = list(set(self.valid_flags + [self.mapping_qf.get(item, from_col='DV', to_col='CMEMS')
+        self.valid_flags = list(set(self.valid_flags + [self.mapping_qf_dv_to_cmems.get(item)
                                                         for item in self.valid_flags]))
 
     def __str__(self):
@@ -1747,9 +1784,7 @@ class NODCStandardFormatCTD(DVStandardFormatCTD):
         :param kwargs: conditions for flagging. Options are listed in self.flag_data_options
         :return: None
         """
-        print('flag 1', flag)
-        flag = self.mapping_qf.get(flag, from_col='DV', to_col='CMEMS')
-        print('flag 2', flag)
+        flag = self.mapping_qf_dv_to_cmems.get(flag)
         qc_routine = kwargs.pop('qc_routine', None)
         if qc_routine is None:
             raise GISMOExceptionMissingInputArgument('qc_routine')
@@ -1778,15 +1813,15 @@ class NODCStandardFormatCTD(DVStandardFormatCTD):
         for key, value in kwargs.items():
             # Check valid option
             if key not in self.flag_data_options:
-                raise GISMOExceptionInvalidOption
-            if key == 'time':
-                value_list = self._get_argument_list(value)
-                boolean = boolean & (self.df.time.isin(value_list))
-            elif key == 'time_start':
-                boolean = boolean & (self.df.time >= value)
-            elif key == 'time_end':
+                raise GISMOExceptionInvalidOption(key)
+            # if key == 'time':
+            #     value_list = self._get_argument_list(value)
+            #     boolean = boolean & (self.df.time.isin(value_list))
+            # elif key == 'time_start':
+            #     boolean = boolean & (self.df.time >= value)
+            # elif key == 'time_end':
                 boolean = boolean & (self.df.time <= value)
-            elif key == 'depth':
+            if key == 'depth':
                 value_list = self._get_argument_list(value)
                 boolean = boolean & (self.df.depth.isin(value_list))
             elif key == 'depth_min':
@@ -1851,7 +1886,7 @@ class NODCStandardFormatCTD(DVStandardFormatCTD):
                 qf = '4'
             else:
                 qf = str(int(max([q for q in tot_list])))
-            qf = self.mapping_qf.get(qf, from_col='CMEMS', to_col='DV')
+            qf = self.mapping_qf_cmems_to_dv.get(qf)
             return qf
 
         par = par.split("[")[0].strip()

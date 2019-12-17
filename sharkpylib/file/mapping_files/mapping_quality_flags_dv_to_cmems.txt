@@ -3,8 +3,8 @@ DV	CMEMS
 >	7
 B	4
 	1
-E
-M
-R
+E	1
+M	1
+R	1
 S	3
-Z
+Z	1

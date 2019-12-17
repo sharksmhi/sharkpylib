@@ -1,0 +1,67 @@
+{
+	"dependent_parameters": {
+		"data": {
+			"8178": [
+				"8179",
+				"8180"
+			]
+		},
+		"info": ""
+	},
+	"flags": {
+		"data": {
+			"0": "No QC was performed",
+			"1": "Good data",
+			"2": "Probably good data",
+			"3": "Bad data that are potentially correctable",
+			"4": "Bad data",
+			"5": "Value changed",
+			"6": "Not used",
+			"7": "Nominal value",
+			"8": "Interpolated value"
+		},
+		"info": ""
+	},
+	"mandatory_columns": {
+		"data": {
+			"depth": "-4 meters",
+			"lat": "8002",
+			"lon": "8003",
+			"station": "index=0",
+			"time": "index=0"
+		},
+		"info": ""
+	},
+	"parameter_mapping": {
+		"data": {
+			"external_column": "smhi_channel",
+			"file_name": "mapping_CMEMS_PARAMETERS.txt",
+			"internal_column": "smhi_code",
+			"unit_column": "smhi_units",
+			"encoding": "cp1252",
+			"qf_prefix": "8",
+			"qf_suffix": "",
+			"unit_starts_with": ""
+		},
+		"info": ""
+	},
+	"properties": {
+		"data": {
+			"missing_value": "",
+			"column_separator": "\t",
+			"comment_id": "",
+			"encoding": "cp1252"
+		},
+		"info": ""
+	},
+	"station_mapping": {
+		"data": {
+			"external_column": "BOOSNR",
+			"file_name": "mapping_CMEMS_STATIONS.txt",
+			"header_starts_with": "BOOSNR",
+			"internal_column": "PLATFORM",
+			"encoding": "cp1252"
+		},
+		"info": ""
+	}
+}

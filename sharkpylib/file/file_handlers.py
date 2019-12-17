@@ -6,7 +6,7 @@ import re
 from . import files
 
 FILE_DIR = os.path.realpath(os.path.dirname(__file__))
-print(FILE_DIR)
+# print(FILE_DIR)
 DIRECTORIES = dict(mapping_files=os.path.join(FILE_DIR, 'mapping_files'),
                    synonym_files=os.path.join(FILE_DIR, 'synonym_files'),
                    list_files=os.path.join(FILE_DIR, 'list_files'),
@@ -29,6 +29,7 @@ class Directory(object):
         self.external_directories = set()
         self.files = {}
         self.file_per_directory = {}
+        self.file_objects = {}
 
         for d in directories:
             self._add_directory(d)
@@ -36,7 +37,7 @@ class Directory(object):
 
     def __str__(self):
         all_dirs = self._get_directories()
-        return 'Settings files listed in directories:\n{}\n\n{}'.format('\n'.join(all_dirs), '\n'.join(sorted(self.files)))
+        return '\nFiles listed in directories:\n{}\n\n{}\n'.format('\n'.join(all_dirs), '\n'.join(sorted(self.files)))
 
     def __repr__(self):
         return '{}\n{}'.format(self.__class__.__name__, '\n'.join(sorted(self.files)))
@@ -76,6 +77,9 @@ class Directory(object):
     def _add_directory(self, directory):
         self.external_directories.add(directory)
 
+    def _add_file_object(self, file_id, file_object):
+        self.file_objects[file_id] = file_object
+
     def add_directory(self, directory):
         self._add_directory(directory)
         self._load_files(directory)
@@ -83,11 +87,27 @@ class Directory(object):
     def get_list(self):
         return sorted(self.files)
 
+    def get_file_list(self):
+        return sorted(self.files)
+
+    def get_path_list(self):
+        return [self.get_path(f) for f in self.get_file_list()]
+
     def get_path(self, file_id):
         file_path = self.files.get(file_id, None)
         if not file_id:
             raise FileNotFoundError(f'Invalid file: {file_id}')
         return file_path
+
+    def save_file(self, file_id):
+        print(self.file_objects)
+        print(file_id)
+        if file_id not in self.file_objects:
+            return
+        if file_id in self.file_per_directory[self.main_directory]:
+            raise FileExistsError(f'Not allowed to overwrite file in default directory: {self.main_directory}')
+
+        self.file_objects[file_id].save()
 
 
 class MappingDirectory(Directory):
@@ -109,6 +129,7 @@ class MappingDirectory(Directory):
     def get_file_object(self, file_id, **kwargs):
         file_path = self.get_path(file_id)
         file_object = files.MappingFile(file_path, **kwargs)
+        self._add_file_object(file_id, file_object)
         return file_object
 
 
@@ -125,6 +146,7 @@ class SynonymDirectory(Directory):
     def get_file_object(self, file_id, **kwargs):
         file_path = self.get_path(file_id)
         file_object = files.SynonymFile(file_path, **kwargs)
+        self._add_file_object(file_id, file_object)
         return file_object
 
 
@@ -141,6 +163,7 @@ class ListDirectory(Directory):
     def get_file_object(self, file_id, **kwargs):
         file_path = self.get_path(file_id)
         file_object = files.ListFile(file_path, **kwargs)
+        self._add_file_object(file_id, file_object)
         return file_object
 
 
@@ -157,6 +180,7 @@ class MultiListDirectory(Directory):
     def get_file_object(self, file_id, **kwargs):
         file_path = self.get_path(file_id)
         file_object = files.MultiListFile(file_path, **kwargs)
+        self._add_file_object(file_id, file_object)
         return file_object
 
 
@@ -166,8 +190,8 @@ class SamplingTypeSettingsDirectory(Directory):
         super().__init__(DIRECTORIES.get('sampling_type_settings_files'), file_type='json', *directories)
         self.objects = {}
 
-    def _load_file(self, file_base):
-        file_path = self.files.get(file_base, None)
-        if not file_base:
-            raise FileNotFoundError(f'File not loaded {file_base}')
-        self.objects[file_base] = SamplingTypeSettings(file_path)
+    def get_file_object(self, file_id, directory=None, use_class=None):
+        file_path = self.get_path(file_id)
+        file_object = use_class(file_path, directory=directory)
+        self._add_file_object(file_id, file_object)
+        return file_object

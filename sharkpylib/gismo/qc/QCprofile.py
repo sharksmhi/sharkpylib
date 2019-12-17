@@ -7,8 +7,8 @@
 try:
     import numpy as np
     import seawater as sw
-except:
-	pass
+except: 
+    pass
 
 class QC(object):
 

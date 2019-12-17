@@ -1,11 +1,7 @@
 {
 	"dependent_parameters": {
 		"data": {
-			"PUMP_CTD []": [
-				"SALT2_CTD [psu (PSS-78)]",
-				"SALT_CTD [psu (PSS-78)]"
-			]
-		},
+			},
 		"info": ""
 	},
 	"flags": {
@@ -24,31 +20,30 @@
 	},
 	"mandatory_columns": {
 		"data": {
-			"depth": "DEPH [m]",
-			"lat": "LATITUDE_DD",
-			"lon": "LONGITUDE_DD",
-			"station": "STATION",
+			"depth": "Sampling depth (m",
+			"lat": "Sample latitude (DD)",
+			"lon": "Sample longitude (DD)",
+			"station": "Station name",
 			"time": [
-				"YEAR",
-				"MONTH",
-				"DAY",
-				"HOUR",
-				"MINUTE",
-				"SECOND"
-			]
+				"Sampling date", 
+				"Sampling time (start)"
+				]
 		},
 		"info": ""
 	},
 	"parameter_mapping": {
 		"data": {
 			"encoding": "cp1252",
-			"external_column": "Standard format",
-			"file_name": "mapping_parameters_shark_standard.txt",
-			"internal_column": "Display english",
-			"qf_prefix": "Q_",
+			"external_column": "SHARKweb",
+			"file_name": "mapping_parameter_shark_btl.txt",
+			"internal_column": [
+					    "parameter_name", 
+					    "parameter_unit" 
+					    ],
+			"qf_prefix": "Q-flag",
 			"qf_suffix": "",
-			"unit_column": "",
-			"unit_starts_with": "["
+			"unit_column": "parameter_unit",
+			"unit_starts_with": "("
 		},
 		"info": ""
 	},

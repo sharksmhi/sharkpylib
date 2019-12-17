@@ -61,7 +61,6 @@
 	"properties": {
 		"data": {
 			"missing_value": "",
-			"number_of_decimals_for_float": "5",
 			"column_separator": "\t",
 			"comment_id": "//",
 			"encoding": "cp1252"
