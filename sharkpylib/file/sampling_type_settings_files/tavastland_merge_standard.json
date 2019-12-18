@@ -1,0 +1,65 @@
+{
+	"dependent_parameters": {
+		"data": {
+		},
+		"info": ""
+	},
+	"flags": {
+		"data": {
+			"": "No QC",
+			"0": "No QC was performed",
+			"1": "Good data",
+			"2": "Probably good data",
+			"3": "Bad data that are potentially correctable",
+			"4": "Bad data",
+			"5": "Value changed",
+			"6": "Not used",
+			"7": "Nominal value",
+			"8": "Interpolated value"
+		},
+		"info": ""
+	},
+	"mandatory_columns": {
+		"data": {
+			"depth": "4 meters",
+			"lat": "lat",
+			"lon": "lon",
+			"station": ["lat", "lon"],
+			"time": "time"
+		},
+		"info": ""
+	},
+	"parameter_mapping": {
+		"data": {
+			"external_column": "co2_merged_file",
+			"file_name": "mapping_tavastland.txt",
+			"internal_column": "nodc",
+			"unit_column": "",
+			"encoding": "cp1252",
+			"qf_prefix": "Q_",
+			"qf_suffix": "",
+			"unit_starts_with": ""
+		},
+		"info": ""
+	},
+	"properties": {
+		"data": {
+			"missing_value": "",
+			"column_separator": "\t",
+			"comment_id": "//",
+			"encoding": "cp1252"
+		},
+		"info": ""
+	},
+	"station_mapping": {
+		"data": {
+			"external_column": "Stnreg",
+			"file_name": "mapping_station.txt",
+			"header_starts_with": "stnreg_stnid",
+			"internal_column": "Stnreg",
+			"platform_type_column": "Platform type",
+			"encoding": "cp1252"
+		},
+		"info": ""
+	}
+}

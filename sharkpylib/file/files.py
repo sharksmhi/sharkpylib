@@ -42,7 +42,7 @@ class MappingFile(object):
 
         self.columns = self.df.columns[:]
 
-    def get(self, item, from_col=None, to_col=None, missing_value=None, **kwargs):
+    def get(self, item, missing_value=None, from_col=None, to_col=None, **kwargs):
         if not self.file_path:
             return item
 

@@ -277,8 +277,8 @@ def create_file_for_qc0(file_path=None, mapping_file_path=None, file_col=None, q
     """
 
     mapping_object = MappingFile(file_path=mapping_file_path, from_col=file_col, to_col=qc0_col)
-    print(mapping_object.file_path)
-    print(mapping_object.df.columns)
+    # print(mapping_object.file_path)
+    # print(mapping_object.df.columns)
     df = txt_reader.load_txt_df(file_path)
 
     # Map columns
@@ -408,13 +408,13 @@ def merge_data_from_qc0(main_file_path=None, mapping_file_path=None, file_col=No
         if not (len(col) == 5 and col[0] == '8'):
             continue
         par = col[1:]
-        print('par:', par)
+        # print('par:', par)
         mapped_par = mapping_object.get(par, missing_value=False)
         qc0_mapped_par = f'QC0_{mapped_par}'
         if not mapping_object:
             raise ValueError(f'Could not find mapping for column: {col}')
         if qc0_mapped_par in main_df:
-            print(qc0_mapped_par, par)
+            # print(qc0_mapped_par, par)
             main_df[qc0_mapped_par] = qc0_df[col]
 
     # Save file

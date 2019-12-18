@@ -30,7 +30,7 @@ def load_txt_df(file_path='',
     :param loading_info: NotImplementedError
     :return: pd.DataFrame | Dictionary
     """
-    print('Loading text file: '+file_path.split('/')[-1])
+    # print('Loading text file: '+file_path.split('/')[-1])
     if as_dtype:
         with open(file_path, 'r') as f:
             # is .strip('\r') necessary?

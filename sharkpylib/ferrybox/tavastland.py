@@ -18,6 +18,10 @@ from sharkpylib.file.file_handlers import MappingDirectory
 from sharkpylib.file.file_handlers import ListDirectory
 from sharkpylib.file.file_handlers import Directory
 
+from sharkpylib.qc.mask_areas import MaskAreasDirectory
+
+from sharkpylib.file import txt_reader
+
 try:
     import pandas as pd
 except:
@@ -399,7 +403,7 @@ class MITfile(File):
                 error_list.append(text)
 
         if error_list:
-            logger.info(error_list.join('; '))
+            logger.info('; '.join(error_list))
 
         return error_list
 
@@ -859,16 +863,18 @@ class FileHandler(object):
         self.current_merge_data = self.current_merge_data[new_columns]
         self.current_merge_data.fillna('', inplace=True)
 
-    def _mapp_columns(self):
+    def _mapp_columns(self, df=None):
+        if df is None:
+            df = self.current_merge_data
         mapping_dir_object = MappingDirectory()
         mapping = mapping_dir_object.get_file_object('mapping_tavastland.txt', from_col='co2_merged_file', to_col='nodc')
-        self.current_merge_data.columns = mapping.get_mapped_list(self.current_merge_data.columns)
+        df.columns = mapping.get_mapped_list(df.columns)
 
     def _remove_types(self):
         boolean = self.current_merge_data['co2_Type'].isin(self.exclude_co2_types)
         self.current_merge_data.loc[boolean, self.co2_columns] = ''
 
-    def remove_areas(self, file_path):
+    def old_remove_areas(self, file_path):
         """
         Remove areas listed in file_path. file_path should be of type gismo.qc.qc_trijectory.
         Maybe this class should be located in a more general place.
@@ -897,6 +903,9 @@ class FileHandler(object):
         self.current_merge_data = self.current_merge_data.loc[~combined_boolean, :]
 
         return masked_areas
+
+    def get_nr_rows(self, file_type):
+        return len(self.current_data[file_type])
 
     def get_min_and_max_time(self):
         """
@@ -979,7 +988,7 @@ class FileHandler(object):
 
         self._remove_types()
 
-        self._mapp_columns()
+        # self._mapp_columns()
 
     def _calculate_pCO2(self):
 
@@ -1206,7 +1215,7 @@ class FileHandler(object):
             all_types.pop(all_types.index(''))
         return all_types
 
-    def save_data(self, directory, overwrite=False, **kwargs): 
+    def save_data(self, directory=None, overwrite=False, **kwargs):
         self.save_dir = self._get_export_directory(directory)
 
         if os.path.exists(self.save_dir):
@@ -1323,6 +1332,8 @@ class FileHandler(object):
                   index=False)
         merge_data = self.get_merge_data()
 
+        self._mapp_columns(merge_data)
+
         if kwargs.get('co2_types'):
             boolean = merge_data['co2_Type'].isin(kwargs.get('co2_types'))
             merge_data.loc[boolean].to_csv(file_path, **kw)
@@ -1379,23 +1390,50 @@ class ManageTavastlandFiles(object):
             if fname.startswith('merge_'):
                 return self.dir_object.get_path(file_id=fname)
 
+    def flag_areas(self):
+        mask_areas_file_id = 'mask_areas_tavastland.txt'
+        mask_files = MaskAreasDirectory()
+        mask_obj = mask_files.get_file_object(mask_areas_file_id)
+        data_file_path = self._get_merge_file_path()
+        df = txt_reader.load_txt_df(data_file_path)
+
+        mapping_files = sharkpylib.file.file_handlers.MappingDirectory()
+        mapping_obj = mapping_files.get_file_object('mapping_tavastland.txt', from_col='co2_merged_file', to_col='nodc')
+
+        lat_list = [float(value) for value in df[mapping_obj.get('lat', 'lat')]]
+        lon_list = [float(value) for value in df[mapping_obj.get('lon', 'lon')]]
+        boolean = mask_obj.get_masked_boolean(lat_list, lon_list)
+
+        # Loop q columns
+        for col in df.columns:
+            if col.startswith('Q_'):
+                df[col][boolean] = '4'
+
+        df.to_csv(data_file_path, sep='\t', index=False)
+        return data_file_path
+
     def create_qc0_file(self):
-        mappinglib.create_file_for_qc0(file_path=self._get_merge_file_path(),
-                                       mapping_file_path=self.mapping_file,
-                                       file_col=self.col_files,
-                                       qc0_col=self.col_qc0,
-                                       save_file=True)
+        qc0_file_path = mappinglib.create_file_for_qc0(file_path=self._get_merge_file_path(),
+                                                       mapping_file_path=self.mapping_file,
+                                                       file_col=self.col_files,
+                                                       qc0_col=self.col_qc0,
+                                                       save_file=True)
+        return qc0_file_path
 
     def add_nodc_qc_columns(self):
-        mappinglib.add_nodc_qc_columns_to_df(file_path=self._get_merge_file_path(),
+        merge_file_path = self._get_merge_file_path()
+        mappinglib.add_nodc_qc_columns_to_df(file_path=merge_file_path,
                                              save_file=True)
+        return merge_file_path
 
     def add_qc0_info_to_nodc_column_file(self):
-        mappinglib.merge_data_from_qc0(main_file_path=self._get_merge_file_path(),
+        merge_file_path = self._get_merge_file_path()
+        mappinglib.merge_data_from_qc0(main_file_path=merge_file_path,
                                        mapping_file_path=self.mapping_file,
                                        file_col=self.col_files,
                                        qc0_col=self.col_qc0,
                                        save_file=True)
+        return merge_file_path
 
 
 

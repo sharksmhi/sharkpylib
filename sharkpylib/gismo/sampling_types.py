@@ -2083,7 +2083,7 @@ def old_get_matching_sample_index(sample_object=None,
     return sorted(all_index)
 
 
-def apply_datetime_object_to_df(x):
+def apply_datetime_object_to_df(x, **kwargs):
     """
     Used to apply datetime object to a pandas dataframe.
     :param x:
@@ -2097,7 +2097,8 @@ def apply_datetime_object_to_df(x):
                     '%Y-%m-%d%H:%M',
                     '%Y-%m-%d%H.%M',
                     '%Y%m%d',
-                    '%Y-%m-%d']
+                    '%Y-%m-%d',
+                    '%Y-%m-%d %H:%M:%S']
     if type(x) == str:
         x = [x]
     time_string = ''.join([str(item) for item in x])
