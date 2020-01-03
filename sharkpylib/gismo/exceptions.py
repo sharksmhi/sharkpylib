@@ -229,3 +229,29 @@ class GISMOExceptionMissingSettingsFile(GISMOException):
     message = ''
 
 
+class GISMOExceptionSaveNotAllowed(GISMOException):
+    """
+    """
+    code = ''
+    message = ''
+
+
+class GISMOExceptionMissingQCroutineName(GISMOException):
+    """
+    """
+    code = ''
+    message = ''
+
+
+class GISMOExceptionQCfieldError(GISMOException):
+    """
+    """
+    code = ''
+    message = ''
+
+
+class GISMOExceptionNoData(GISMOException):
+    """
+        """
+    code = ''
+    message = ''

@@ -216,8 +216,10 @@ class StationMapping():
         if settings_object:
             # for item in ['source_file_path', 'local_file_path', 'header_starts_with', 'external_column',
             #              'internal_column', 'platform_type_column', 'encoding']:
+            # for item in ['header_starts_with', 'external_column',
+            #              'internal_column', 'platform_type_column', 'encoding']:
             for item in ['header_starts_with', 'external_column',
-                         'internal_column', 'platform_type_column', 'encoding']:
+                         'internal_column', 'encoding']:
                 try:
                     # TODO: setattr(self, item, getattr(settings_object.station_mapping, item))
                     setattr(self, item, settings_object.get_data('station_mapping', item))
@@ -236,6 +238,8 @@ class StationMapping():
             self.platform_type_column = platform_type_column
             self.encoding = encoding
 
+        # print(self.mapping_files.get_list())
+        # print(settings_object.get_data('station_mapping', 'file_name'))
         self._load_file()
         
     #===========================================================================
@@ -252,8 +256,8 @@ class StationMapping():
         self.external_to_internal = {}
         self.external_to_type = {}
         
-        self.internal_by_type = {}
-        self.external_by_type = {}
+        # self.internal_by_type = {}
+        # self.external_by_type = {}
 
         
         # Load data
@@ -270,7 +274,7 @@ class StationMapping():
                 self.header = split_line
             elif self.header:
                 line_dict = dict(zip(self.header, split_line))
-                
+
                 external = line_dict[self.external_column]
                 internal = line_dict[self.internal_column]
                 # platform_type = line_dict[self.platform_type_column]
@@ -296,7 +300,7 @@ class StationMapping():
     #     return sorted(self.internal_by_type['FB'])
     
     #===========================================================================
-    def get_platform_type(self, item):
+    def old_get_platform_type(self, item):
         for t in self.internal_by_type:
             if item in self.internal_by_type[t]:
                 return t

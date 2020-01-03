@@ -39,7 +39,7 @@ class ColumnFile:
     def get_mapping(self, par, **kwargs): 
         """
         Returns a list of values from parameter=par that matches the criteria 
-        in kwargs. Only one value in the kwargs argument are alowed. 
+        in kwargs. Only one value in the kwargs argument are allowed.
         """
         boolean = np.array(np.ones(len(self.df)), dtype=bool)
         for key, value in kwargs.iteritems():
@@ -144,36 +144,4 @@ def move_files_in_list(file_paths, to_directory, **kwargs):
             nr_files_moved += 1
     print('{} files moved'.format(nr_files_moved))
 
-
-def get_list_from_file(file_path, **kwargs):
-    """
-    Returns a list of the content in file_path. Each row is an element in list.
-    :param file_path:
-    :return:
-    """
-    return_list = []
-    with codecs.open(file_path, **kwargs) as fid:
-        for line in fid:
-            stripped_line = line.strip()
-            if stripped_line:
-                return_list.append(stripped_line)
-    return return_list
-
-def get_list_from_column_file(file_path, column_name, **kwargs):
-    """
-    Returns a list of the content in file_path in the column column name. Each row of named column is an element in list.
-    :param file_path:
-    :return:
-    """
-    sep = kwargs.pop('sep', '\t')
-    df = pd.read_csv(file_path, sep=sep, dtype=str)
-    sort = kwargs.pop('sort', False)
-
-    boolean = ~pd.isna(df[column_name])
-    column_list = list(df.loc[boolean, column_name].values)
-
-    if sort:
-        column_list = sorted(column_list)
-
-    return column_list
 

@@ -8,7 +8,6 @@ Created on Thu Aug 30 15:53:08 2018
 """
 import os
 import datetime
-import codecs
 
 try:
     import pandas as pd
@@ -18,8 +17,13 @@ except:
 
 from . import file_io
 from . import exceptionlib
-        
-class Directory(object):
+from sharkpylib.file import txt_reader
+from . import utils
+from .file.file_handlers import Directory, ListDirectory
+from .file.files import MappingFile, SynonymFile
+
+
+class old_Directory(object):
     """
     Handles a directory.
     """
@@ -109,118 +113,10 @@ class SynonymDirectory(Directory):
         self.mapping_objects[file_id] = SynonymFile(file_path=self.mapping_paths.get(file_id), **kwargs)
 
 
-class MappingFile(object):
-
-    def __init__(self, file_path=None, from_col=None, to_col=None, **kwargs):
-
-        kw = {'sep': '\t',
-              'encoding': 'cp1252',
-              'dtype': 'str'}
-        kw.update(kwargs)
-
-        self.from_col = from_col
-        self.to_col = to_col
-
-        self.file_path = file_path
-        if self.file_path and os.path.exists(self.file_path):
-            self.df = pd.read_csv(file_path, **kw)
-        else:
-            self.df = pd.DataFrame()
-        self.df.replace(np.nan, '', regex=True, inplace=True)
-
-    def get(self, item, from_col=None, to_col=None, missing_value=None, **kwargs):
-        if not self.file_path:
-            return item
-
-        if not from_col:
-            from_col = self.from_col
-        if not to_col:
-            to_col = self.to_col
-
-        # Saving current columns
-        self.from_col = from_col
-        self.to_col = to_col
-
-        result = self.df.loc[self.df[from_col] == item, to_col]
-        value = ''
-        if len(result):
-            value = result.values[0]
-
-        if value:
-            return str(value)
-        else:
-            if missing_value is not None:
-                return missing_value
-            else:
-                return str(item)
-
-    def get_mapped_list(self, item_list, **kwargs):
-        """
-        Maps a iterable
-        :param item_list:
-        :param kwargs: Se options in method get
-        :return:
-        """
-
-        output_list = []
-        for k, item in enumerate(item_list):
-            mapped_item = self.get(item, **kwargs)
-            output_list.append(mapped_item)
-        return output_list
-
-
-class SynonymFile(object):
-
-    def __init__(self, file_path=None, **kwargs):
-        self.data = {}
-        self.file_path = file_path
-        if self.file_path:
-            with codecs.open(file_path) as fid:
-                for line in fid:
-                    line = line.strip()
-                    if not line:
-                        continue
-                    split_line = line.split('\t')
-                    if len(split_line) > 1:
-                        items = [key.strip() for key in split_line[1].split(';')]
-                        for key in items:
-                            self.data[key] = split_line[0]
-                            self.data[key.upper()] = split_line[0]
-                            self.data[key.lower()] = split_line[0]
-
-    def get(self, item, no_match_value=None):
-        return self.data.get(item, no_match_value)
-
-    def get_mapped_list(self,
-                 item_list,
-                 no_match_value=None,
-                 col_nummer_if_no_match=False,
-                 as_array=False):
-        """
-        Maps a iterable.
-        :param item_list:
-        :param no_match_value:
-        :param col_nummer_if_no_match:
-        :param kwargs:
-        :return:
-        """
-        output_list = []
-        for k, item in enumerate(item_list):
-            if col_nummer_if_no_match:
-                mapped_item = self.get(item, str(k+1))
-            else:
-                mapped_item = self.get(item, no_match_value)
-            output_list.append(mapped_item)
-        if as_array:
-            output_list = np.array(output_list)
-
-        return output_list
-
-
 class MapAndFilterPandasDataframe(object):
     def __init__(self, df):
         """
-        Class to map pandas dataframe. Class will hold information about what has been maped.
+        Class to map pandas dataframe. Class will hold information about what has been mapped.
         :param df:
         """
         self.df = df
@@ -242,6 +138,7 @@ class MapAndFilterPandasDataframe(object):
         :return:
         """
         self.mapping_object = MappingFile(file_path, from_col=from_col, to_col=to_col, **kwargs)
+
 
     def set_filter_list_from_file(self, file_path, **kwargs):
         """
@@ -311,8 +208,7 @@ def strip_position(pos):
     pos = str(pos)
     return pos.strip(' +-').replace(' ', '')
     
-    
-    
+
 def split_date(date): 
     """
     Splits date from format %y%m%d to %y-%m-%d
@@ -363,25 +259,180 @@ def sdate_from_datetime(datetime_object, format='%y-%m-%d'):
     return datetime_object.strftime(format)
 
 
-
 def stime_from_datetime(datetime_object, format='%H:%M'): 
     """
     Converts a datetime object to STIME string. 
     """ 
     return datetime_object.strftime(format)
 
-def get_mapping_file_paths():
+
+def create_file_for_qc0(file_path=None, mapping_file_path=None, file_col=None, qc0_col=None, **kwargs):
     """
-    Retuns a dictionary
+    Creates a file for QC0, file that can be run by IOCFTP.
+    :param file_path: str
+    :param mapping_file_path: str
+    :param file_col: str, column name to convert from
+    :param qc0_col: str, column name to convert to
+    :return: pandas Dataframe or path is saved
+    """
+
+    mapping_object = MappingFile(file_path=mapping_file_path, from_col=file_col, to_col=qc0_col)
+    # print(mapping_object.file_path)
+    # print(mapping_object.df.columns)
+    df = txt_reader.load_txt_df(file_path)
+
+    # Map columns
+    columns_to_keep = []
+    all_cols = []
+    qc_columns_to_add = []
+    new_column_order = []
+    for col in df.columns:
+        if col == 'time':
+            all_cols.append(col)
+            continue
+        mapped_col = mapping_object.get(col, missing_value=False)
+        if mapped_col:
+            columns_to_keep.append(mapped_col)
+            qc_col = f'8{mapped_col}'
+            qc_columns_to_add.append(qc_col)
+            new_column_order.append(mapped_col)
+            new_column_order.append(qc_col)
+            all_cols.append(mapped_col)
+        else:
+            all_cols.append(col)
+
+    # Change column names in df
+    df.columns = all_cols
+
+    # Keep mapped columns
+    df = df[columns_to_keep]
+
+    # Add qc columns
+    for col in qc_columns_to_add:
+        df[col] = '0'
+
+    # Change order of columns
+    df = df[new_column_order]
+
+    # Save file
+    if kwargs.get('save_file'):
+        output_file_path = _get_qc0_file_path(file_path)
+        df.to_csv(output_file_path, sep='\t', index=False)
+        return output_file_path
+
+    return df
+
+
+def add_nodc_qc_columns_to_df(df=None, file_path=None, default_q='', default_qc0='0', default_qc1='0', **kwargs):
+    """
+    Adds the three QC columns that should be present in the SMHI nods standard format.
+    :param df:
+    :param columns:
+    :param default_q:
+    :param default_qc0:
+    :param default_qc1:
     :return:
     """
-    
-    
-    
-    
-    
-    
-    
-    
-    
+    def q_col(par):
+        if any([par.startswith(qc) for qc in ['Q_', 'QC0_', 'QC1']]):
+            return True
+        return False
+
+    q = 'Q'
+    qc0 = 'QC0'
+    qc1 = 'QC1'
+
+    if file_path:
+        df = txt_reader.load_txt_df(file_path)
+
+    columns = list(df.columns)
+
+    # Find metadata columns
+    metadata_columns = ListDirectory().get_file_object('list_metadata_columns.txt').get()
+    data_columns = [col for col in columns if col not in metadata_columns]
+
+    data_par_list = [par for par in data_columns if not q_col(par)]
+
+    # Add qc columns
+    new_columns = []
+    for par in columns:
+        if par in data_par_list:
+            qpar = par.split('[')[0].strip()
+            new_columns.append(par)
+            new_columns.append(f'{q}_{qpar}')
+            new_columns.append(f'{qc0}_{qpar}')
+            new_columns.append(f'{qc1}_{qpar}')
+        else:
+            if par not in new_columns:
+                new_columns.append(par)
+
+    # Add columns to dataframe if missing
+    for col in new_columns:
+        if col not in columns:
+            if col.startswith(qc0):
+                df[col] = default_qc0
+            elif col.startswith(qc1):
+                df[col] = default_qc1
+            elif col.startswith(q):
+                df[col] = default_q
+
+    # Change columns order
+    df = df[new_columns]
+
+    if kwargs.get('save_file'):
+        if file_path:
+            # info = utils.PathInfo(file_path)
+            # output_file_path = os.path.join(info.directory, f'{info.file_base}_with_nodc_qc_cols.{info.extension}')
+            # df.to_csv(output_file_path, sep='\t', index=False)
+            df.to_csv(file_path, sep='\t', index=False)
+            return file_path
+        return df
+    return df
+
+
+def merge_data_from_qc0(main_file_path=None, mapping_file_path=None, file_col=None, qc0_col=None, **kwargs):
+    qc0_file_path = _get_qc0_file_path(main_file_path)
+
+    if not os.path.exists(main_file_path):
+        raise FileNotFoundError(main_file_path)
+
+    if not os.path.exists(qc0_file_path):
+        raise FileNotFoundError(qc0_file_path)
+
+    main_df = txt_reader.load_txt_df(main_file_path)
+    qc0_df = txt_reader.load_txt_df(qc0_file_path)
+    mapping_object = MappingFile(file_path=mapping_file_path, from_col=qc0_col, to_col=file_col)
+
+    for col in qc0_df.columns:
+        # Only check qc columns
+        if not (len(col) == 5 and col[0] == '8'):
+            continue
+        par = col[1:]
+        # print('par:', par)
+        mapped_par = mapping_object.get(par, missing_value=False)
+        qc0_mapped_par = f'QC0_{mapped_par}'
+        if not mapping_object:
+            raise ValueError(f'Could not find mapping for column: {col}')
+        if qc0_mapped_par in main_df:
+            # print(qc0_mapped_par, par)
+            main_df[qc0_mapped_par] = qc0_df[col]
+
+    # Save file
+    if kwargs.get('save_file'):
+        # info = utils.PathInfo(main_file_path)
+        # output_file_path = os.path.join(info.directory, f'{info.file_base}_with_added_qc0.{info.extension}')
+        # main_df.to_csv(output_file_path, sep='\t', index=False)
+        main_df.to_csv(main_file_path, sep='\t', index=False)
+
+    return main_df
+
+def _get_qc0_file_path(file_path):
+    """
+    Builds a file path for qc0 and returns it.
+    :param file_path:
+    :return:
+    """
+    info = utils.PathInfo(file_path)
+    qc_file_path = os.path.join(info.directory, f'qc0_{info.file_base}.{info.extension}')
+    return qc_file_path
     

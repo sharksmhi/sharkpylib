@@ -42,12 +42,12 @@ class PluginFactory(object):
     """
     def __init__(self):
         # Add key and class to dict if you want to activate it
-        self.classes = {'Profile range simple': QCprofileRangeSimple,
-                        'Profile report': QCprofileReport}
+        self.classes = {QCprofileRangeSimple.name: QCprofileRangeSimple,
+                        QCprofileReport.name: QCprofileReport}
         # self.classes = {'Mask areas': QCmaskArea}
 
-        self.required_arguments = {'Profile range simple': ['parameter_list'],
-                                   'Profile report': ['subroutines', 'save_directory']}
+        self.required_arguments = {QCprofileRangeSimple.name: ['parameter_list'],
+                                   QCprofileReport.name: ['subroutines', 'save_directory']}
 
         # self.required_arguments = {'Mask areas': ['file_path', 'par_to_flag']}
 
@@ -55,6 +55,9 @@ class PluginFactory(object):
 #        self.classes = {'iocftp_qc0': QCiocftp,
 #                        'Mask areas': QCmaskArea}
 #        self.required_arguments = {'iocftp_qc0': []}
+
+    def __str__(self):
+        return '\nQC factory. Available qc routines are:\n{}\n'.format('\n'.join(sorted(self.classes)))
 
     def get_list(self):
         return sorted(self.classes)
@@ -324,9 +327,10 @@ class QCiocftp(GISMOqc):
 
 
 class QCprofileRangeSimple(GISMOqc):
+    name = 'Profile range simple'
+
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.name = 'Profile range simple'
         self.qc_object = ProfileQCrangeSimple()
 
     def get_options(self):
@@ -338,9 +342,10 @@ class QCprofileRangeSimple(GISMOqc):
 
 
 class QCprofileReport(GISMOqc):
+    name = 'Profile report'
+
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.name = 'Profile report'
         self.qc_object = ProfileQCreportTXT()
 
     def get_options(self):

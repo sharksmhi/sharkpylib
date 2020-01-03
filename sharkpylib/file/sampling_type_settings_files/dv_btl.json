@@ -1,0 +1,70 @@
+{
+	"dependent_parameters": {
+		"data": {
+			},
+		"info": ""
+	},
+	"flags": {
+		"data": {
+			"": "Data kontrollerad av datav\u00e4rd eller av dataleverant\u00f6r",
+			"<": "V\u00e4rdet understiger m\u00e4tomr\u00e4dets undre gr\u00e4ns (\u00e4ven kallat rapporteringsgr\u00e4ns",
+			">": "V\u00e4rdet \u00e4verstiger m\u00e4tomr\u00e4dets \u00e4vre gr\u00e4ns",
+			"B": "D\u00e5ligt / felaktigt v\u00e4rde",
+			"E": "Misst\u00e4nkt extremv\u00e4rde som kontrollerats och funnits korrekt",
+			"M": "V\u00e4rde saknas",
+			"R": "Uppskattat v\u00e4rde (genom interpolation eller extrapolation)",
+			"S": "Misst\u00e4nkt v\u00e4rde - anses misst\u00e4nkt baserat p\u00e4 kvalitetskontroll eller brister i provtagning/ analys",
+			"Z": "Nollv\u00e4rde per definition (t.ex. syrehalt n\u00e4r svavelv\u00e4te p\u00e4visas)"
+		},
+		"info": ""
+	},
+	"mandatory_columns": {
+		"data": {
+			"depth": "Sampling depth (m",
+			"lat": "Sample latitude (DD)",
+			"lon": "Sample longitude (DD)",
+			"station": "Station name",
+			"time": [
+				"Sampling date", 
+				"Sampling time (start)"
+				]
+		},
+		"info": ""
+	},
+	"parameter_mapping": {
+		"data": {
+			"encoding": "cp1252",
+			"external_column": "SHARKweb",
+			"file_name": "mapping_parameter_shark_btl.txt",
+			"internal_column": [
+					    "parameter_name", 
+					    "parameter_unit" 
+					    ],
+			"qf_prefix": "Q-flag",
+			"qf_suffix": "",
+			"unit_column": "parameter_unit",
+			"unit_starts_with": "("
+		},
+		"info": ""
+	},
+	"properties": {
+		"data": {
+			"column_separator": "\t",
+			"comment_id": "//",
+			"encoding": "cp1252",
+			"missing_value": ""
+		},
+		"info": ""
+	},
+	"station_mapping": {
+		"data": {
+			"encoding": "cp1252",
+			"external_column": "Stnreg",
+			"file_name": "mapping_station.txt",
+			"header_starts_with": "stnreg_stnid",
+			"internal_column": "Stnreg",
+			"platform_type_column": "Platform type"
+		},
+		"info": ""
+	}
+}

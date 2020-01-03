@@ -80,6 +80,8 @@ class GISMOdataManager(object):
         self.objects[gismo_object.file_id] = gismo_object
         self.objects_by_sampling_type[sampling_type][gismo_object.file_id] = gismo_object
 
+        return gismo_object.file_id
+
     def remove_file(self, file_id):
         if file_id in self.objects:
             self.objects.pop(file_id)
@@ -101,7 +103,7 @@ class GISMOdataManager(object):
 
     def flag_data(self, file_id, flag, *args, **kwargs):
         """
-        Created 20181004     
+        Method to manually flag data.
 
         Flags data in file_id.
         :param file_id:
@@ -121,9 +123,15 @@ class GISMOdataManager(object):
             if key not in gismo_object.flag_data_options:
                 raise GISMOExceptionInvalidOption('{} is not a valid filter option'.format(key))
 
+        # Check for mandatory options
+        for item in gismo_object.flag_data_options_mandatory:
+            if item not in kwargs:
+                raise GISMOExceptionMissingInputArgument('Missing mandatory flag option {}'.format(item))
+
         gismo_object = self.objects.get(file_id)
         gismo_object.flag_data(flag, *args, **kwargs)
-        # Add comment in metadata
+
+        # Add comment in metadata. Will be added when file is saved.
         self.has_been_flaged[file_id] = True
 
 
@@ -150,6 +158,16 @@ class GISMOdataManager(object):
         """
         self._check_file_id(file_id)
         return self.objects.get(file_id).flag_data_options
+
+    def get_flag_options_mandatory(self, file_id, **kwargs):
+        """
+
+        :param file_id:
+        :param kwargs:
+        :return:
+        """
+        self._check_file_id(file_id)
+        return self.objects.get(file_id).flag_data_options_mandatory
 
     def get_filtered_file_id_list(self, **kwargs):
         """
@@ -180,13 +198,14 @@ class GISMOdataManager(object):
         lon_min = kwargs.get('lon_min', -180.)
         lon_max = kwargs.get('lon_max', 180.)
 
-        # ----------------------------------
+        start = kwargs.get('startswith', '')
+        if type(start) != list:
+            start = [start]
 
         matching_file_id_list = []
         for file_id in self.get_file_id_list():
             gismo_object = self.objects.get(file_id)
-
-            if not file_id.startswith(kwargs.get('startswith', '')):
+            if not any([file_id.startswith(s) for s in start]):
                 continue
             # Check station
             if station:
@@ -407,6 +426,7 @@ class GISMOdata(object):
         self.parameter_list = []        # Valid data parameters
         self.filter_data_options = []   # Options for data filter (what to return in def get_data)
         self.flag_data_options = []     # Options for flagging data (where should data be flagged)
+        self.flag_data_options_mandatory = []  # Mandatory options for flagging data
         self.mask_data_options = []     # Options for masking data (replaced by "missing value"
 
         self.save_data_options = []     # Options for saving data
@@ -523,6 +543,13 @@ class GISMOdata(object):
         """
         raise GISMOExceptionMethodNotImplemented
 
+    def get_dict_with_matching_parameters(self, par_list):
+        """
+
+        :return: a dict with matching parameter names.
+        """
+        raise GISMOExceptionMethodNotImplemented
+
     @property
     def has_metadata(self):
         """
@@ -605,7 +632,7 @@ class GISMOqcManager(object):
         qc_routine_objects = self.qc_routines.get(qc_routine)
 
         # Run qc
-        qc_routine_objects.run_qc(gismo_objects, **kwargs)
+        qc_routine_objects.run_qc(gismo_objects, qc_routine=qc_routine, **kwargs)
 
         # Add comment in metadata
         user = kwargs.pop('user', 'unknown user')
@@ -629,13 +656,17 @@ class GISMOqc(object):
 
     Base class to handle quality control of GISMO-objects.
     """
+    name = ''
 
     def __init__(self, *args, **kwargs):
-        self.name = ''
+        if not self.name:
+            raise GISMOExceptionMissingQCroutineName
 
     def run_qc(self, gismo_objects, **kwargs):
         """
-        Data is generally in a pandas dataframe that can be reach under gismo_object.df
+        Data is generally in a pandas dataframe that can be reach under gismo_object.df.
+
+        To manipulate (flag) data in a gismo_object use method gismo_object.flag_data()!!!
 
         Make sure self.name is in gismo_object.valid_qc_routines
 
@@ -653,8 +684,9 @@ class GISMOqc(object):
 
     def get_options(self):
         """
-        Should return a dict with options available for the qc routine. Key is the option itself.
-        Value are tho available choices for the corresponding option. Choices can be of the following types:
+        Should return a dict with options available for the qc routine.
+        Key is the option itself.
+        Values are the available choices for the corresponding option. Choices can be of the following types:
 
         list: multi select
         empty list: free nr of inputs (ex. list of quality flags)

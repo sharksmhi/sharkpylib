@@ -12,7 +12,7 @@ from .exceptions import *
 
 from .gismo import GISMOdataManager
 from .gismo import GISMOqcManager
-from .files import SettingsFiles, MappingFiles
+from sharkpylib.file.file_handlers import SamplingTypeSettingsDirectory, MappingDirectory
 
 
 import os 
@@ -253,12 +253,9 @@ class GISMOsession(object):
         kwargs can include:
             save_pkl
         """
-        print('SESSION')
         gismo_logger.info('Start session')
-        if not all([users_directory, user, sampling_types_factory]):
-            raise GISMOExceptionMissingInputArgument
-
-        print('HELP')
+        #if not all([users_directory, user, sampling_types_factory]):
+        #    raise GISMOExceptionMissingInputArgument
 
         self.root_directory = root_directory
         self.users_directory = users_directory
@@ -282,7 +279,7 @@ class GISMOsession(object):
 
     def _load_attributes(self):
         # Settings files
-        self.settings_files = SettingsFiles()
+        self.settings_files = SamplingTypeSettingsDirectory()
 
         # if not os.path.exists(self.settings_files_directory):
         #     os.makedirs(self.settings_files_directory)
@@ -293,7 +290,7 @@ class GISMOsession(object):
         #     self.settings_files[file_name] = os.path.join(self.settings_files_directory, file_name)
 
         # Mapping files
-        self.mapping_files = MappingFiles()
+        self.mapping_files = MappingDirectory()
         # if not os.path.exists(self.mapping_files_directory):
         #     os.makedirs(self.mapping_files_directory)
         # self.mapping_files = {}
@@ -337,7 +334,7 @@ class GISMOsession(object):
 
     def flag_data(self, file_id, flag, *args, **kwargs):
         """
-        Created 20181005       
+        Method to manually flag data in given file.
 
         :param file_id:
         :param flag:
@@ -399,6 +396,16 @@ class GISMOsession(object):
         :return: list of flag options
         """
         return self.data_manager.get_flag_options(file_id, **kwargs)
+
+    def get_flag_options_mandatory(self, file_id, **kwargs):
+        """
+        Created 20191130
+
+        :param file_id:
+        :param kwargs:
+        :return: list of mandatory flag options
+        """
+        return self.data_manager.get_flag_options_mandatory(file_id, **kwargs)
 
     def get_filtered_file_id_list(self, **kwargs):
         """
@@ -507,6 +514,12 @@ class GISMOsession(object):
             if not kw.get(item):
                 raise GISMOExceptionMissingInputArgument(item)
 
+        return self.data_manager.load_file(data_file_path=data_file_path,
+                                           sampling_type=sampling_type,
+                                           settings_file_path=settings_file_path,
+                                           mapping_files=self.mapping_files)
+
+
 
     # if not all([sampling_type, file_path, settings_file_path]):
     #         raise GISMOExceptionMissingInputArgument
@@ -537,7 +550,7 @@ class GISMOsession(object):
 
         # Check type of file and load
         if kwargs.get('reload') or not os.path.exists(data_file_path_pkl):
-            # Load original file 
+            # Load original file
             self.data_manager.load_file(data_file_path=data_file_path,
                                         sampling_type=sampling_type,
                                         settings_file_path=data_file_path_settings,
@@ -549,12 +562,12 @@ class GISMOsession(object):
                                         **kwargs)
 
         else:
-            # Check if sampling_type is correct 
+            # Check if sampling_type is correct
             # file_name = os.path.basename(file_path)
             # expected_sampling_type = self.user_info.get_sampling_type_for_file_id(file_id)
             # if expected_sampling_type != sampling_type:
             #     return False
-            
+
             # Load buffer pickle file
             self.data_manager.load_file(sampling_type=sampling_type,
                                        load_pkl=self.save_pkl,
@@ -579,9 +592,9 @@ class GISMOsession(object):
         file_id_list = []
         for data_file_path in data_file_paths:
             file_id = self.load_file(sampling_type=sampling_type,
-                               data_file_path=data_file_path,
-                               settings_file=settings_file,
-                               **kwargs)
+                                     data_file_path=data_file_path,
+                                     settings_file=settings_file,
+                                     **kwargs)
             file_id_list.append(file_id)
         return file_id_list
 
@@ -678,8 +691,7 @@ class GISMOsession(object):
             for file_id in sorted(self.gismo_objects[st]):
                 print('   {}'.format(file_id))
 
-
-    def run_automatic_qc(self, gismo_object=None, gismo_objects=[], qc_routine=None, **kwargs):
+    def run_automatic_qc(self, file_id=None, qc_routine=None, **kwargs):
         """
         Runs automatic qc controls on the given gismo object. All routines in qc_routines ar run.
         :param qismo_object:
@@ -687,6 +699,13 @@ class GISMOsession(object):
         :param kwargs:
         :return: True if successful
         """
+        if not file_id:
+            raise GISMOExceptionMissingInputArgument
+        if type(file_id) != list:
+            file_id = [file_id]
+
+        gismo_objects = [self.get_gismo_object(f) for f in file_id]
+
         # Check qc requirements
         qc_requirements = self.get_qc_routine_requirements(qc_routine)
         if not qc_requirements:
@@ -694,7 +713,7 @@ class GISMOsession(object):
         for item in qc_requirements:
             if not kwargs.get(item):
                 raise GISMOExceptionMissingInputArgument(item)
-        return self.qc_manager.run_automatic_qc(gismo_object=gismo_object, gismo_objects=gismo_objects, qc_routine=qc_routine, **kwargs)
+        return self.qc_manager.run_automatic_qc(gismo_objects=gismo_objects, qc_routine=qc_routine, **kwargs)
 
 
 

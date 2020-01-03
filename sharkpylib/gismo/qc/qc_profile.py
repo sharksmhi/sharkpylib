@@ -17,6 +17,7 @@ except:
 from . import QCprofile
 from ...gismo.exceptions import *
 from ...import utils
+from sharkpylib.file.file_handlers import MappingDirectory
 
 import logging
 gismo_logger = logging.getLogger('gismo_session')
@@ -36,12 +37,16 @@ class ProfileQCrangeSimple(object):
         self.options = {'ignore_qf': ['B', 'S', '?'],
                         'parameter_list': self.limit_object.get_parameter_list()}
 
-
     def run_qc(self, gismo_objects, **kwargs):
         parameter_list = kwargs.get('parameter_list')
         if not parameter_list:
             gismo_logger.warning('No parameter list given in options while running qc. Qc not performed')
             return False
+
+        invalid_pars = [par for par in parameter_list if par not in self.options['parameter_list']]
+        if invalid_pars:
+            raise GISMOExceptionInvalidParameter(invalid_pars)
+
         if type(gismo_objects) != list:
             gismo_objects = [gismo_objects]
 
@@ -56,6 +61,7 @@ class ProfileQCrangeSimple(object):
             qf_data = gismo_object.get_qf_list(*par_list)
             t = gismo_object.get_time()[0]
 
+
             for par in qf_data:
                 limit_par = par_mapping.get(par)
                 # limit_par = par
@@ -67,20 +73,30 @@ class ProfileQCrangeSimple(object):
 
                 qf_list = list(qf_data[par])
                 limits = self.limit_object.get_limit(limit_par, 'range_min', 'range_max', time=t)
+                all_depths = list(data['depth'])
                 if limits is not None:
                     result = self.qc_object.range_check(data=list(data[par]),
                                                         qf=qf_list,
                                                         lower_limit=limits['range_min'],
                                                         upper_limit=limits['range_max'],
-                                                        depth=list(data['depth']),
+                                                        depth=all_depths,
                                                         max_depth=False,
                                                         min_depth=False,
                                                         qf_ignore=kwargs.get('ignore_qf',  ['B', 'S', '?']))
                     qfindex, new_qf, qfindex_numeric = result
-                    qf_list = list(new_qf)
-                    # Update qf list in df
-                    qf_par = gismo_object.get_qf_par(par)
-                    gismo_object.df[qf_par] = qf_list
+
+                    kw = dict()
+                    for k in kwargs:
+                        if k in gismo_object.flag_data_options:
+                            kw[k] = kwargs[k]
+
+                    # Flag each flag
+                    for qf in set(new_qf):
+                        flag_boolean = np.array(new_qf) == qf
+                        flag_depth = np.array(all_depths)[flag_boolean]
+                        # Flag data
+                        gismo_object.flag_data(qf, par, depth=flag_depth, **kw)
+                        # gismo_object.df[qf_par] = qf_list
 
 
 class ProfileQCreportTXT(object):

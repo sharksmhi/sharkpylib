@@ -48,8 +48,6 @@ class QC(object):
 
         return data
 
-
-
     def range_check(self, data=False, qf=False, lower_limit=0, upper_limit=40, depth=False, max_depth=False, min_depth=False, qf_ignore=['B','S','?']):
 
         """

@@ -804,6 +804,11 @@ class Plot():
                                 self.mark_left,
                                 self.mark_right,
                                 self.mark_line_id)
+        print(self.mark_bottom)
+        print(self.mark_top)
+        print(self.mark_left)
+        print(self.mark_right)
+        print(self.mark_line_id)
         self.call_range_targets()
 
 #    #===========================================================================
@@ -1666,13 +1671,14 @@ class Ax():
 
                 y_min = mi - margin
                 y_max = ma + margin
-                
-                # print('='*30)
-                # print('margin', margin)
-                # print('mi', mi)
-                # print('ma', ma)
-                # print('y_min', y_min)
-                # print('y_max', y_max)
+
+                print('='*30)
+                print(self.y_data)
+                print('margin', margin)
+                print('mi', mi)
+                print('ma', ma)
+                print('y_min', y_min)
+                print('y_max', y_max)
                 
             self.ax.set_ylim([y_min, y_max])
             if call_targets:
