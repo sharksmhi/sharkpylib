@@ -15,7 +15,7 @@ try:
 except:
     pass
 
-from . import utils
+# from . import utils
 
 
 class CalendarWidget(tk.Frame):
@@ -39,7 +39,7 @@ class CalendarWidget(tk.Frame):
     datetime = calendar.datetime.datetime
     timedelta = calendar.datetime.timedelta
 
-    def __init__(self, root=None, **kw):
+    def __init__(self, master=None, **kw):
         """
         WIDGET-SPECIFIC OPTIONS
 
@@ -56,8 +56,11 @@ class CalendarWidget(tk.Frame):
 
         self._date = self.datetime(year, month, 1)
         self._selection = None  # no date selected
-        self.root = root
-        tk.Frame.__init__(self, root, **kw)
+        self.selected_date = None
+        self.master = tk.Tk()
+        self.master.title('Date selection')
+
+        tk.Frame.__init__(self, self.master, **kw)
 
         self._cal = get_calendar(locale, fwday)
 
@@ -106,15 +109,19 @@ class CalendarWidget(tk.Frame):
         style.layout('L.TButton', arrow_layout('left'))
         style.layout('R.TButton', arrow_layout('right'))
 
+    def dummy(self):
+        pass
+
     def __place_widgets(self):
         # header frame and its widgets
         hframe = ttk.Frame(self)
         lbtn = ttk.Button(hframe, style='L.TButton', command=self._prev_month)
         rbtn = ttk.Button(hframe, style='R.TButton', command=self._next_month)
-        okbtn = ttk.Button(hframe, text='Ok', command=self.root.destroy)
+
+        self.okbtn = ttk.Button(hframe, text='Ok', command=self.destroy_calendar)
         self._header = ttk.Label(hframe, width=15, anchor='center')
         # the calendar
-        self._calendar = ttk.Treeview(show='', selectmode='none', height=7)
+        self._calendar = ttk.Treeview(self.master, show='', selectmode='none', height=7)
 
         # pack the widgets
         hframe.pack(in_=self, side='top', pady=4, anchor='center')
@@ -122,7 +129,7 @@ class CalendarWidget(tk.Frame):
         self._header.grid(in_=hframe, column=1, row=0, padx=12)
         rbtn.grid(in_=hframe, column=2, row=0)
         self._calendar.pack(in_=self, expand=1, fill='both', side='bottom')
-        okbtn.grid(in_=hframe, column=1, row=2)
+        self.okbtn.grid(in_=hframe, column=1, row=2)
 
     def __config_calendar(self):
         cols = self._cal.formatweekheader(3).split()
@@ -145,9 +152,12 @@ class CalendarWidget(tk.Frame):
         self._calendar.bind('<ButtonPress-1>', self._pressed)
 
     def __minsize(self, *args):
-        width, height = self._calendar.master.geometry().split('x')
-        height = height[:height.index('+')]
-        self._calendar.master.minsize(str(int(int(width)*1.3)), height)
+        pass
+        #FIXME AttributeError: 'CalendarWidget' object has no attribute 'minsize'
+        # width, height = self._calendar.master.geometry().split('x')
+        # height = height[:height.index('+')]
+        # width, height = '300', '200'
+        # self._calendar.master.minsize(width, height)
 
     def _build_calendar(self):
         year, month = self._date.year, self._date.month
@@ -219,6 +229,14 @@ class CalendarWidget(tk.Frame):
             days=calendar.monthrange(year, month)[1] + 1)
         self._date = self.datetime(self._date.year, self._date.month, 1)
         self._build_calendar()  # reconstruct calendar
+
+    def destroy_calendar(self):
+        """
+        :return:
+        """
+        self.destroy()
+        self.master.destroy()
+        # print('Destroyed!')
 
     @property
     def selection(self):
@@ -4686,10 +4704,25 @@ def check_float_entry(stringvar, entry, only_negative_values=False, return_strin
 ================================================================================
 ================================================================================
 """ 
-def main():
-    app = TestApp()
-    app.focus_force()
-    app.mainloop()
-    
-if __name__ == '__main__':
-    main()
+# def main():
+#     app = TestApp()
+#     app.focus_force()
+#     app.mainloop()
+#
+# if __name__ == '__main__':
+#     main()
+
+
+# def test():
+#     root = tk.Tk()
+#     root.title('Date selection')
+#     ttkcal = CalendarWidget(firstweekday=calendar.SUNDAY, root=root)
+#     ttkcal.pack(expand=1, fill='both')
+#
+#     root.mainloop()
+#
+#     print(ttkcal.selection)
+#
+#
+# if __name__ == '__main__':
+#     test()
