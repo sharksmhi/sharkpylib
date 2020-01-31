@@ -384,6 +384,7 @@ class CheckbuttonWidget(tk.Frame):
 
         for item in self.items:
             self.booleanvar[item] = tk.BooleanVar()
+            self.booleanvar[item].set(True)
             self.cbutton[item] = tk.Checkbutton(self, 
                                               text=item,  
                                               variable=self.booleanvar[item], 
@@ -1239,8 +1240,22 @@ class EntryGridWidget(tk.Frame):
             return transformed_data
         else:
             return all_data
-            
-    #===========================================================================
+
+    def insert_values(self, rows, cols, values):
+        for row, col, val in zip(rows, cols, values):
+            self.entries[row][col].insert(0, val)
+
+    def set_df(self, df, columns=None):
+        if columns is not None:
+            header = columns
+        else:
+            header = df.columns
+
+        row_range = list(x+1 for x in range(df.__len__()))
+        for col, key in enumerate(header):
+            self.insert_values(row_range, [col]*(df.__len__()+1), list(df[key].values))
+            # self.set_column_values(col, [key] + list(df[key].values))
+
     def set_value(self, row, col, value):
         self.entries[row][col].set_value(value)
         
@@ -1263,12 +1278,19 @@ class EntryGridWidget(tk.Frame):
         elif row:
             for col in self.entries[row]:
                 self.entries[row][col].set_prop(**kwargs)
-        
-    #===========================================================================
+
+    def set_column_values(self, col, value_list=[]):
+        """ Fills column with items in given list. Fils untill nr_rows or len(value_list) is reached. """
+        for row, value in enumerate(value_list):
+            if row in self.entries.keys():
+                if row in self.entries and col in self.entries[row]:
+                    self.entries[row][col].set_value(value)
+
     def set_row_values(self, row, value_list=[]):
         """ Fills row with items in given list. Fils untill nr_cols och len(value_list) is reached. """
         for col, value in enumerate(value_list):
             if col in self.entries[row]:
+                # print('COL VALUE', row, col, value, self.entries[row][col].frame)
                 self.entries[row][col].set_value(value)
         
     #===========================================================================
@@ -1289,7 +1311,7 @@ class EntryGridWidget(tk.Frame):
             for row in self.entries:
                 if col in self.entries[row]:
                     self.entries[row][col].set_prop(width=value)
-                
+
     #===========================================================================
     def disable_entry(self, row, col):
         self.entries[row][col].set_state('disabled')
