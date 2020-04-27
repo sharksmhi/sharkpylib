@@ -192,7 +192,6 @@ class QC(object):
                 if qf[i] in qf_ignore:
                     continue
 
-
             if data_temp:
                 if data_temp > d: # not increasing = bad
                     if (data_temp-d) >= min_delta:

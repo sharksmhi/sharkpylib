@@ -5,9 +5,12 @@
 import re
 import os
 import socket
+from collections import Mapping
 import json
 import codecs
 import pathlib
+import datetime
+
 
 try:
     import matplotlib.colors as mcolors
@@ -94,6 +97,36 @@ def get_computer_name():
 
 def get_employee_name():
     return os.path.expanduser('~').split('\\')[-1]
+
+
+def get_time_as_format(**kwargs):
+    if kwargs.get('now'):
+        d = datetime.datetime.now()
+    elif kwargs.get('timestamp'):
+        raise NotImplementedError
+
+    if kwargs.get('fmt'):
+        return d.strftime(kwargs.get('fmt'))
+    else:
+        raise NotImplementedError
+
+
+def recursive_dict_update(d, u):
+    """ Recursive dictionary update using
+    Copied from:
+        http://stackoverflow.com/questions/3232943/update-value-of-a-nested-dictionary-of-varying-depth
+        via satpy
+    """
+    if isinstance(u, dict):
+        for k, v in u.items():
+            if isinstance(v, Mapping):
+                r = recursive_dict_update(d.get(k, {}), v)
+                d[k] = r
+                # d.setdefault(k, r)
+            else:
+                d[k] = u[k]
+                # d.setdefault(k, u[k])
+    return d
 
 
 def save_json(data, *args, **kwargs):

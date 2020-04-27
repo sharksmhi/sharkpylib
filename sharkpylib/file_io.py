@@ -75,7 +75,7 @@ class DirectoryContent(object):
         not_in_dir_2 = [f for f in self.dir_1_file_names if f not in self.dir_2_file_names]
         not_in_dir_1 = [f for f in self.dir_2_file_names if f not in self.dir_1_file_names]
 
-        print()
+        # print()
         print('='*50)
         print('Nr files in {}: {}'.format(self.dir_1, len(self.dir_1_file_names)))
         print('Nr files in {}: {}'.format(self.dir_2, len(self.dir_2_file_names)))
@@ -90,6 +90,7 @@ class DirectoryContent(object):
             print()
             print('Files not in {}:\n'.format(self.dir_1))
             print('\n'.join(not_in_dir_1))
+
 
 class Explorer(object):
 

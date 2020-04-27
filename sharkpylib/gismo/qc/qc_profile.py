@@ -27,7 +27,6 @@ class ProfileQCrangeSimple(object):
     """
     Class to perform simple range check on a profile gismo object. This class does not take depth into consideration.
     """
-
     def __init__(self, **kwargs):
         self.qc_object = QCprofile.QC()
         self.range_files_directory = os.path.join(os.path.dirname(os.path.abspath(__file__)),

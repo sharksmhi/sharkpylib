@@ -217,6 +217,9 @@ class File(object):
             for row, line in enumerate(fid):
                 split_line = line.strip('\n\r').split(kwargs.get('sep', '\t'))
                 split_line = [item.strip() for item in split_line]
+                if row == 1 and header:
+                    if len(header) != len(split_line):
+                        header = header[:len(split_line)]
                 if not header:
                     header = split_line
                 else:
@@ -258,7 +261,7 @@ class File(object):
         removed = self.df.loc[~combined_keep_boolean]
         if len(removed):
             logger.warning('{} lines removed from file {}'.format(len(removed), self.file_path))
-        self.df = self.df.loc[combined_keep_boolean]
+        self.df = self.df.loc[combined_keep_boolean, :]
 
     def clean_file(self, export_directory):
         """
@@ -540,6 +543,8 @@ class FileHandler(object):
 
                 errors = file_object.get_file_errors()
                 if errors:
+                    print('name', name)
+                    print('errors', errors)
                     errors_dict = {name: errors}
                     self.files_with_errors[file_type].append(errors_dict)
 
