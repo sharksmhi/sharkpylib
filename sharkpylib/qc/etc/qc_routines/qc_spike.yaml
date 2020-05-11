@@ -6,18 +6,6 @@ functions:
         function: !!python/name:sharkpylib.qc.functions.spike.Spike ''
 
 datasets:
-    'DEPH':
-        parameter: 'DEPH'
-        qflags: ['Q0_DEPH']
-        acceptable_stddev_factor: 0.5
-        min_stddev_value: 0.1
-        function: qc_spike
-    'PRES_CTD':
-        parameter: 'PRES_CTD'
-        qflags: ['Q0_PRES_CTD']
-        acceptable_stddev_factor: 0.5
-        min_stddev_value: 0.1
-        function: qc_spike
     'CNDC_CTD':
         parameter: 'CNDC_CTD'
         qflags: ['Q0_CNDC_CTD', 'Q0_SALT_CTD']
@@ -77,4 +65,22 @@ datasets:
         qflags: ['Q0_DOXY2_CTD']
         acceptable_stddev_factor: 1
         min_stddev_value: 0.1
+        function: qc_spike
+    'TURB_CTD':
+        parameter: 'TURB_CTD'
+        qflags: ['Q0_TURB_CTD']
+        acceptable_stddev_factor: 1.5
+        min_stddev_value: 0.1
+        function: qc_spike
+    'CHLFLUO_CTD':
+        parameter: 'CHLFLUO_CTD'
+        qflags: ['Q0_CHLFLUO_CTD']
+        acceptable_stddev_factor: 1
+        min_stddev_value: 0.1
+        function: qc_spike
+    'PHYC_CTD':
+        parameter: 'PHYC_CTD'
+        qflags: ['Q0_PHYC_CTD']
+        acceptable_stddev_factor: 1
+        min_stddev_value: 0.05
         function: qc_spike

@@ -94,7 +94,7 @@ datasets:
         parameter: 'PAR_CTD'
         qflags: ['Q0_PAR_CTD']
         min_range_value: 0
-        max_range_value: 2
+        max_range_value: 10000
         function: qc_range
     'TURB_CTD':
         parameter: 'TURB_CTD'
