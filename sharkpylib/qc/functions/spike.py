@@ -39,6 +39,7 @@ class Spike(BooleanBaseSerie):
             self.serie = df_or_serie.astype(float)
         self.acceptable_stddev_factor = kwargs.get('acceptable_stddev_factor')
         self.min_stddev_value = kwargs.get('min_stddev_value')
+
         # self.index_window = 7  # ok window? user can control the outcome with acceptable_stddev_factor
         # self.min_periods = 3  # or np.floor(self.index_window / 2)
         self.rolling = self.serie.rolling(7, min_periods=3, center=True)

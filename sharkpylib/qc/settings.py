@@ -7,6 +7,7 @@ Created on 2020-02-26 10:20
 """
 import os
 from sharkpylib.file.yaml_reader import YAMLreader
+from sharkpylib.utils import git_version
 
 
 class Settings(object):
@@ -18,6 +19,7 @@ class Settings(object):
         self.base_directory = os.path.dirname(os.path.realpath(__file__))
         self._load_settings(os.path.abspath(os.path.join(self.base_directory, 'etc')))
         self.user = os.path.expanduser('~').split('\\')[-1]
+        self.repo_version = git_version()
         print('QC - USER: {}'.format(self.user))
 
     @classmethod
@@ -124,9 +126,3 @@ class Settings(object):
     @property
     def number_of_routines(self):
         return len(self.qc_routines)
-
-
-if __name__ == "__main__":
-    import pprint
-    settings = Settings()
-    pprint.pprint(settings)

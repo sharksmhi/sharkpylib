@@ -178,4 +178,23 @@ class PathInfo(object):
         self.file_base, self.extension = self.file_name.split('.')
 
 
+def git_version():
+    """
+    Return current version of this github-repository
+    :return: str
+    """
+    wd = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
+    version_file = os.path.join(wd, '.git', 'FETCH_HEAD')
+    if os.path.exists(version_file):
+        f = open(version_file, 'r')
+        version_line = f.readline().split()
+        version = version_line[0][:7]  # Is much longer but only the first 7 letters are presented on Github
+        repo = version_line[-1]
+        return 'github version "{}" of repository {}'.format(version, repo)
+    else:
+        return ''
 
+
+if __name__ == "__main__":
+    v = git_version()
+    print(v)

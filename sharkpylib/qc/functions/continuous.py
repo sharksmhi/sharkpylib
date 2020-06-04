@@ -43,16 +43,16 @@ class ContinuousBase(BooleanBaseSerie):
     @property
     def boolean_return(self):
         """
-        We append one "True" for the last value because these types of QC-routines check value 1
-        against value 2. Therefor the last value cannot be False. However! it can in fact be value 2 that is BAD..
+        We insert one "True" for the first value because these types of QC-routines check value 2
+        against value 1. Therefor the first value cannot be False. However! it can in fact be value 1 that is BAD..
 
         :return: boolean list
                  True means that the corresponding value has passed the test
-                 False means that the value has NOT passed and should be flagged
+                 False means that the value has NOT passed and should be flagged accordingly
         """
-        boolean = list(self.generator)
-        boolean.append(True)
-        return pd.Series(boolean)
+        return pd.Series([True] + list(self.boolean_generator))
+        # boolean = [True] + list(self.generator)
+        # return pd.Series(boolean)
 
     @property
     def flag_return(self):
@@ -65,7 +65,7 @@ class ContinuousBase(BooleanBaseSerie):
         return flag_serie
 
     @property
-    def generator(self):
+    def boolean_generator(self):
         raise NotImplementedError
 
     @property
@@ -73,7 +73,7 @@ class ContinuousBase(BooleanBaseSerie):
         """
         :return: True or False
         """
-        return all(self.generator)
+        return all(self.boolean_generator)
 
 
 class Decreasing(ContinuousBase):
@@ -101,7 +101,7 @@ class Decreasing(ContinuousBase):
                 qc_fail_message(self, self.serie.name)
 
     @property
-    def generator(self):
+    def boolean_generator(self):
         """"""
         return (i >= j for i, j in zip(self.serie, self.control_serie[1:]))
 
@@ -136,7 +136,7 @@ class Increasing(ContinuousBase):
                 qc_fail_message(self, self.serie.name)
 
     @property
-    def generator(self):
+    def boolean_generator(self):
         """"""
         return (i <= j for i, j in zip(self.serie, self.control_serie[1:]))
 

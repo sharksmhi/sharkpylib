@@ -33,13 +33,13 @@ datasets:
     'TEMP_CTD':
         parameter: 'TEMP_CTD'
         qflags: ['Q0_TEMP_CTD', 'Q0_DENS_CTD']
-        acceptable_stddev_factor: 1
+        acceptable_stddev_factor: 1.5
         min_stddev_value: 0.1
         function: qc_spike
     'TEMP2_CTD':
         parameter: 'TEMP2_CTD'
         qflags: ['Q0_TEMP2_CTD', 'Q0_DENS2_CTD']
-        acceptable_stddev_factor: 1
+        acceptable_stddev_factor: 1.5
         min_stddev_value: 0.1
         function: qc_spike
     'DENS_CTD':

@@ -69,6 +69,7 @@ class QCBlueprint(object):
 
         self.df = data_item.get('data')
         self.meta = data_item.get('metadata')
+
         self.settings = Settings()
 
     def initialize_qc_object(self, setting, name, item):
@@ -127,7 +128,7 @@ class QCBlueprint(object):
                 continue
 
             for qf_list, qf in zip(self.df[flag_key], flag_field):
-                # TODO arange a better solution to overwriting.. if flag = 3 we might want to overwrite duing
+                # TODO arange a better solution to overwriting.. if flag = S we might want to overwrite duing
                 # the same QC run..
                 if qf_list[qc_index] == '0' or qf_list[qc_index] == 'A':
                     qf_list[qc_index] = qf
@@ -137,8 +138,7 @@ class QCBlueprint(object):
         :param length:
         :return:
         """
-        # FIXME Hardcoded number of QC-routines...
-        self.df[key] = ['00000'] * self.df.__len__()
+        self.df[key] = ['0' * self.settings.number_of_routines] * self.df.__len__()
 
     def _open_up_flag_fields(self):
         """
@@ -212,8 +212,8 @@ class QCBlueprint(object):
         :return:
         """
         time_stamp = get_time_as_format(now=True, fmt='%Y%m%d%H%M')
-        self.meta[len(self.meta) + 1] = '//QC_COMNT; AUTOMATIC QC PERFORMED BY {}; TIMESTAMP {}'.format(
-            self.settings.user, time_stamp)
+        self.meta[len(self.meta) + 1] = '//QC_COMNT; AUTOMATIC QC PERFORMED BY {}; TIMESTAMP {}; {}'.format(
+            self.settings.user, time_stamp, self.settings.repo_version)
 
 
 if __name__ == "__main__":
