@@ -45,25 +45,25 @@ datasets:
     'DENS_CTD':
         parameter: 'DENS_CTD'
         qflags: ['Q0_DENS_CTD']
-        acceptable_stddev_factor: 1
+        acceptable_stddev_factor: 1.5
         min_stddev_value: 0.1
         function: qc_spike
     'DENS2_CTD':
         parameter: 'DENS2_CTD'
         qflags: ['Q0_DENS2_CTD']
-        acceptable_stddev_factor: 1
+        acceptable_stddev_factor: 1.5
         min_stddev_value: 0.1
         function: qc_spike
     'DOXY_CTD':
         parameter: 'DOXY_CTD'
         qflags: ['Q0_DOXY_CTD']
-        acceptable_stddev_factor: 1
+        acceptable_stddev_factor: 1.5
         min_stddev_value: 0.1
         function: qc_spike
     'DOXY2_CTD':
         parameter: 'DOXY2_CTD'
         qflags: ['Q0_DOXY2_CTD']
-        acceptable_stddev_factor: 1
+        acceptable_stddev_factor: 1.5
         min_stddev_value: 0.1
         function: qc_spike
     'TURB_CTD':
@@ -75,12 +75,12 @@ datasets:
     'CHLFLUO_CTD':
         parameter: 'CHLFLUO_CTD'
         qflags: ['Q0_CHLFLUO_CTD']
-        acceptable_stddev_factor: 1
+        acceptable_stddev_factor: 1.5
         min_stddev_value: 0.1
         function: qc_spike
     'PHYC_CTD':
         parameter: 'PHYC_CTD'
         qflags: ['Q0_PHYC_CTD']
-        acceptable_stddev_factor: 1
+        acceptable_stddev_factor: 1.5
         min_stddev_value: 0.05
         function: qc_spike

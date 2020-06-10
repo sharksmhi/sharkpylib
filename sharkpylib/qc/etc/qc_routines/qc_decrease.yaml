@@ -19,5 +19,5 @@ datasets:
     'PAR_CTD':
         parameter: 'PAR_CTD'
         qflags: ['Q0_PAR_CTD']
-        acceptable_error: 0.1
+        acceptable_error: 0.8
         function: qc_decrease

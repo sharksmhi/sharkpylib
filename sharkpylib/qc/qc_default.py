@@ -212,7 +212,7 @@ class QCBlueprint(object):
         :return:
         """
         time_stamp = get_time_as_format(now=True, fmt='%Y%m%d%H%M')
-        self.meta[len(self.meta) + 1] = '//QC_COMNT; AUTOMATIC QC PERFORMED BY {}; TIMESTAMP {}; {}'.format(
+        self.meta[len(self.meta) + 1] = '//COMNT_QC; AUTOMATIC QC PERFORMED BY {}; TIMESTAMP {}; {}'.format(
             self.settings.user, time_stamp, self.settings.repo_version)
 
 
