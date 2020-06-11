@@ -9,25 +9,25 @@ datasets:
     'CNDC_CTD':
         parameter: 'CNDC_CTD'
         qflags: ['Q0_CNDC_CTD', 'Q0_SALT_CTD']
-        acceptable_stddev_factor: 1
+        acceptable_stddev_factor: 1.5
         min_stddev_value: 0.2
         function: qc_spike
     'CNDC2_CTD':
         parameter: 'CNDC2_CTD'
         qflags: ['Q0_CNDC2_CTD', 'Q0_SALT2_CTD']
-        acceptable_stddev_factor: 1
+        acceptable_stddev_factor: 1.5
         min_stddev_value: 0.2
         function: qc_spike
     'SALT_CTD':
         parameter: 'SALT_CTD'
         qflags: ['Q0_SALT_CTD', 'Q0_DENS_CTD']
-        acceptable_stddev_factor: 1
+        acceptable_stddev_factor: 1.5
         min_stddev_value: 0.1
         function: qc_spike
     'SALT2_CTD':
         parameter: 'SALT2_CTD'
         qflags: ['Q0_SALT2_CTD', 'Q0_DENS2_CTD']
-        acceptable_stddev_factor: 1
+        acceptable_stddev_factor: 1.5
         min_stddev_value: 0.1
         function: qc_spike
     'TEMP_CTD':
