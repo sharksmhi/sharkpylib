@@ -9,49 +9,49 @@ datasets:
     'CNDC_CTD':
         parameter: 'CNDC_CTD'
         qflags: ['Q0_CNDC_CTD', 'Q0_SALT_CTD']
-        acceptable_stddev_factor: 1.5
+        acceptable_stddev_factor: 1.25
         min_stddev_value: 0.2
         function: qc_spike
     'CNDC2_CTD':
         parameter: 'CNDC2_CTD'
         qflags: ['Q0_CNDC2_CTD', 'Q0_SALT2_CTD']
-        acceptable_stddev_factor: 1.5
+        acceptable_stddev_factor: 1.25
         min_stddev_value: 0.2
         function: qc_spike
     'SALT_CTD':
         parameter: 'SALT_CTD'
         qflags: ['Q0_SALT_CTD', 'Q0_DENS_CTD']
-        acceptable_stddev_factor: 1.5
+        acceptable_stddev_factor: 1.25
         min_stddev_value: 0.1
         function: qc_spike
     'SALT2_CTD':
         parameter: 'SALT2_CTD'
         qflags: ['Q0_SALT2_CTD', 'Q0_DENS2_CTD']
-        acceptable_stddev_factor: 1.5
+        acceptable_stddev_factor: 1.25
         min_stddev_value: 0.1
         function: qc_spike
     'TEMP_CTD':
         parameter: 'TEMP_CTD'
         qflags: ['Q0_TEMP_CTD', 'Q0_DENS_CTD']
-        acceptable_stddev_factor: 1.5
+        acceptable_stddev_factor: 1.25
         min_stddev_value: 0.1
         function: qc_spike
     'TEMP2_CTD':
         parameter: 'TEMP2_CTD'
         qflags: ['Q0_TEMP2_CTD', 'Q0_DENS2_CTD']
-        acceptable_stddev_factor: 1.5
+        acceptable_stddev_factor: 1.25
         min_stddev_value: 0.1
         function: qc_spike
     'DENS_CTD':
         parameter: 'DENS_CTD'
         qflags: ['Q0_DENS_CTD']
-        acceptable_stddev_factor: 1.5
+        acceptable_stddev_factor: 1.25
         min_stddev_value: 0.1
         function: qc_spike
     'DENS2_CTD':
         parameter: 'DENS2_CTD'
         qflags: ['Q0_DENS2_CTD']
-        acceptable_stddev_factor: 1.5
+        acceptable_stddev_factor: 1.25
         min_stddev_value: 0.1
         function: qc_spike
     'DOXY_CTD':
