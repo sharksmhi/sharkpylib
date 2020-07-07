@@ -1050,8 +1050,8 @@ class FileHandler(object):
         # print('co2_equ press in series', 'co2_equ press' in series)       False
         # print('co2_licor press in series', 'co2_licor press' in series)   True
 
-        # equ_press_value = as_float(series['co2_equ press'])
-        equ_press_value = as_float(series['calc_Pequ'])
+        equ_press_value = as_float(series['co2_equ press'])
+        # equ_press_value = as_float(series['calc_Pequ'])
         licor_press_value = as_float(series['co2_licor press'])
 
         # print('-'*30)
@@ -1484,13 +1484,12 @@ class ManageTavastlandFiles(object):
         return merge_file_path
 
 
-
-
 def as_float(item):
     try:
         return float(item)
     except:
         return np.nan
+
 
 def is_std(item):
     if not item.startswith('STD'):
