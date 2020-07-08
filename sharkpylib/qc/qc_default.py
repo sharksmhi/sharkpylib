@@ -217,5 +217,6 @@ class QCBlueprint(object):
 
 
 if __name__ == "__main__":
-    df = pd.DataFrame({'a': [1, 2, 3, 4, 5]})
+    df = {'metadata': pd.Series([1, 2, 3, 4, 5]),
+          'data': pd.DataFrame({'a': [1,2,3,4,5]})}
     qcb = QCBlueprint(df)

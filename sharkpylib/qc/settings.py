@@ -88,7 +88,7 @@ class Settings(object):
         :return: sets attributes to object
         """
         for key, value in kwargs.items():
-            if 'functions' in value:
+            if 'functions' in value and 'datasets' in value:
                 self.update_routines(value)
             setattr(obj, key, value)
 

@@ -158,32 +158,3 @@ if __name__ == "__main__":
     increasing()
     decreasing = Decreasing(df, parameter='test_3', acceptable_error=0.01)
     decreasing()
-    # import operator
-    # import itertools
-    # from functools import reduce
-    # import time
-    #
-
-
-    # test_list[4] = 1
-    # ser = pd.Series(test_list)
-    # start_timeit = time.time()
-    # isinc = ser.is_monotonic_increasing
-    # print("Timed: --is_monotonic_increasing in %.9f sec" % (time.time() - start_timeit))
-    # print(isinc)
-    #
-    # start_timeit = time.time()
-    # res = all(itertools.starmap(operator.le, zip(test_list, test_list[1:])))
-    # print("Timed: --itertools.starmap in %.9f sec" % (time.time() - start_timeit))
-    # print(res)
-    #
-    # # start_timeit = time.time()
-    # # res = bool(lambda test_list: reduce(lambda i, j: j if i < j else 9999, test_list) != 9999)
-    # # # res = lambda test_list: lambda i, j: True if i < j else False
-    # # # ser.apply(lambda x: lambda i, j: True if i < j else False)
-    # # print("Timed: --data loaded in %.3f sec" % (time.time() - start_timeit))
-    # # print(res)
-    # start_timeit = time.time()
-    # res = all(i < j for i, j in zip(test_list, test_list[1:]))
-    # print("Timed: --zip in %.9f sec" % (time.time() - start_timeit))
-    # print(res)
