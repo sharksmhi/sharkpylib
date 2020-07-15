@@ -82,7 +82,7 @@ if __name__ == "__main__":
     # r()
     import time
 
-    df = pd.DataFrame({'TEMP': ['AAAA']*100000 })
+    df = pd.DataFrame({'TEMP': ['AAAA']*100000})
 
     start_timeit = time.time()
     df['TEMP'].apply(tuple)
@@ -120,4 +120,3 @@ if __name__ == "__main__":
     for i, j in zip(a, b):
         i[index] = j
     print("Timed: --generator in %.9f sec" % (time.time() - start_timeit))
-

@@ -114,7 +114,34 @@ class QCBlueprint(object):
                                qc_index)
 
         self._close_flag_fields()
+        self.synchronize_flag_fields()
         self.append_qc_comment()
+
+    def synchronize_flag_fields(self):
+        """
+        Auto-QC corresponds to flag field "Q0_{parameter}", when calling synchronize_flag_fields() we import flags from
+        this field into the primary q-flag field "Q_{parameter}".
+        Example:
+            Q0_TEMP_CTD             Q_TEMP_CTD
+            A00BA       ------>     B
+            A00AS       ------>     S
+            A00BS       ------>     B
+            A00AA                     (A-flags will not be visible in primary flag field)
+
+        ( during the manual quality control we only change the primary flag field )
+        :return:
+        """
+        q0_fields = iter(q for q in self.df.columns if q.startswith('Q0_'))
+
+        for q0_key in q0_fields:
+            primary_q_key = q0_key.replace('Q0_', 'Q_')
+            for f in ['S', 'B']:
+                self._sync_flag(q0_key, primary_q_key, f)
+
+    def _sync_flag(self, q0_key, q_key, flag):
+        boolean = self.df[q0_key].str.contains(flag, regex=False)
+        if boolean.any():
+            self.df.loc[boolean, q_key] = flag
 
     def add_qflag(self, flag_field, q_flag_keys, qc_index):
         """
@@ -128,8 +155,7 @@ class QCBlueprint(object):
                 continue
 
             for qf_list, qf in zip(self.df[flag_key], flag_field):
-                # TODO arange a better solution to overwriting.. if flag = S we might want to overwrite duing
-                # the same QC run..
+                # TODO arange a better solution to overwriting.. if flag = S we might want to overwrite duing the same QC run..
                 if qf_list[qc_index] == '0' or qf_list[qc_index] == 'A':
                     qf_list[qc_index] = qf
 
