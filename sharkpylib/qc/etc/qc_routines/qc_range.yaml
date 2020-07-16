@@ -34,13 +34,13 @@ datasets:
         parameter: 'CNDC_CTD'
         qflags: ['Q0_CNDC_CTD', 'Q0_SALT_CTD']
         min_range_value: 0
-        max_range_value: 40
+        max_range_value: 4
         function: qc_range
     'CNDC2_CTD':
         parameter: 'CNDC2_CTD'
         qflags: ['Q0_CNDC2_CTD', 'Q0_SALT2_CTD']
         min_range_value: 0
-        max_range_value: 40
+        max_range_value: 4
         function: qc_range
     'SALT_CTD':
         parameter: 'SALT_CTD'
@@ -57,10 +57,10 @@ datasets:
     'DENS_CTD':
         parameter: 'DENS_CTD'
         qflags: ['Q0_DENS_CTD']
-#        min_range_value: -10
-#        max_range_value: 36
-        min_range_value: 990
-        max_range_value: 1036
+        min_range_value: -10
+        max_range_value: 36
+#        min_range_value: 990
+#        max_range_value: 1036
         function: qc_range
     'DENS2_CTD':
         parameter: 'DENS2_CTD'
