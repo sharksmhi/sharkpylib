@@ -82,6 +82,12 @@ datasets:
         min_range_value: 0
         max_range_value: 12
         function: qc_range
+    'DOXY_SAT_CTD':
+        parameter: 'DOXY_SAT_CTD'
+        qflags: ['Q0_DOXY_SAT_CTD']
+        min_range_value: 0
+        max_range_value: 150
+        function: qc_range
     'CHLFLUO_CTD':
         parameter: 'CHLFLUO_CTD'
         qflags: ['Q0_CHLFLUO_CTD']
