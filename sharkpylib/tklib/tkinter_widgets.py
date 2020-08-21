@@ -3599,7 +3599,7 @@ class DirectoryWidget(tk.Frame):
         self.grid(**self.grid_frame)
 
         self.callback = callback
-        self.default_directory = default_directory[:]
+        self.default_directory = default_directory
         self.include_default_button = include_default_button
 
         self._set_frame()
@@ -3688,7 +3688,7 @@ class DirectoryWidgetLabelframe(ttk.LabelFrame):
         self.grid(**self.grid_frame)
 
         self.callback = callback
-        self.default_directory = default_directory[:]
+        self.default_directory = default_directory
         self.include_default_button = include_default_button
 
         self._set_frame()
