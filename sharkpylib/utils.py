@@ -100,10 +100,14 @@ def get_employee_name():
 
 
 def get_time_as_format(**kwargs):
+    d = None
     if kwargs.get('now'):
         d = datetime.datetime.now()
     elif kwargs.get('timestamp'):
         raise NotImplementedError
+
+    if not d:
+        raise ValueError
 
     if kwargs.get('fmt'):
         return d.strftime(kwargs.get('fmt'))

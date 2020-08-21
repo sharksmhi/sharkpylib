@@ -6,7 +6,10 @@ Created on 2020-01-07 13:13
 
 """
 import datetime
-import pyodbc
+try:
+    import pyodbc
+except ModuleNotFoundError:
+    print('Could not import pyodbc')
 import json
 import pandas as pd
 
