@@ -1,0 +1,33 @@
+functions:
+    qc_diff:
+        description: Check if values from two separate sensors (same parameter) differ from one another
+        name: qc_diff
+        qc_index: 3
+        function: !!python/name:sharkpylib.qc.functions.diff.DataDiff ''
+
+datasets:
+    'DOXY_CTD':
+        parameters: ['DOXY_CTD', 'DOXY2_CTD']
+        qflags: ['Q0_DOXY_CTD', 'Q0_DOXY2_CTD']
+        acceptable_error: 0.3
+        function: qc_diff
+    'SALT_CTD':
+        parameters: ['SALT_CTD', 'SALT2_CTD']
+        qflags: ['Q0_SALT_CTD', 'Q0_SALT2_CTD']
+        acceptable_error: 0.3
+        function: qc_diff
+    'TEMP_CTD':
+        parameters: ['TEMP_CTD', 'TEMP2_CTD']
+        qflags: ['Q0_TEMP_CTD', 'Q0_TEMP2_CTD']
+        acceptable_error: 0.3
+        function: qc_diff
+    'CNDC_CTD':
+        parameters: ['CNDC_CTD', 'CNDC2_CTD']
+        qflags: ['Q0_CNDC_CTD', 'Q0_CNDC2_CTD']
+        acceptable_error: 0.5
+        function: qc_diff
+    'DENS_CTD':
+        parameters: ['DENS_CTD', 'DENS2_CTD']
+        qflags: ['Q0_DENS_CTD', 'Q0_DENS2_CTD']
+        acceptable_error: 0.5
+        function: qc_diff

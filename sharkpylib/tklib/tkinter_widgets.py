@@ -7,6 +7,7 @@ try:
     import tkinter as tk
     from tkinter import ttk
     from tkinter import font
+    import calendar
     import numpy as np
     import pandas as pd
     from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg, NavigationToolbar2Tk
@@ -14,7 +15,237 @@ try:
 except:
     pass
 
-from . import utils
+# from . import utils
+
+
+class CalendarWidget(tk.Frame):
+    """
+    TEST RUN:
+
+    def test():
+        root = tk.Tk()
+        root.title('Date selection')
+        ttkcal = CalendarWidget(firstweekday=calendar.SUNDAY, root=root)
+        ttkcal.pack(expand=1, fill='both')
+
+        root.mainloop()
+        print(ttkcal.selection)
+
+    if __name__ == '__main__':
+        test()
+
+    """
+
+    datetime = calendar.datetime.datetime
+    timedelta = calendar.datetime.timedelta
+
+    def __init__(self, master=None, **kw):
+        """
+        WIDGET-SPECIFIC OPTIONS
+
+            locale, firstweekday, year, month, selectbackground,
+            selectforeground
+        """
+        # remove custom options from kw before initializating ttk.Frame
+        fwday = kw.pop('firstweekday', calendar.MONDAY)
+        year = kw.pop('year', self.datetime.now().year)
+        month = kw.pop('month', self.datetime.now().month)
+        locale = kw.pop('locale', None)
+        sel_bg = kw.pop('selectbackground', '#ecffc4')
+        sel_fg = kw.pop('selectforeground', '#05640e')
+
+        self._date = self.datetime(year, month, 1)
+        self._selection = None  # no date selected
+        self.selected_date = None
+        self.master = tk.Tk()
+        self.master.title('Date selection')
+
+        tk.Frame.__init__(self, self.master, **kw)
+
+        self._cal = get_calendar(locale, fwday)
+
+        self.__setup_styles()       # creates custom styles
+        self.__place_widgets()      # pack/grid used widgets
+        self.__config_calendar()    # adjust calendar columns and setup tags
+        # configure a canvas, and proper bindings, for selecting dates
+        self.__setup_selection(sel_bg, sel_fg)
+
+        # store items ids, used for insertion later
+        self._items = [self._calendar.insert('', 'end', values='') for _ in range(6)]
+        # insert dates in the currently empty calendar
+        self._build_calendar()
+
+        # set the minimal size for the widget
+        self._calendar.bind('<Map>', self.__minsize)
+
+    def __setitem__(self, item, value):
+        if item in ('year', 'month'):
+            raise AttributeError("attribute '%s' is not writeable" % item)
+        elif item == 'selectbackground':
+            self._canvas['background'] = value
+        elif item == 'selectforeground':
+            self._canvas.itemconfigure(self._canvas.text, item=value)
+        else:
+            ttk.Frame.__setitem__(self, item, value)
+
+    def __getitem__(self, item):
+        if item in ('year', 'month'):
+            return getattr(self._date, item)
+        elif item == 'selectbackground':
+            return self._canvas['background']
+        elif item == 'selectforeground':
+            return self._canvas.itemcget(self._canvas.text, 'fill')
+        else:
+            r = ttk.tclobjs_to_py({item: ttk.Frame.__getitem__(self, item)})
+            return r[item]
+
+    def __setup_styles(self):
+        # custom ttk styles
+        style = ttk.Style(self.master)
+
+        def arrow_layout(direction):
+            return [('Button.focus', {'children': [('Button.%sarrow' % direction, None)]})]
+
+        style.layout('L.TButton', arrow_layout('left'))
+        style.layout('R.TButton', arrow_layout('right'))
+
+    def dummy(self):
+        pass
+
+    def __place_widgets(self):
+        # header frame and its widgets
+        hframe = ttk.Frame(self)
+        lbtn = ttk.Button(hframe, style='L.TButton', command=self._prev_month)
+        rbtn = ttk.Button(hframe, style='R.TButton', command=self._next_month)
+
+        self.okbtn = ttk.Button(hframe, text='Ok', command=self.destroy_calendar)
+        self._header = ttk.Label(hframe, width=15, anchor='center')
+        # the calendar
+        self._calendar = ttk.Treeview(self.master, show='', selectmode='none', height=7)
+
+        # pack the widgets
+        hframe.pack(in_=self, side='top', pady=4, anchor='center')
+        lbtn.grid(in_=hframe)
+        self._header.grid(in_=hframe, column=1, row=0, padx=12)
+        rbtn.grid(in_=hframe, column=2, row=0)
+        self._calendar.pack(in_=self, expand=1, fill='both', side='bottom')
+        self.okbtn.grid(in_=hframe, column=1, row=2)
+
+    def __config_calendar(self):
+        cols = self._cal.formatweekheader(3).split()
+        self._calendar['columns'] = cols
+        self._calendar.tag_configure('header', background='grey90')
+        self._calendar.insert('', 'end', values=cols, tag='header')
+        # adjust its columns width
+        tkfont = font.Font()
+        maxwidth = max(tkfont.measure(col) for col in cols)
+        for col in cols:
+            self._calendar.column(col, width=maxwidth*1, minwidth=maxwidth, anchor='e')
+
+    def __setup_selection(self, sel_bg, sel_fg):
+        self._font = font.Font()
+        self._canvas = canvas = tk.Canvas(self._calendar, background=sel_bg, borderwidth=0, highlightthickness=0)
+        canvas.text = canvas.create_text(0, 0, fill=sel_fg, anchor='w')
+
+        canvas.bind('<ButtonPress-1>', lambda evt: canvas.place_forget())
+        self._calendar.bind('<Configure>', lambda evt: canvas.place_forget())
+        self._calendar.bind('<ButtonPress-1>', self._pressed)
+
+    def __minsize(self, *args):
+        pass
+        #FIXME AttributeError: 'CalendarWidget' object has no attribute 'minsize'
+        # width, height = self._calendar.master.geometry().split('x')
+        # height = height[:height.index('+')]
+        # width, height = '300', '200'
+        # self._calendar.master.minsize(width, height)
+
+    def _build_calendar(self):
+        year, month = self._date.year, self._date.month
+
+        # update header text (Month, YEAR)
+        header = self._cal.formatmonthname(year, month, 0)
+        self._header['text'] = header.title()
+
+        # update calendar shown dates
+        cal = self._cal.monthdayscalendar(year, month)
+        for idx, item in enumerate(self._items):
+            week = cal[idx] if idx < len(cal) else []
+            fmt_week = [('%02d' % day) if day else '' for day in week]
+            self._calendar.item(item, values=fmt_week)
+
+    def _show_selection(self, text, bbox):
+        """Configure canvas for a new selection."""
+        x, y, width, height = bbox
+
+        textwidth = self._font.measure(text)
+
+        canvas = self._canvas
+        canvas.configure(width=width, height=height)
+        canvas.coords(canvas.text, width - textwidth, height / 2 - 1)
+        canvas.itemconfigure(canvas.text, text=text)
+        canvas.place(in_=self._calendar, x=x, y=y)
+
+    def _pressed(self, evt):
+        """Clicked somewhere in the calendar."""
+        x, y, widget = evt.x, evt.y, evt.widget
+        item = widget.identify_row(y)
+        column = widget.identify_column(x)
+
+        if not column or item not in self._items:
+            # clicked in the weekdays row or just outside the columns
+            return
+
+        item_values = widget.item(item)['values']
+        if not len(item_values):  # row is empty for this month
+            return
+
+        text = item_values[int(column[1]) - 1]
+        if not text:  # date is empty
+            return
+
+        bbox = widget.bbox(item, column)
+        if not bbox:  # calendar not visible yet
+            return
+
+        # update and then show selection
+        text = '%02d' % text
+        self._selection = (text, item, column)
+        self._show_selection(text, bbox)
+
+    def _prev_month(self):
+        """Updated calendar to show the previous month."""
+        self._canvas.place_forget()
+
+        self._date = self._date - self.timedelta(days=1)
+        self._date = self.datetime(self._date.year, self._date.month, 1)
+        self._build_calendar()  # reconstuct calendar
+
+    def _next_month(self):
+        """Update calendar to show the next month."""
+        self._canvas.place_forget()
+
+        year, month = self._date.year, self._date.month
+        self._date = self._date + self.timedelta(
+            days=calendar.monthrange(year, month)[1] + 1)
+        self._date = self.datetime(self._date.year, self._date.month, 1)
+        self._build_calendar()  # reconstruct calendar
+
+    def destroy_calendar(self):
+        """
+        :return:
+        """
+        self.destroy()
+        self.master.destroy()
+        # print('Destroyed!')
+
+    @property
+    def selection(self):
+        """Return a datetime representing the current selected date."""
+        if not self._selection:
+            return None
+
+        year, month = self._date.year, self._date.month
+        return self.datetime(year, month, int(self._selection[0]))
 
 
 class CheckbuttonWidgetSingle(tk.Frame):
@@ -153,6 +384,7 @@ class CheckbuttonWidget(tk.Frame):
 
         for item in self.items:
             self.booleanvar[item] = tk.BooleanVar()
+            self.booleanvar[item].set(True)
             self.cbutton[item] = tk.Checkbutton(self, 
                                               text=item,  
                                               variable=self.booleanvar[item], 
@@ -1008,8 +1240,22 @@ class EntryGridWidget(tk.Frame):
             return transformed_data
         else:
             return all_data
-            
-    #===========================================================================
+
+    def insert_values(self, rows, cols, values):
+        for row, col, val in zip(rows, cols, values):
+            self.entries[row][col].insert(0, val)
+
+    def set_df(self, df, columns=None):
+        if columns is not None:
+            header = columns
+        else:
+            header = df.columns
+
+        row_range = list(x+1 for x in range(df.__len__()))
+        for col, key in enumerate(header):
+            self.insert_values(row_range, [col]*(df.__len__()+1), list(df[key].values))
+            # self.set_column_values(col, [key] + list(df[key].values))
+
     def set_value(self, row, col, value):
         self.entries[row][col].set_value(value)
         
@@ -1032,12 +1278,19 @@ class EntryGridWidget(tk.Frame):
         elif row:
             for col in self.entries[row]:
                 self.entries[row][col].set_prop(**kwargs)
-        
-    #===========================================================================
+
+    def set_column_values(self, col, value_list=[]):
+        """ Fills column with items in given list. Fils untill nr_rows or len(value_list) is reached. """
+        for row, value in enumerate(value_list):
+            if row in self.entries.keys():
+                if row in self.entries and col in self.entries[row]:
+                    self.entries[row][col].set_value(value)
+
     def set_row_values(self, row, value_list=[]):
         """ Fills row with items in given list. Fils untill nr_cols och len(value_list) is reached. """
         for col, value in enumerate(value_list):
             if col in self.entries[row]:
+                # print('COL VALUE', row, col, value, self.entries[row][col].frame)
                 self.entries[row][col].set_value(value)
         
     #===========================================================================
@@ -1058,7 +1311,7 @@ class EntryGridWidget(tk.Frame):
             for row in self.entries:
                 if col in self.entries[row]:
                     self.entries[row][col].set_prop(width=value)
-                
+
     #===========================================================================
     def disable_entry(self, row, col):
         self.entries[row][col].set_state('disabled')
@@ -4294,7 +4547,15 @@ def disable_widgets(*args):
 def enable_widgets(*args):
     for arg in args:
         arg.config(state='normal')
-                        
+
+
+def get_calendar(locale, fwday):
+    # instantiate proper calendar class
+    if locale is None:
+        return calendar.TextCalendar(fwday)
+    else:
+        return calendar.LocaleTextCalendar(fwday, locale)
+
 """
 ================================================================================
 ================================================================================
@@ -4465,10 +4726,25 @@ def check_float_entry(stringvar, entry, only_negative_values=False, return_strin
 ================================================================================
 ================================================================================
 """ 
-def main():
-    app = TestApp()
-    app.focus_force()
-    app.mainloop()
-    
-if __name__ == '__main__':
-    main()
+# def main():
+#     app = TestApp()
+#     app.focus_force()
+#     app.mainloop()
+#
+# if __name__ == '__main__':
+#     main()
+
+
+# def test():
+#     root = tk.Tk()
+#     root.title('Date selection')
+#     ttkcal = CalendarWidget(firstweekday=calendar.SUNDAY, root=root)
+#     ttkcal.pack(expand=1, fill='both')
+#
+#     root.mainloop()
+#
+#     print(ttkcal.selection)
+#
+#
+# if __name__ == '__main__':
+#     test()

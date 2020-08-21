@@ -5,9 +5,12 @@
 import re
 import os
 import socket
+from collections import Mapping
 import json
 import codecs
 import pathlib
+import datetime
+
 
 try:
     import matplotlib.colors as mcolors
@@ -96,6 +99,36 @@ def get_employee_name():
     return os.path.expanduser('~').split('\\')[-1]
 
 
+def get_time_as_format(**kwargs):
+    if kwargs.get('now'):
+        d = datetime.datetime.now()
+    elif kwargs.get('timestamp'):
+        raise NotImplementedError
+
+    if kwargs.get('fmt'):
+        return d.strftime(kwargs.get('fmt'))
+    else:
+        raise NotImplementedError
+
+
+def recursive_dict_update(d, u):
+    """ Recursive dictionary update using
+    Copied from:
+        http://stackoverflow.com/questions/3232943/update-value-of-a-nested-dictionary-of-varying-depth
+        via satpy
+    """
+    if isinstance(u, dict):
+        for k, v in u.items():
+            if isinstance(v, Mapping):
+                r = recursive_dict_update(d.get(k, {}), v)
+                d[k] = r
+                # d.setdefault(k, r)
+            else:
+                d[k] = u[k]
+                # d.setdefault(k, u[k])
+    return d
+
+
 def save_json(data, *args, **kwargs):
     """
     :param data:
@@ -145,4 +178,23 @@ class PathInfo(object):
         self.file_base, self.extension = self.file_name.split('.')
 
 
+def git_version():
+    """
+    Return current version of this github-repository
+    :return: str
+    """
+    wd = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
+    version_file = os.path.join(wd, '.git', 'FETCH_HEAD')
+    if os.path.exists(version_file):
+        f = open(version_file, 'r')
+        version_line = f.readline().split()
+        version = version_line[0][:7]  # Is much longer but only the first 7 letters are presented on Github
+        repo = version_line[-1]
+        return 'github version "{}" of repository {}'.format(version, repo)
+    else:
+        return ''
 
+
+if __name__ == "__main__":
+    v = git_version()
+    print(v)

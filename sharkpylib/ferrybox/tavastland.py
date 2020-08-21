@@ -217,6 +217,9 @@ class File(object):
             for row, line in enumerate(fid):
                 split_line = line.strip('\n\r').split(kwargs.get('sep', '\t'))
                 split_line = [item.strip() for item in split_line]
+                if row == 1 and header:
+                    if len(header) != len(split_line):
+                        header = header[:len(split_line)]
                 if not header:
                     header = split_line
                 else:
@@ -258,7 +261,7 @@ class File(object):
         removed = self.df.loc[~combined_keep_boolean]
         if len(removed):
             logger.warning('{} lines removed from file {}'.format(len(removed), self.file_path))
-        self.df = self.df.loc[combined_keep_boolean]
+        self.df = self.df.loc[combined_keep_boolean, :]
 
     def clean_file(self, export_directory):
         """
@@ -540,6 +543,8 @@ class FileHandler(object):
 
                 errors = file_object.get_file_errors()
                 if errors:
+                    print('name', name)
+                    print('errors', errors)
                     errors_dict = {name: errors}
                     self.files_with_errors[file_type].append(errors_dict)
 
@@ -1041,7 +1046,12 @@ class FileHandler(object):
         co2_time = series['co2_time']
         co2_value = as_float(series['co2_CO2 um/m'])
         std_value = as_float(series['co2_std val'])
+
+        # print('co2_equ press in series', 'co2_equ press' in series)       False
+        # print('co2_licor press in series', 'co2_licor press' in series)   True
+
         equ_press_value = as_float(series['co2_equ press'])
+        # equ_press_value = as_float(series['calc_Pequ'])
         licor_press_value = as_float(series['co2_licor press'])
 
         # print('-'*30)
@@ -1052,6 +1062,14 @@ class FileHandler(object):
         # print(series['mit_source_file'])
         if not type_value:
             return dict()
+
+        # Added by Johannes 2020-04-29
+        if not hasattr(self, 'co2_time_list'):
+            self.co2_time_list = []
+        if not hasattr(self, 'std_val_list'):
+            self.std_val_list = []
+        if not hasattr(self, 'std_co2_list'):
+            self.std_co2_list = []
 
         if 'STD' in type_value:
             if is_std(type_value):
@@ -1326,6 +1344,10 @@ class FileHandler(object):
         
     def _save_merge_data(self, directory=None, **kwargs):
 
+        if not os.path.exists(directory):
+            # Added by Johannes 2020-04-29
+            os.makedirs(directory)
+
         file_path = os.path.join(directory, 'merge_{}_{}.txt'.format(self.package_prefix,
                                                                      self._get_file_time_string()))
         kw = dict(sep='\t',
@@ -1334,6 +1356,9 @@ class FileHandler(object):
 
         self._mapp_columns(merge_data)
 
+        # @Johannes 2020-04-29
+        self._set_decimals(merge_data)
+
         if kwargs.get('co2_types'):
             boolean = merge_data['co2_Type'].isin(kwargs.get('co2_types'))
             merge_data.loc[boolean].to_csv(file_path, **kw)
@@ -1341,6 +1366,29 @@ class FileHandler(object):
             merge_data.to_csv(file_path, **kw)
 
         return file_path
+
+    @staticmethod
+    def _set_decimals(df):
+        """
+        @Johannes
+        Temporary solution for setting number of decimals.
+        Rather then using df.apply() we enhance performance with numpy.vectorize()
+        :param df: pd.DataFrame
+        :return: No return. We intend to change values df-changes(inplace=True)
+        """
+        def vectorize(x):
+            if x:
+                return round(x, 3)
+            else:
+                return x
+
+        parameters = ['calc_Pequ', 'calc_Tequ', 'calc_VP_H2O', 'calc_fCO2 SST', 'calc_k', 'calc_m',
+                      'calc_pCO2', 'calc_pCO2 dry air', 'calc_time_since_latest_std', 'calc_xCO2']
+        for parameter in parameters:
+            if parameter in df:
+                if df[parameter].any():
+                    df[parameter] = df[parameter].apply(as_float)
+                    df[parameter] = np.vectorize(vectorize)(df[parameter])
 
     def _get_export_directory(self, directory=None):
         """
@@ -1436,13 +1484,12 @@ class ManageTavastlandFiles(object):
         return merge_file_path
 
 
-
-
 def as_float(item):
     try:
         return float(item)
     except:
         return np.nan
+
 
 def is_std(item):
     if not item.startswith('STD'):

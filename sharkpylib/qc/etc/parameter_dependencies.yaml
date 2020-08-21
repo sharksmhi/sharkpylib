@@ -1,0 +1,35 @@
+functions:
+    dependencies:
+        description: Link parameters together when flagging data
+        name: dependencies
+        function: !!python/name:sharkpylib.qc.functions.dependencies.Dependencies ''
+
+parameters:
+    "PRES_CTD": ["PRES_CTD",
+                 "DENS_CTD"]
+    "PRES2_CTD": ["PRES2_CTD",
+                  "DENS2_CTD"]
+    "TEMP_CTD": ["TEMP_CTD",
+                 "DENS_CTD"]
+    "TEMP2_CTD": ["TEMP2_CTD",
+                  "DENS2_CTD"]
+    "SALT_CTD": ["SALT_CTD",
+                 "CNDC_CTD",
+                 "DENS_CTD"]
+    "SALT2_CTD": ["SALT2_CTD",
+                  "CNDC2_CTD",
+                  "DENS2_CTD"]
+    "CNDC_CTD": ["CNDC_CTD",
+                 "SALT_CTD",
+                 "DENS_CTD"]
+    "CNDC2_CTD": ["CNDC2_CTD",
+                  "SALT2_CTD",
+                  "DENS2_CTD"]
+    "DENS_CTD": ["DENS_CTD"]
+    "DENS2_CTD": ["DENS2_CTD"]
+    "DOXY_CTD": ["DOXY_CTD"]
+    "DOXY2_CTD": ["DOXY2_CTD"]
+    "PAR_CTD": ["PAR_CTD"]
+    "CHLFLUO_CTD": ["CHLFLUO_CTD"]
+    "PHYC_CTD": ["PHYC_CTD"]
+    "TURB_CTD": ["TURB_CTD"]

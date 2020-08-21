@@ -11,6 +11,8 @@ import numpy as np
 
 try:
     import matplotlib
+    if matplotlib.__version__ != '1.5.1':
+        matplotlib.use(u'TkAgg')
     import matplotlib.pyplot as plt
     from matplotlib.font_manager import FontProperties
     from matplotlib.patches import Polygon
@@ -19,7 +21,6 @@ try:
 
     import tkinter as tk
 
-    matplotlib.use(u'TkAgg')
     from mpl_toolkits.basemap import Basemap
     from matplotlib.figure import Figure
     from matplotlib.backends.backend_pdf import PdfPages
