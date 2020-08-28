@@ -2,25 +2,23 @@
 # Copyright (c) 2019 SMHI, Swedish Meteorological and Hydrological Institute
 # License: MIT License (see LICENSE.txt or http://opensource.org/licenses/mit).
 
+import codecs
+import datetime
+import logging
+import logging.config
 import os
 import re
-import codecs
-
-import datetime
 import time
+
 import numpy as np
+
 import sharkpylib
-from sharkpylib import loglib
 from sharkpylib import mappinglib
-from sharkpylib import exceptionlib
-
-from sharkpylib.file.file_handlers import MappingDirectory
-from sharkpylib.file.file_handlers import ListDirectory
-from sharkpylib.file.file_handlers import Directory
-
-from sharkpylib.qc.mask_areas import MaskAreasDirectory
-
 from sharkpylib.file import txt_reader
+from sharkpylib.file.file_handlers import Directory
+from sharkpylib.file.file_handlers import ListDirectory
+from sharkpylib.file.file_handlers import MappingDirectory
+from sharkpylib.qc.mask_areas import MaskAreasDirectory
 
 try:
     import pandas as pd
@@ -31,16 +29,9 @@ import sys
 parent_directory = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 if parent_directory not in sys.path:
     sys.path.append(parent_directory)
-from .. import gismo
 
+from sharkpylib import gismo
 
-# def get_logger(**kwargs):
-#     DEFAULT_LOG_INPUT = {'name': 'tavastland',
-#                          'level': 'DEBUG'}
-#     DEFAULT_LOG_INPUT.update(kwargs)
-#     log_object = log.Logger(**DEFAULT_LOG_INPUT)
-#     logger = log_object.get_logger()
-#     return logger
 
 class TavastlandException(Exception):
     """
@@ -82,6 +73,7 @@ class TavastlandExceptionNoMatchWhenMerging(TavastlandException):
 
 class File(object):
     def __init__(self, file_path='', **kwargs):
+        self._set_logger(kwargs.get('logger'))
         self.file_path = file_path
         self.file_directory = os.path.dirname(self.file_path)
         self.file_name = os.path.basename(self.file_path)
@@ -100,6 +92,13 @@ class File(object):
 
         if kwargs.get('load_file'):
             self.load_file()
+
+    def _set_logger(self, logger):
+        if logger:
+            self.logger = logger
+        else:
+            logging.config.fileConfig('logging.conf')
+            self.logger = logging.getLogger('timedrotating')
 
     def _len_header_equals_len_data(self, file_path):
         with open(file_path) as fid:
@@ -225,11 +224,11 @@ class File(object):
                 else:
                     if len(header) != len(split_line):
                         raise TavastlandExceptionCorrupedFile
-                        logger.warning('invalid file: {}'.format(row, self.file_path))
+                        self.logger.warning('invalid file: {}'.format(row, self.file_path))
                         self.data_loaded = False
                         return False
                     if not self.valid_data_line(line):
-                        logger.warning('Removing invalid line {} from file: {}'.format(row, self.file_path))
+                        self.logger.warning('Removing invalid line {} from file: {}'.format(row, self.file_path))
                         continue
                     data.append(split_line)
 
@@ -260,7 +259,7 @@ class File(object):
 
         removed = self.df.loc[~combined_keep_boolean]
         if len(removed):
-            logger.warning('{} lines removed from file {}'.format(len(removed), self.file_path))
+            self.logger.warning('{} lines removed from file {}'.format(len(removed), self.file_path))
         self.df = self.df.loc[combined_keep_boolean, :]
 
     def clean_file(self, export_directory):
@@ -402,11 +401,11 @@ class MITfile(File):
                 # continue
             if any([start.year == 1904, end.year == 1904]):
                 text = 'Start year or end year is 1904 in file {}.'.format(self.file_name)
-                logger.info(text)
+                self.logger.info(text)
                 error_list.append(text)
 
         if error_list:
-            logger.info('; '.join(error_list))
+            self.logger.info('; '.join(error_list))
 
         return error_list
 
@@ -451,16 +450,16 @@ class CO2file(File):
             error_list.append(text)
 
         if error_list:
-            logger.info('; '.join(error_list))
+            self.logger.info('; '.join(error_list))
 
         return error_list
 
 
 class FileHandler(object):
     def __init__(self, **kwargs):
-        global logger
-        logger = loglib.get_logger(**kwargs.get('log_info', {}))
-        logger.debug('Starting FileHandler for Tavastland')
+        self._set_logger(kwargs.get('logger'))
+
+        self.logger.debug('Starting FileHandler for Tavastland')
         self.directories = {}
         self.directories['mit'] = kwargs.get('mit_directory', None)
         self.directories['co2'] = kwargs.get('co2_directory', None)
@@ -500,11 +499,13 @@ class FileHandler(object):
             if directory:
                 self.set_file_directory(file_type, directory)
 
-        # if self.mit_directory is not None:
-        #     self.set_mit_directory(self.mit_directory)
-        #
-        # if self.co2_directory is not None:
-        #     self.set_co2_directory(self.co2_directory)
+    def _set_logger(self, logger):
+        if logger:
+            self.logger = logger
+            print('SETTING LOGGER', self.logger.name)
+        else:
+            logging.config.fileConfig('logging.conf')
+            self.logger = logging.getLogger('timedrotating')
 
     def set_export_directory(self, directory):
         """
@@ -523,10 +524,10 @@ class FileHandler(object):
         this_year = datetime.datetime.now().year
         if file_type == 'mit':
             File_type_class = MITfile
-            file_type_object = MITfile()
+            file_type_object = MITfile(logger=self.logger)
         elif file_type == 'co2':
             File_type_class = CO2file
-            file_type_object = CO2file()
+            file_type_object = CO2file(logger=self.logger)
 
         self.files_with_errors[file_type] = []
         self.corruped_files[file_type] = []
@@ -538,7 +539,7 @@ class FileHandler(object):
                 if not file_type_object.check_if_valid_file_name(name):
                     continue
                 file_path = os.path.join(root, name)
-                file_object = File_type_class(file_path)
+                file_object = File_type_class(file_path, logger=self.logger)
                 start, end = file_object.get_time_range()
 
                 errors = file_object.get_file_errors()
@@ -566,7 +567,7 @@ class FileHandler(object):
             result = self.dfs[file_type].loc[(self.dfs[file_type]['time_start'] <= time) &
                                              (time <= self.dfs[file_type]['time_end']), 'file_id'].values
             if len(result) > 1:
-                logger.debug('Several files matches time stamp: {}\n{}'.format(time, '\n'.join(list(result))))
+                self.logger.debug('Several files matches time stamp: {}\n{}'.format(time, '\n'.join(list(result))))
                 raise TavastlandException('Several files matches time stamp {}: \n{}'.format(time, '\n'.join(list(result))))
             elif len(result) == 0:
                 return None
@@ -714,7 +715,7 @@ class FileHandler(object):
         df = pd.DataFrame()
         for file_id in file_id_list:
             if file_id in self.files_with_errors:
-                logger.warning('Discarding file {}. File has errors!'.format(file_id))
+                self.logger.warning('Discarding file {}. File has errors!'.format(file_id))
                 continue
             object = object_dict.get(file_id)
 
@@ -722,7 +723,7 @@ class FileHandler(object):
                 object_df = object.get_df()
             except TavastlandExceptionCorrupedFile:
                 self.corruped_files[file_type].append(file_id)
-                logger.warning('Discarding file {}. File has errors!'.format(file_id))
+                self.logger.warning('Discarding file {}. File has errors!'.format(file_id))
                 continue
 
             df = df.append(object_df)
@@ -1410,7 +1411,8 @@ class FileHandler(object):
 
 
 class ManageTavastlandFiles(object):
-    def __init__(self, directory):
+    def __init__(self, directory, **kwargs):
+        self._set_logger(kwargs.get('logger'))
         self.directory = directory
         self.files_id = 'tavastland'
         self.match_format = '\d{14}_\d{14}'
@@ -1421,6 +1423,13 @@ class ManageTavastlandFiles(object):
         self.col_qc0 = 'iocftp_number'
 
         self._load_directory()
+
+    def _set_logger(self, logger):
+        if logger:
+            self.logger = logger
+        else:
+            logging.config.fileConfig('logging.conf')
+            self.logger = logging.getLogger('timedrotating')
 
     def _load_directory(self):
         self.dir_object = Directory(self.directory, match_string=self.files_id, match_format=self.match_format)
@@ -1502,4 +1511,8 @@ def is_std(item):
     return True
 
 
-logger = loglib.get_logger()
+if __name__ == '__main__':
+
+
+    file_handler = FileHandler()
+

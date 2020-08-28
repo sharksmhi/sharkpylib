@@ -4,7 +4,8 @@ Created on 4 jul 2016
 @author: a001985
 '''
 import os
-import logging 
+import sys
+import logging
 
 
 class Logger(object):
@@ -17,8 +18,7 @@ class Logger(object):
                            CRITICAL=logging.CRITICAL)
         self.name = name
         self.kwargs = kwargs
-        self.default_format = '%(asctime)s\t%(levelname)s\t%(module)s (row=%(lineno)d)\t%(message)s'
-
+        self.default_format = '%(asctime)s [%(levelname)10s]    %(filename)s [%(lineno)d] => %(funcName)s():    %(message)s'
         self.logger = logging.getLogger(name)
 
         if kwargs.get('level'):
@@ -27,10 +27,32 @@ class Logger(object):
 
         self.formatter = logging.Formatter(kwargs.get('format', self.default_format))
 
+        self.set_stdout_handler_level(level=kwargs.pop('stdout_level', False),
+                                      fmt=kwargs.pop('stdout_format', False))
+
         for logfile in kwargs.get('logfiles', []):
             if not isinstance(logfile, dict):
                 raise AttributeError('log information needs to be of type dict')
             self.add_logfile(**logfile)
+
+    def set_stdout_handler_level(self, level, fmt=None):
+        if not level:
+            return
+        index = None
+        for i, handler in enumerate(self.logger.handlers):
+            if isinstance(handler, logging.StreamHandler):
+                index = i
+        if index is not None:
+            self.logger.handlers.pop(index)
+
+        # Create stdout handler
+        stdout_handler = logging.StreamHandler(sys.stdout)
+        stdout_handler.setLevel(self.levels.get(level, logging.DEBUG))
+        if not fmt:
+            fmt = '%(filename)s => %(funcName)s (line=%(lineno)d):\t%(message)s'
+        formatter = logging.Formatter(fmt)
+        stdout_handler.setFormatter(formatter)
+        self.logger.addHandler(stdout_handler)
 
     def add_logfile(self, **kwargs):
         logger_file_path = kwargs.get('file_path')
@@ -57,17 +79,14 @@ class Logger(object):
             for i in pop_index:
                 self.logger.handlers.pop(i)
 
-
     def get_logger(self):
         return self.logger
 
 
 def get_logger(**kwargs):
-    # import Logger
     DEFAULT_LOG_INPUT = {'name': 'test_log',
                          'level': 'DEBUG'}
     DEFAULT_LOG_INPUT.update(kwargs)
-    # log_object = log.Logger(**DEFAULT_LOG_INPUT)
     log_object = Logger(**DEFAULT_LOG_INPUT)
     logger = log_object.get_logger()
     return logger
@@ -98,10 +117,9 @@ def logtester():
     logger.critical('EEE')
 
 
-
-logger = get_logger()
-
 if __name__ == '__main__':
+    print('__main__')
+    logger = get_logger()
     logtester()
 
 
