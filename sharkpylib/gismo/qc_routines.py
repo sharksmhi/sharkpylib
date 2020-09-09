@@ -6,6 +6,8 @@
 
 import os
 import datetime
+import shutil
+from pathlib import Path
 
 try:
     import numpy as np
@@ -13,13 +15,19 @@ try:
 except:
     pass
 
-from .gismo import GISMOqc
-from .exceptions import *
+from sharkpylib.gismo.gismo import GISMOqc
+from sharkpylib.gismo.exceptions import *
 
-from .qc import IOCFTP_QC
-from .qc.qc_trajectory import FlagAreas
+from sharkpylib.gismo.qc import IOCFTP_QC
+from sharkpylib.gismo.qc.qc_trajectory import FlagAreas
 
-from .qc.qc_profile import ProfileQCrangeSimple, ProfileQCreportTXT
+from sharkpylib.gismo.qc.qc_profile import ProfileQCrangeSimple, ProfileQCreportTXT
+
+
+# This is for Profile DV QC
+from ctdpy.core.session import Session
+from ctdpy.core.utils import generate_filepaths, get_reversed_dictionary
+from sharkpylib.qc.qc_default import QCBlueprint
 
 import logging
 gismo_logger = logging.getLogger('gismo_session')
@@ -43,11 +51,13 @@ class PluginFactory(object):
     def __init__(self):
         # Add key and class to dict if you want to activate it
         self.classes = {QCprofileRangeSimple.name: QCprofileRangeSimple,
-                        QCprofileReport.name: QCprofileReport}
+                        QCprofileReport.name: QCprofileReport,
+                        QCprofileDV.name: QCprofileDV}
         # self.classes = {'Mask areas': QCmaskArea}
 
         self.required_arguments = {QCprofileRangeSimple.name: ['parameter_list'],
-                                   QCprofileReport.name: ['subroutines', 'save_directory']}
+                                   QCprofileReport.name: ['subroutines', 'save_directory'],
+                                   QCprofileDV.name: []}
 
         # self.required_arguments = {'Mask areas': ['file_path', 'par_to_flag']}
 
@@ -86,7 +96,7 @@ class PluginFactory(object):
         """
         if not self.classes.get(routine):
             raise GISMOExceptionInvalidClass
-        return self.required_arguments.get(routine)
+        return self.required_arguments.get(routine, None)
 
 
 class QCmaskArea(GISMOqc):
@@ -326,6 +336,124 @@ class QCiocftp(GISMOqc):
                 print(col, diff)
 
 
+class QCprofileDV(GISMOqc):
+    """
+    """
+    name = 'Profile DV Standard format'
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+        parent_dir = Path(__file__).parent
+        self.add_info_to_metadata = False
+
+        self.temp_dir = Path(parent_dir, '_temp_data')
+        self.gismo_objects = None
+        self.ctdpy_datasets = None
+        self.ctdpy_session = None
+
+    def run_qc(self, gismo_objects, **kwargs):
+        """
+        Data is generally in a pandas dataframe that can be reach under gismo_object.df.
+
+        To manipulate (flag) data in a gismo_object use method gismo_object.flag_data()!!!
+        Since the data structure is quit different this will not be the routine in this case.
+        Instead the following steps will be made:
+        1. A temporary file will be saved from the gismo object
+        2. This file will be loaded using the cdtpy package
+        3. QC will be performed
+        4. Data will be copied from the ctdpy object to the gismo object.
+           Only columns starting with "Q0_" will be copied.
+
+        :param gismo_objects: gismo objects or objects as a list.
+        :return:
+        """
+        self.gismo_objects = gismo_objects
+
+        try:
+            print(1)
+            self._create_temp_directory()
+            print(2)
+            self._save_gismo_files()
+            print(3)
+            self._load_ctdpy_files()
+            print(4)
+            self._run_dv_qc_and_merge()
+            print(5)
+        except:
+            pass
+        finally:
+            self._delete_temp_directory()
+            print(6)
+
+    def _create_temp_directory(self):
+        if not self.temp_dir.exists():
+            os.makedirs(self.temp_dir)
+
+    def _delete_temp_directory(self):
+        if self.temp_dir.exists():
+            shutil.rmtree(self.temp_dir)
+
+    def _save_gismo_files(self):
+        for gismo_object in self.gismo_objects:
+            gismo_object.save_file(file_path=Path(self.temp_dir, gismo_object.file_id + '.txt'))
+
+    def _load_ctdpy_files(self):
+        files = generate_filepaths(self.temp_dir,
+                                   endswith='.txt',  # Presumably CTD-standard format
+                                   only_from_dir=False)
+
+        self.ctdpy_session = Session(filepaths=files,
+                                     reader='ctd_stdfmt')
+        self.ctdpy_datasets = self.ctdpy_session.read()
+
+    def _run_dv_qc_and_merge(self):
+        for gismo_object in self.gismo_objects:
+            key = gismo_object.file_id + '.txt'
+            item = self.ctdpy_datasets[0].get(key)
+            parameter_mapping = get_reversed_dictionary(self.ctdpy_session.settings.pmap, item['data'].keys())
+            qc_run = QCBlueprint(item, parameter_mapping=parameter_mapping)
+            qc_run()
+
+            # Merge
+            source_df = item['data']
+            target_df = gismo_object.df
+            for col in source_df:
+                if not col.startswith('Q0_'):
+                    continue
+                print(col)
+                target_df[col] = source_df[col]
+
+            # Add metadata
+            metadata_index = qc_run.meta.index[-1]
+            metadata_string = qc_run.meta[metadata_index]
+            gismo_object.add_qc_comment(metadata_string, as_is=True)
+
+    def get_information(self):
+        """
+        Should return a dict with information about the QC routine.
+        :return:
+        """
+        return {'General': 'QC routine developed and used by Datavärdskapet at SMHI'}
+
+    def get_options(self):
+        """
+        Should return a dict with options available for the qc routine.
+        Key is the option itself.
+        Values are the available choices for the corresponding option. Choices can be of the following types:
+
+        list: multi select
+        empty list: free nr of inputs (ex. list of quality flags)
+        tuple: single select
+        string: free text
+        float: free float number
+        int: free int number
+
+        :return:
+        """
+        return {}
+
+
 class QCprofileRangeSimple(GISMOqc):
     name = 'Profile range simple'
 
@@ -356,5 +484,7 @@ class QCprofileReport(GISMOqc):
         return self.qc_object.run_qc(gismo_objects, **kwargs)
 
 
+if __name__ == '__main__':
+    QCprofileDV()
 
 

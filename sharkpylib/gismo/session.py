@@ -351,6 +351,9 @@ class GISMOsession(object):
     def get_station_list(self):
         return self.data_manager.get_station_list()
 
+    def get_settings_files(self):
+        return self.settings_files.get_list()
+
     # ==========================================================================
     def get_qc_routines(self):
         return self.qc_routines_factory.get_list()
@@ -708,7 +711,7 @@ class GISMOsession(object):
 
         # Check qc requirements
         qc_requirements = self.get_qc_routine_requirements(qc_routine)
-        if not qc_requirements:
+        if qc_requirements is None:
             raise GISMOExceptionMissingRequirements
         for item in qc_requirements:
             if not kwargs.get(item):

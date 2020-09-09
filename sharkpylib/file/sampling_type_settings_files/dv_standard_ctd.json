@@ -24,7 +24,7 @@
 	},
 	"mandatory_columns": {
 		"data": {
-			"depth": "DEPH [m]",
+			"depth": "PRES_CTD [dbar]",
 			"lat": "LATITUDE_DD",
 			"lon": "LONGITUDE_DD",
 			"station": "STATION",

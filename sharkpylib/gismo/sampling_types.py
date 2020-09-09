@@ -106,7 +106,6 @@ class GISMOfile(GISMOdata):
         self.root_directory = root_directory
         self.mapping_files = mapping_files
 
-
         self.sampling_type = kwargs.get('sampling_type', '')
 
         self._load_settings_file()
@@ -374,15 +373,14 @@ class GISMOfile(GISMOdata):
         self.df['visit_depth_id'] = self.df['lat'].astype(str) + self.df['lon'].astype(str) + self.df['time'].astype(
             str) + self.df['depth'].astype(str)
 
-
-    def add_qc_comment(self, comment):
+    def add_qc_comment(self, comment, **kwargs):
         """
         :param comment:
         :return:
         """
         if not self.has_metadata:
             raise GISMOExceptionNoMetadata
-        self.metadata.add_qc_comment(comment)
+        self.metadata.add_qc_comment(comment, **kwargs)
 
     def flag_data(self, flag, *args, **kwargs):
         """
@@ -896,7 +894,7 @@ class DVStandardFormatCTD(GISMOfile):
     """
 
     # ==========================================================================
-    def __init__(self, file_path=None, settings_file_path=None, root_directory=None, **kwargs):
+    def __init__(self, data_file_path=None, settings_file_path=None, root_directory=None, **kwargs):
         """
         Updated 20181005     
 
@@ -906,7 +904,7 @@ class DVStandardFormatCTD(GISMOfile):
         :param kwargs:
         """
 
-        kwargs.update(dict(file_path=file_path,
+        kwargs.update(dict(data_file_path=data_file_path,
                            settings_file_path=settings_file_path,
                            root_directory=root_directory))
         GISMOfile.__init__(self, **kwargs)
@@ -915,7 +913,7 @@ class DVStandardFormatCTD(GISMOfile):
         self.flag_data_options = self.flag_data_options + ['depth', 'depth_min', 'depth_max']
         self.mask_data_options = self.mask_data_options + []
 
-        self.valid_qc_routines = ['Profile range simple', 'Profile report']
+        self.valid_qc_routines = ['Profile DV Standard format', 'Profile range simple', 'Profile report']
 
     def get_position(self, *kwargs):
         return [float(self.df['lat'].values[0]), float(self.df['lon'].values[0])]
@@ -1147,15 +1145,42 @@ class SHARKmetadataStandardBase(object):
     class CommentQC(MetadataBase):
         def __init__(self, **kwargs):
             super().__init__(**kwargs)
-            self.metadata_id = 'COMMENT_QC'
+            self.metadata_id = 'COMNT_QC'
             self.data = []
 
         def add(self, comment, **kwargs):
             if type(comment) == list:
                 comment = ';'.join(comment)
-            comment = comment.strip(self.metadata_string)
-            time_string = datetime.datetime.now().strftime('%Y-%m-%d %H:%M')
-            self.data.append(self.delimiter.join([self.metadata_string, time_string, comment.strip()]))
+            if kwargs.get('as_is'):
+                self.data.append(comment)
+            else:
+                if type(comment) == list:
+                    comment = ';'.join(comment)
+                comment = comment.strip(self.metadata_string)
+                time_string = datetime.datetime.now().strftime('%Y-%m-%d %H:%M')
+                self.data.append(self.delimiter.join([self.metadata_string, time_string, comment.strip()]))
+
+        def get_rows(self):
+            return self.data[:]
+
+        def get_metadata_tree(self):
+            return self.data[:]
+
+    class CommentUNIT(MetadataBase):
+        def __init__(self, **kwargs):
+            super().__init__(**kwargs)
+            self.metadata_id = 'COMNT_UNIT'
+            self.data = []
+
+        def add(self, comment, **kwargs):
+            if type(comment) == list:
+                comment = ';'.join(comment)
+            if kwargs.get('as_is'):
+                self.data.append(comment)
+            else:
+                comment = comment.strip(self.metadata_string)
+                time_string = datetime.datetime.now().strftime('%Y-%m-%d %H:%M')
+                self.data.append(self.delimiter.join([self.metadata_string, time_string, comment.strip()]))
 
         def get_rows(self):
             return self.data[:]
@@ -1189,7 +1214,8 @@ class SHARKmetadataStandardBase(object):
                      'SENSORINFO': self.SensorInfo(**kw),
                      'INFORMATION': self.Information(**kw),
                      'INSTRUMENT_METADATA': self.InstrumentMetadata(**kw),
-                     'COMMENT_QC': self.CommentQC(**kw)}
+                     'COMNT_UNIT': self.CommentUNIT(**kw),
+                     'COMNT_QC': self.CommentQC(**kw)}
 
         self.metadata_order = []
 
@@ -1217,7 +1243,7 @@ class SHARKmetadataStandardBase(object):
                 metadata_id = line.split(self.metadata_delimiter)[0].strip(self.comment_id)
                 if metadata_id in self.data:
                     split_line = line.split(self.metadata_delimiter)
-                    self.data[metadata_id].add(split_line, original_line=original_line)
+                    self.data[metadata_id].add(split_line, original_line=original_line, as_is=True)
                     if metadata_id not in self.metadata_order:
                         self.metadata_order.append(metadata_id)
                 else:
@@ -1225,10 +1251,11 @@ class SHARKmetadataStandardBase(object):
 
             self.has_data = True
 
-        self.metadata_order.append('COMMENT_QC')
+        # self.metadata_order.append('COMNT_UNIT')
+        # self.metadata_order.append('COMNT_QC')
 
-    def add_qc_comment(self, comment):
-        self.data['COMMENT_QC'].add(comment)
+    def add_qc_comment(self, comment, **kwargs):
+        self.data['COMNT_QC'].add(comment, **kwargs)
 
     def get_lines(self):
         all_lines = self.file_info.get_rows()

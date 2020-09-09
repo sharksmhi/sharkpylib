@@ -604,7 +604,6 @@ class GISMOqcManager(object):
         if not self.qc_routines.get(qc_routine):
             self.add_qc_routine(qc_routine)
 
-
     def add_qc_routine(self, routine, **kwargs):
         self.qc_routines[routine] = self.factory.get_object(routine=routine, **kwargs)
 
@@ -629,14 +628,16 @@ class GISMOqcManager(object):
 
         self._check_qc_routine(qc_routine)
 
-        qc_routine_objects = self.qc_routines.get(qc_routine)
+        qc_routine_object = self.qc_routines.get(qc_routine)
 
         # Run qc
-        qc_routine_objects.run_qc(gismo_objects, qc_routine=qc_routine, **kwargs)
+        qc_routine_object.run_qc(gismo_objects, qc_routine=qc_routine, **kwargs)
+        print('qc_routine_object', qc_routine_object)
 
         # Add comment in metadata
-        user = kwargs.pop('user', 'unknown user')
-        add_qc_comment_in_metadata(gismo_objects=gismo_objects, text=qc_routine, user=user)
+        if qc_routine_object.add_info_to_metadata:
+            user = kwargs.pop('user', 'unknown user')
+            add_qc_comment_in_metadata(gismo_objects=gismo_objects, text=qc_routine, user=user)
 
     def get_qc_options(self, qc_routine):
         self._check_qc_routine(qc_routine)
@@ -661,6 +662,7 @@ class GISMOqc(object):
     def __init__(self, *args, **kwargs):
         if not self.name:
             raise GISMOExceptionMissingQCroutineName
+        self.add_info_to_metadata = True
 
     def run_qc(self, gismo_objects, **kwargs):
         """
@@ -669,6 +671,7 @@ class GISMOqc(object):
         To manipulate (flag) data in a gismo_object use method gismo_object.flag_data()!!!
 
         Make sure self.name is in gismo_object.valid_qc_routines
+        Also make sure to ad routine to qc_factory.
 
         :param gismo_objects: gismo objects or objects as a list.
         :return:
