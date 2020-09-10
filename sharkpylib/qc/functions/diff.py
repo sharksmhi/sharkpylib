@@ -74,7 +74,6 @@ class DataDiff(DiffBase):
             qc_fail_message(self, self.parameters)
 
 
-
 if __name__ == "__main__":
 
     import numpy as np
