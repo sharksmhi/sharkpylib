@@ -19,7 +19,7 @@ datasets:
     'TEMP_CTD':
         parameters: ['TEMP_CTD', 'TEMP2_CTD']
         qflags: ['Q0_TEMP_CTD', 'Q0_TEMP2_CTD']
-        acceptable_error: 0.3
+        acceptable_error: 0.5
         function: qc_diff
     'CNDC_CTD':
         parameters: ['CNDC_CTD', 'CNDC2_CTD']
