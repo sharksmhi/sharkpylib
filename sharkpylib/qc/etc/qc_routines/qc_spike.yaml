@@ -69,7 +69,7 @@ datasets:
     'TURB_CTD':
         parameter: 'TURB_CTD'
         qflags: ['Q0_TURB_CTD']
-        acceptable_stddev_factor: 1.5
+        acceptable_stddev_factor: 1.75
         min_stddev_value: 0.1
         function: qc_spike
     'CHLFLUO_CTD':
@@ -81,6 +81,6 @@ datasets:
     'PHYC_CTD':
         parameter: 'PHYC_CTD'
         qflags: ['Q0_PHYC_CTD']
-        acceptable_stddev_factor: 1.5
+        acceptable_stddev_factor: 1.75
         min_stddev_value: 0.05
         function: qc_spike
