@@ -34,13 +34,13 @@ datasets:
         parameter: 'CNDC_CTD'
         qflags: ['Q0_CNDC_CTD', 'Q0_SALT_CTD']
         min_range_value: 0
-        max_range_value: 4
+        max_range_value: 6
         function: qc_range
     'CNDC2_CTD':
         parameter: 'CNDC2_CTD'
         qflags: ['Q0_CNDC2_CTD', 'Q0_SALT2_CTD']
         min_range_value: 0
-        max_range_value: 4
+        max_range_value: 6
         function: qc_range
     'SALT_CTD':
         parameter: 'SALT_CTD'
