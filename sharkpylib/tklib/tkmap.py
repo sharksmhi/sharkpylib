@@ -9,24 +9,22 @@ import random
 
 import numpy as np
 
-try:
-    import matplotlib
-    if matplotlib.__version__ != '1.5.1':
-        matplotlib.use(u'TkAgg')
-    import matplotlib.pyplot as plt
-    from matplotlib.font_manager import FontProperties
-    from matplotlib.patches import Polygon
-    from matplotlib.dates import DateFormatter, DayLocator
-    from matplotlib.text import Text
 
-    import tkinter as tk
+import matplotlib
+if matplotlib.__version__ != '1.5.1':
+    matplotlib.use(u'TkAgg')
+import matplotlib.pyplot as plt
+from matplotlib.font_manager import FontProperties
+from matplotlib.patches import Polygon
+from matplotlib.dates import DateFormatter, DayLocator
+from matplotlib.text import Text
 
-    from mpl_toolkits.basemap import Basemap
-    from matplotlib.figure import Figure
-    from matplotlib.backends.backend_pdf import PdfPages
-    from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg, NavigationToolbar2Tk
-except:
-    pass
+import tkinter as tk
+
+from mpl_toolkits.basemap import Basemap
+from matplotlib.figure import Figure
+from matplotlib.backends.backend_pdf import PdfPages
+from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg, NavigationToolbar2Tk
 
 
 # class MapWidget(tk.Frame):

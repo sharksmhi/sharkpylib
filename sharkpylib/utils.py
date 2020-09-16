@@ -10,6 +10,7 @@ import json
 import codecs
 import pathlib
 import datetime
+import platform
 
 
 try:
@@ -197,6 +198,10 @@ def git_version():
         return 'github version "{}" of repository {}'.format(version, repo)
     else:
         return ''
+
+
+def get_windows_bit_version():
+    return platform.architecture()[0][:2]
 
 
 if __name__ == "__main__":
