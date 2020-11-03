@@ -8,41 +8,41 @@ functions:
 datasets:
     'DEPH':
         parameter: 'DEPH'
-        qflags: ['Q0_DEPH']
+        q_parameters: ['Q0_DEPH']
         acceptable_error: 0
         function: qc_increase
     'PRES_CTD':
         parameter: 'PRES_CTD'
-        qflags: ['Q0_PRES_CTD']
+        q_parameters: ['Q0_PRES_CTD']
         acceptable_error: 0
         function: qc_increase
     'CNDC_CTD':
         parameter: 'CNDC_CTD'
-        qflags: ['Q0_CNDC_CTD', 'Q0_SALT_CTD']
+        q_parameters: ['Q0_CNDC_CTD', 'Q0_SALT_CTD']
         acceptable_error: 0.1
         function: qc_increase
     'CNDC2_CTD':
         parameter: 'CNDC2_CTD'
-        qflags: ['Q0_CNDC2_CTD', 'Q0_SALT2_CTD']
+        q_parameters: ['Q0_CNDC2_CTD', 'Q0_SALT2_CTD']
         acceptable_error: 0.1
         function: qc_increase
     'SALT_CTD':
         parameter: 'SALT_CTD'
-        qflags: ['Q0_SALT_CTD', 'Q0_DENS_CTD']
+        q_parameters: ['Q0_SALT_CTD', 'Q0_DENS_CTD']
         acceptable_error: 0.5
         function: qc_increase
     'SALT2_CTD':
         parameter: 'SALT2_CTD'
-        qflags: ['Q0_SALT2_CTD', 'Q0_DENS2_CTD']
+        q_parameters: ['Q0_SALT2_CTD', 'Q0_DENS2_CTD']
         acceptable_error: 0.5
         function: qc_increase
     'DENS_CTD':
         parameter: 'DENS_CTD'
-        qflags: ['Q0_DENS_CTD']
+        q_parameters: ['Q0_DENS_CTD']
         acceptable_error: 0.1
         function: qc_increase
     'DENS2_CTD':
         parameter: 'DENS2_CTD'
-        qflags: ['Q0_DENS2_CTD']
+        q_parameters: ['Q0_DENS2_CTD']
         acceptable_error: 0.1
         function: qc_increase

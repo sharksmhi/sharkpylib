@@ -33,6 +33,8 @@ class Range(BooleanBaseSerie):
             raise AssertionError('Input types to class {} are no good: data ({}), parameter ({}), range values ({}, {})'.format(*type_tuple))
 
         self.qc_passed = False
+        self.q_flag = kwargs.get('q_flag') or 'B'
+
         if type(df_or_serie) == pd.DataFrame:
             self.serie = df_or_serie[kwargs.get('parameter')].astype(float)
         else:
@@ -72,7 +74,7 @@ class Range(BooleanBaseSerie):
         :return:
         """
         flag_serie = np.array(['A'] * self.serie.__len__())
-        flag_serie[~self.boolean_return] = 'B'
+        flag_serie[~self.boolean_return] = self.q_flag
         return flag_serie
 
 

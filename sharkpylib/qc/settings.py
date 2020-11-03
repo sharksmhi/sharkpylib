@@ -10,7 +10,7 @@ from sharkpylib.file.yaml_reader import YAMLreader
 from sharkpylib.utils import git_version
 
 
-class Settings(object):
+class Settings:
     """
     """
     qc_routines = {}

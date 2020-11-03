@@ -10,7 +10,7 @@ from sharkpylib.qc.settings import Settings
 from sharkpylib.utils import get_time_as_format
 
 
-class Qflag(object):
+class Qflag:
     """
     """
     def __init__(self, df_or_serie, **kwargs):
@@ -44,7 +44,7 @@ class Qflag(object):
         self.serie.loc[self.boolean] = self.qflag
 
 
-class QCBlueprint(object):
+class QCBlueprint:
     """
 
     SHARK Qulity Control flags:
@@ -110,7 +110,7 @@ class QCBlueprint(object):
 
                 # Check results and execute appropriate action (flag the data)
                 self.add_qflag(qc_func.flag_return,
-                               item.get('qflags'),
+                               item.get('q_parameters'),
                                qc_index)
 
         self._close_flag_fields()
@@ -155,8 +155,11 @@ class QCBlueprint(object):
                 continue
 
             for qf_list, qf in zip(self.df[flag_key], flag_field):
-                # TODO arange a better solution to overwriting.. if flag = S we might want to overwrite duing the same QC run..
                 if qf_list[qc_index] == '0' or qf_list[qc_index] == 'A':
+                    qf_list[qc_index] = qf
+                elif qf_list[qc_index] == 'S' and qf == 'B':
+                    qf_list[qc_index] = qf
+                elif qf == 'S':
                     qf_list[qc_index] = qf
 
     def set_qc0_standard_format(self, key=None):

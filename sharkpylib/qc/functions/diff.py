@@ -31,6 +31,7 @@ class DiffBase(BooleanBaseDataFrame):
                                  'acceptable error ({})'.format(*assertionerror_tuple))
 
         self.qc_passed = False
+        self.q_flag = kwargs.get('q_flag') or 'B'
         self.parameters = kwargs.get('parameters')
         self.data = df[self.parameters].astype(float)
         self.acceptable_error = kwargs.get('acceptable_error')
@@ -50,7 +51,7 @@ class DiffBase(BooleanBaseDataFrame):
         :return:
         """
         flag_serie = np.array(['A'] * self.data.__len__())
-        flag_serie[~self.boolean_return] = 'B'
+        flag_serie[~self.boolean_return] = self.q_flag
         return flag_serie
 
 
