@@ -33,6 +33,8 @@ class Spike(BooleanBaseSerie):
                                  'acceptable_stddev_factor ({}), min_stddev_value ({})'.format(*type_tuple))
 
         self.qc_passed = False
+        self.q_flag = kwargs.get('q_flag') or 'B'
+
         if type(df_or_serie) == pd.DataFrame:
             self.serie = df_or_serie[kwargs.get('parameter')].astype(float)
         else:
@@ -103,5 +105,5 @@ class Spike(BooleanBaseSerie):
         :return:
         """
         flag_serie = np.array(['A'] * self.serie.__len__())
-        flag_serie[~self.boolean_return] = 'B'
+        flag_serie[~self.boolean_return] = self.q_flag
         return flag_serie

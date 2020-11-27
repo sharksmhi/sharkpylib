@@ -38,6 +38,7 @@ class ContinuousBase(BooleanBaseSerie):
             self.serie = df_or_serie.astype(float)
 
         self.qc_passed = False
+        self.q_flag = kwargs.get('q_flag') or 'B'
         self.acceptable_error = kwargs.get('acceptable_error')
 
     @property
@@ -57,11 +58,10 @@ class ContinuousBase(BooleanBaseSerie):
     @property
     def flag_return(self):
         """
-        #TODO add more flexibility to flag assignment
         :return:
         """
         flag_serie = np.array(['A'] * self.serie.__len__())
-        flag_serie[~self.boolean_return] = 'B'
+        flag_serie[~self.boolean_return] = self.q_flag
         return flag_serie
 
     @property

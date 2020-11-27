@@ -8,7 +8,7 @@ Created on 2019-08-30 15:05
 import numpy as np
 
 
-class BooleanBaseDataFrame(object):
+class BooleanBaseDataFrame:
     """
     """
     def __init__(self):
@@ -157,7 +157,7 @@ class BooleanBaseDataFrame(object):
         self._boolean = self._boolean & add_bool
 
 
-class BooleanBaseSerie(object):
+class BooleanBaseSerie:
     """
     """
     def __init__(self):

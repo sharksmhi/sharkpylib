@@ -10,11 +10,10 @@ import numpy as np
 import yaml
 
 
-class YAMLreader(object):
+class YAMLreader:
     """
     """
     def __init__(self):
-        super().__init__()
 
         self.config = {}
 
@@ -28,11 +27,7 @@ class YAMLreader(object):
         """
         for config_file in config_files:
             with open(config_file, encoding=encoding) as fd:
-                file = yaml.load(fd)
-                # try:
-                #     file = yaml.load(fd)
-                # except yaml.YAMLError:
-                #     file = yaml.safe_load(fd)
+                file = yaml.load(fd, Loader=yaml.FullLoader)
                 if file_names_as_key:
                     file_name = self.get_file_name(config_file)
                     self.config[file_name] = file

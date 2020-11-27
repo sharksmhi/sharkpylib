@@ -8,16 +8,16 @@ functions:
 datasets:
     'DOXY_CTD':
         parameter: 'DOXY_CTD'
-        qflags: ['Q0_DOXY_CTD']
+        q_parameters: ['Q0_DOXY_CTD']
         acceptable_error: 1
         function: qc_decrease
     'DOXY2_CTD':
         parameter: 'DOXY2_CTD'
-        qflags: ['Q0_DOXY2_CTD']
+        q_parameters: ['Q0_DOXY2_CTD']
         acceptable_error: 1
         function: qc_decrease
     'PAR_CTD':
         parameter: 'PAR_CTD'
-        qflags: ['Q0_PAR_CTD']
+        q_parameters: ['Q0_PAR_CTD']
         acceptable_error: 0.8
         function: qc_decrease
