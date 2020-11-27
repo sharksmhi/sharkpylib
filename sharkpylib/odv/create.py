@@ -17,8 +17,210 @@ try:
 except:
     pass
 
-from .. import geography
-from ..bodc import vocabulary
+try:
+    from .. import geography
+    from ..bodc import vocabulary
+except:
+    print(f'Could not import relative imports in file: {__file__}')
+
+
+class SimpleODVfile:
+    def __init__(self,
+                 data,
+                 qf_prefix='Q_',
+                 **kwargs):
+        """
+        :param data: pandas dataframe
+        """
+        self.data = data
+        self.qf_prefix = qf_prefix
+
+        self.col_type = {}
+
+        self._save_column_types()
+
+    def _save_column_types(self):
+        self.col_type = {}
+        columns = list(self.data.columns)
+        for col in columns:
+            pot_qf_col = col.lstrip(self.qf_prefix)
+            if col != pot_qf_col:
+                self.col_type[col] = 'par'
+                self.col_type[pot_qf_col] = 'qf'
+
+    def _get_semantic_header_rows(self, **kwargs):
+        rows = [
+            '//',
+            f'//<Creator>{kwargs.get("creator", "Unknown")}</Creator>'
+            f'//<CreateTime>{kwargs.get("created", "Unknown")}</CreateTime>',
+            f'//<Encoding>{kwargs.get("encoding", "Unknown")}</Encoding>',
+            f'//<MissingValueIndicators>{kwargs.get("missing_values", "Unknown")}</MissingValueIndicators>',
+            f'//<Software>{kwargs.get("software", "Unknown")}</Software>',
+            f'//<Source>{kwargs.get("source", "Unknown")}</Source>',
+            f'//<SourceLastModified>{kwargs.get("last_mod", "Unknown")}</SourceLastModified>',
+            f'//<Version>{kwargs.get("version", "Unknown")}</Version>',
+
+            # Data information
+            f'//<DataField>{kwargs.get("data_field", "Unknown")}</DataField>',
+            f'//<DataType>{kwargs.get("data_type", "Unknown")}</DataType>',
+            '//'
+        ]
+        return rows
+
+    def _get_header_row(self):
+        header = ['Cruise',
+                  'Station',
+                  'Type',
+                  'yyyy-mm-ddThh:mm:ss.sss',
+                  'Longitude [degrees_east]',
+                  'Latitude [degrees_north]',
+                  'Bot. Depth [m]']
+        for
+
+
+    def create_odv_file(self,
+                        series,
+                        series_list=False,
+                        Creator=None,
+                        Created=None,
+                        Source=None,
+                        LastMod=None,
+                        file_path=False,
+                        Encoding='cp1252',  # 'UTF-8',
+                        MissingValues='-9 -99 -999',
+                        Software='Python',
+                        Version='ODV Spreadsheet',
+                        DataField='Ocean',
+                        DataType='Profiles'):
+        """
+        Creates odv file.
+        """
+
+        flag_as_questionable = ['?', 'S']
+        flag_as_bad = ['B']
+        # Check series
+        if type(series) == dict:
+            if not series_list:
+                series_list = sorted(series.keys())
+
+            current_series = []
+            for key in series_list:
+                try:
+                    current_series.append(series[key])
+                except:
+                    pass
+        elif type(series) != list:
+            current_series = [series]
+
+        # Check file path
+        if not file_path:
+            return
+        elif not file_path.endswith('.txt'):
+            file_path = file_path + '.txt'
+
+        # Mandatory header
+        header = ['Cruise', 'Station', 'Type', 'yyyy-mm-ddThh:mm:ss.sss', \
+                  'Longitude [degrees_east]', 'Latitude [degrees_north]', 'Bot. Depth [m]']
+
+        par_list = current_series[0].data_list
+        par_list.pop(par_list.index('DEPH'))
+        parameter_list = ['Depth'] + par_list
+        for par in parameter_list:
+            header.append(par)
+            header.append('QF')
+        #         header.append('QV:ODV:' + par)
+
+        # ==========================================================================
+        # Open file and write "information" and header
+        #         fid = codecs.open(file_path,'w', encoding='cp1252')
+        fid = codecs.open(file_path, 'w', encoding=Encoding)
+
+        # --------------------------------------------------------------------------
+        # File information
+        fid.write(u'//\n')
+        fid.write(u'//<Creator>%s</Creator>\n' % Creator)
+        fid.write(u'//<CreateTime>%s</CreateTime>\n' % Created)
+        fid.write(u'//<Encoding>%s</Encoding>\n' % Encoding)
+        fid.write(u'//<MissingValueIndicators>%s</MissingValueIndicators>\n' % MissingValues)
+        fid.write(u'//<Software>%s</Software>\n' % Software)
+        fid.write(u'//<Source>%s</Source>\n' % Source)
+        fid.write(u'//<SourceLastModified>%s</SourceLastModified>\n' % LastMod)
+        fid.write(u'//<Version>%s</Version>\n' % Version)
+
+        # Data information
+        fid.write(u'//<DataField>%s</DataField>\n' % DataField)
+        fid.write(u'//<DataType>%s</DataType>\n' % DataType)
+        fid.write(u'//\n')
+
+        # Header
+        header_str = u'\t'.join(header) + u'\n'
+        fid.write(header_str)
+        # --------------------------------------------------------------------------
+        # Add information to ODV-file
+        for series in current_series:
+            for i, value in enumerate(series['DEPH']):
+                # Adding meta information
+                if i == 0:
+
+                    # --------------------------------------------------------------
+                    # Get position
+                    lat, lon = series.get_position()
+
+                    # --------------------------------------------------------------
+                    # Writing first row of data
+                    fid.write(u'%s\t' % series.shipc)  # stnr_dict[nr]['SHIPC'][row])
+                    fid.write(u'%s (%s)\t' % (
+                    series.statn, series.serno))  # (stnr_dict[nr]['STATN'][row], stnr_dict[nr]['STNNO'][row]))
+                    fid.write(u'%s\t' % u'Type')
+                    try:
+                        if series.stime:
+                            fid.write(series.time.strftime('%Y-%m-%dT%H:%M\t'))
+                        else:
+                            fid.write(series.time.strftime('%Y-%m-%dT\t'))
+                    except:
+                        fid.write(u'%sT\t' % series.sdate)
+                    fid.write(u'%s\t' % lon)
+                    fid.write(u'%s\t' % lat)
+                    fid.write(u'%s\t' % series.wadep)  # stnr_dict[nr]['WADEP'][row])
+
+                # Tab if not first row
+                else:
+                    fid.write(u'\t\t\t\t\t\t\t')
+
+                # Write values
+                for par in parameter_list:
+
+                    if par == u'Depth':
+                        value = series['DEPH'][i]
+                        qf = u''
+                    elif not series[par].qf:
+                        continue
+                    else:
+                        value = series[par][i]
+                        qf = series[par].qf[i]
+
+                    # Write value
+                    if value:
+                        fid.write(u'%s\t' % value)
+                    else:
+                        fid.write(u'\t')
+
+                    # Write flag
+                    if not value:
+                        fid.write(u'1\t')
+                    elif not qf:
+                        fid.write(u'0\t')
+                    elif qf in flag_as_questionable:
+                        fid.write(u'4\t')
+                    elif qf in flag_as_bad:
+                        fid.write(u'8\t')
+                    else:
+                        fid.write(u'1\t')
+
+                fid.write(u'\n')
+                # ------------------------------------------------------------------
+
+        fid.close()
 
 class CreateODVfilesBaseRow(object):
 
@@ -615,5 +817,9 @@ class ExceptionNotFound(CreateODVException):
     code = ''
     message = ''
 
+
+if __name__ == '__main__':
+    file_path = r'C:\mw\temp_sharktools/OlandsSodraGrund_35063_1978_2004.txt'
+    df = pd.read_csv(file_path, sep='\t')
 
 

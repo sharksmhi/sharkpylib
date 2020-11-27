@@ -641,9 +641,10 @@ class ComboboxWidget(tk.Frame):
         """
         Created     20180821     
         """
-        # print('self.stringvar.get()'.upper(), self.stringvar.get())
         return self.stringvar.get() 
-            
+
+    def get(self):
+        return self.stringvar.get()
     
     #===========================================================================
     def set_value(self, value): 
@@ -653,10 +654,8 @@ class ComboboxWidget(tk.Frame):
         if value in self.items:
             self.stringvar.set(value) 
 
-    # def set_background_color(self, color):
-    #     style = ttk.Style()
-    #     style.map('TCombobox', fieldbackground=[('readonly', color)])
-    #     self.combobox.update_idletasks()
+    def set(self, value):
+        self.set_value(value)
         
     #===========================================================================
     def update_items(self, items=[], default_item=None, default_match=None):
