@@ -9,6 +9,8 @@ import datetime
 import shutil
 from pathlib import Path
 
+from sharkpylib.odv.spreadsheet import SpreadsheetFile
+
 try:
     import numpy as np
     import pandas as pd
@@ -24,7 +26,7 @@ from sharkpylib.gismo.qc.qc_trajectory import FlagAreas
 from sharkpylib.gismo.qc.qc_profile import ProfileQCrangeSimple, ProfileQCreportTXT
 
 
-# This is for Profile DV QC
+# This is for Profile DV QC§
 from ctdpy.core.session import Session
 from ctdpy.core.utils import generate_filepaths, get_reversed_dictionary
 from sharkpylib.qc.qc_default import QCBlueprint
@@ -52,12 +54,14 @@ class PluginFactory(object):
         # Add key and class to dict if you want to activate it
         self.classes = {QCprofileRangeSimple.name: QCprofileRangeSimple,
                         QCprofileReport.name: QCprofileReport,
-                        QCprofileDV.name: QCprofileDV}
+                        QCprofileDV.name: QCprofileDV,
+                        QCfromODVSpreadsheet.name: QCfromODVSpreadsheet}
         # self.classes = {'Mask areas': QCmaskArea}
 
         self.required_arguments = {QCprofileRangeSimple.name: ['parameter_list'],
                                    QCprofileReport.name: ['subroutines', 'save_directory'],
-                                   QCprofileDV.name: []}
+                                   QCprofileDV.name: [],
+                                   QCfromODVSpreadsheet.name:['odv_spreadsheet_file_path']}
 
         # self.required_arguments = {'Mask areas': ['file_path', 'par_to_flag']}
 
@@ -482,6 +486,39 @@ class QCprofileReport(GISMOqc):
     def run_qc(self, gismo_objects, **kwargs):
         gismo_logger.info('Running QCprofileReport')
         return self.qc_object.run_qc(gismo_objects, **kwargs)
+
+
+class QCfromODVSpreadsheet(GISMOqc):
+    name = 'QC from ODV Spreadsheet'
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+        self.options = {'odv_spreadsheet_file_path': 'file path'}
+
+    def get_options(self):
+        return self.options
+
+    def run_qc(self, gismo_objects, **kwargs):
+        qf_prefix = list(set([g.qf_prefix for g in gismo_objects]))
+        qf_suffix = list(set([g.qf_suffix for g in gismo_objects]))
+        if len(qf_prefix) > 1:
+            raise GISMOException('Files have different QF prefix')
+        if len(qf_suffix) > 1:
+            raise GISMOException('Files have different QF suffix')
+        qf_prefix = qf_prefix[0]
+        qf_suffix = qf_suffix[0]
+
+        spreadsheet_file_path = kwargs.get('odv_spreadsheet_file_path')
+        s_object = SpreadsheetFile(spreadsheet_file_path)
+        data = s_object.get_edited_flags(qf_prefix=qf_prefix, qf_suffix=qf_suffix)
+
+        for gismo_object in gismo_objects:
+            for par in data.keys():
+                for qf, keys in data[par].items():
+                    print(qf, par, keys[0][0])
+                    time_list = [item[0] for item in keys]
+                    gismo_object.flag_data(qf, par, time=time_list)
 
 
 if __name__ == '__main__':

@@ -422,6 +422,7 @@ class GISMOdata(object):
 
     def __init__(self, *args, **kwargs):
         self.file_id = ''
+        self.data_type = ''             # profile, timeseries, trajectory etc.
 
         self.parameter_list = []        # Valid data parameters
         self.filter_data_options = []   # Options for data filter (what to return in def get_data)

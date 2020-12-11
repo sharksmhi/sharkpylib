@@ -42,7 +42,7 @@ class PluginFactory(object):
         # Add key and class to dict if you want to activate it
         self.classes = {'Ferrybox CMEMS': CMEMSferrybox,
                         'Fixed platforms CMEMS': CMEMSFixedPlatform,
-                        'PhysicalChemical SHARK': SHARKfilePhysicalChemichal,
+                        'PhysicalChemical SHARK': SHARKfilePhysicalChemical,
                         'DV CTD': DVStandardFormatCTD,
                         'NODC CTD': NODCStandardFormatCTD}
 
@@ -135,6 +135,14 @@ class GISMOfile(GISMOdata):
         self.valid_flags = self.settings.get_flag_list()
 
         self.valid_qc_routines = []
+
+    @property
+    def qf_prefix(self):
+        return self.settings.get_data('parameter_mapping', 'qf_prefix')
+
+    @property
+    def qf_suffix(self):
+        return self.settings.get_data('parameter_mapping', 'qf_suffix')
 
     # ==========================================================================
     def _load_settings_file(self):
@@ -712,7 +720,7 @@ class GISMOfile(GISMOdata):
             return_dict[par] = list(self.df[qf_par])
         return return_dict
 
-    def get_qf_par(self, par):
+    def get_qf_par(self, par, internal_name=False):
         """
         Updated 20181004
         :param par:
@@ -744,6 +752,8 @@ class GISMOfile(GISMOdata):
             if par in ext_par and ext_par.startswith(prefix) and ext_par.endswith(suffix):
                 if ext_par != par:
                     #                     print 'ext_par', ext_par, par, prefix, suffix
+                    if internal_name:
+                        return self.get_internal_parameter_name(ext_par)
                     return ext_par
         return False
 
@@ -829,6 +839,8 @@ class CMEMSferrybox(GISMOfile):
 
         GISMOfile.__init__(self, **kwargs)
 
+        self.data_type = 'trajectory'
+
         self.filter_data_options = self.filter_data_options + ['time', 'time_start', 'time_end']
         self.flag_data_options = self.flag_data_options + ['time', 'time_start', 'time_end']
         self.mask_data_options = self.mask_data_options + []
@@ -874,11 +886,15 @@ class CMEMSFixedPlatform(GISMOfile):
                            depth=depth))
         GISMOfile.__init__(self, **kwargs)
 
+        self.data_type = 'timeseries'
+
         # self.parameter_list = ['time', 'lat', 'lon', 'depth'] + self.qpar_list
 
         self.filter_data_options = self.filter_data_options + ['time', 'time_start', 'time_end']
         self.flag_data_options = self.flag_data_options + ['time', 'time_start', 'time_end']
         self.mask_data_options = self.mask_data_options + []
+
+        self.valid_qc_routines = ['QC from ODV Spreadsheet']
 
     def get_station_name(self, external=False):
         if external:
@@ -908,6 +924,8 @@ class DVStandardFormatCTD(GISMOfile):
                            settings_file_path=settings_file_path,
                            root_directory=root_directory))
         GISMOfile.__init__(self, **kwargs)
+
+        self.data_type = 'profile'
 
         self.filter_data_options = self.filter_data_options + ['depth', 'depth_min', 'depth_max']
         self.flag_data_options = self.flag_data_options + ['depth', 'depth_min', 'depth_max']
@@ -1617,7 +1635,7 @@ class SamplingTypeSettings(object):
                 return key
 
 
-class SHARKfilePhysicalChemichal(GISMOfile):
+class SHARKfilePhysicalChemical(GISMOfile):
     """
     Class to hold data from SHARK (Svenskt HAvsaRKiv).
     """

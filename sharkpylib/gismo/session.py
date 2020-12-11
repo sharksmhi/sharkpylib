@@ -719,4 +719,34 @@ class GISMOsession(object):
         return self.qc_manager.run_automatic_qc(gismo_objects=gismo_objects, qc_routine=qc_routine, **kwargs)
 
 
+if __name__ == '__main__':
+    from sharkpylib.gismo.session import GISMOsession
+    from sharkpylib.gismo import sampling_types
+    from sharkpylib.gismo import qc_routines
+    from sharkpylib.odv.create import SimpleODVfile
+    from sharkpylib.odv.spreadsheet import SpreadsheetFile
+
+    d = r'C:\mw\temp_odv'
+    sampling_types_factory = sampling_types.PluginFactory()
+    qc_routines_factory = qc_routines.PluginFactory()
+    session = GISMOsession(root_directory=d,
+                            users_directory=d,
+                            log_directory=d,
+                            user='temp_user',
+                            sampling_types_factory=sampling_types_factory,
+                            qc_routines_factory=qc_routines_factory,
+                            save_pkl=False)
+    # file_path = r'C:\mw\temp_odv/TransPaper_38003_20120601001612_20120630235947_OK.txt'
+    # session.load_file('Ferrybox CMEMS', file_path, 'cmems_ferrybox')
+    #
+    # g = session.data_manager.objects[session.get_file_id_list()[0]]
+    #
+    # s = SimpleODVfile.from_gismo_object(g)
+    #
+    # s.create_file(r'C:\mw\temp_odv/transpaper_odv.txt')
+    #
+    # file_path = r'C:\mw\temp_odv/data_from_asko_odv(5).txt'
+    #
+    # sp = SpreadsheetFile(file_path)
+    # data = sp.get_edited_flags(qf_prefix='8')
 

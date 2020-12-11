@@ -26,201 +26,284 @@ except:
 
 class SimpleODVfile:
     def __init__(self,
-                 data,
-                 qf_prefix='Q_',
+                 data=None,
+                 qf_prefix='',
+                 qf_suffix='',
+                 parameter_mapping={},
                  **kwargs):
         """
         :param data: pandas dataframe
         """
-        self.data = data
+        self.delimiter = '\t'
+
+        self.meta_header = ['Cruise',
+                            'Station',
+                            'Type',
+                            'yyyy-mm-ddThh:mm:ss.sss',
+                            'Longitude [degrees_east]',
+                            'Latitude [degrees_north]',
+                            'Bot. Depth [m]']
+
+        self.data = dict(encoding='cp1252',  # 'UTF-8',
+                         missing_values=['-9', '-99', '-999'],
+                         software='Python',
+                         version='ODV Spreadsheet',
+                         data_field='Ocean',
+                         # data_type='Profiles',
+                         data_type='TimeSeries',
+                         )
+
+        self.header = []
+
+        self.data.update(data)
+        self.data.update(kwargs)
+        self.data['missing_values_string'] = ' '.join([str(item) for item in self.data.get('missing_values', [])])
+
         self.qf_prefix = qf_prefix
+        self.qf_suffix = qf_suffix
+
+        self.parameter_mapping = parameter_mapping
 
         self.col_type = {}
 
+        self.encoding = self.data.get('encoding', 'UTF-8')
+        self.qf_tag = 'QF'
+
         self._save_column_types()
+        self._add_data()
+
+    @classmethod
+    def from_cmems_ferrybox_file(cls, file_path):
+        df = pd.read_csv(file_path, sep='\t', dtype=str)
+        for col in df.columns:
+            if col.startswith('8') and len(col) == 5:
+                df[col] = df[col].astype(float).astype(int).astype(str)
+
+        data = {}
+        for c, col in enumerate(df.columns):
+            if c == 0:
+                col_list = []
+                for value in df[col]:
+                    col_list.append(datetime.datetime.strptime(value, '%Y%m%d%H%M%S'))
+                data['time'] = col_list
+                # data['time'] = list(df[col].apply(lambda x: datetime.datetime.strptime(x, '%Y%m%d%H%M%S')))
+            elif col == '8002':
+                data['lat'] = list(df[col])
+            elif col == '8003':
+                data['lon'] = list(df[col])
+            else:
+                data[col] = list(df[col])
+
+            data['data_type'] = 'Trajectories'
+
+            cls.data_ferrybox = data
+
+        return cls(data=data,
+                   qf_prefix='8')
+
+    @classmethod
+    def from_cmems_timeseries_file(cls, file_path):
+        df = pd.read_csv(file_path, sep='\t', dtype=str)
+        for col in df.columns:
+            if col.startswith('8') and len(col) == 5:
+                df[col] = df[col].astype(float).astype(int).astype(str)
+
+        data = {}
+        for c, col in enumerate(df.columns):
+            if c == 0:
+                col_list = []
+                for value in df[col]:
+                    col_list.append(datetime.datetime.strptime(value, '%Y%m%d%H%M%S'))
+                data['time'] = col_list
+                # data['time'] = list(df[col].apply(lambda x: datetime.datetime.strptime(x, '%Y%m%d%H%M%S')))
+            elif col == '8002':
+                data['lat'] = list(df[col])
+            elif col == '8003':
+                data['lon'] = list(df[col])
+            else:
+                data[col] = list(df[col])
+
+            data['data_type'] = 'TimeSeries'
+
+            cls.data_ferrybox = data
+
+        data['station'] = [str(item) for item in range(len(data['time']))]
+
+        return cls(data=data,
+                   qf_prefix='8')
+
+    @classmethod
+    def from_gismo_object(cls, gismo_object):
+        all_par_list = gismo_object.get_parameter_list()
+        par_list = []
+        qf_prefix = gismo_object.settings.get_data('parameter_mapping', 'qf_prefix')
+        qf_suffix = gismo_object.settings.get_data('parameter_mapping', 'qf_suffix')
+        for par in all_par_list:
+            qpar = gismo_object.get_qf_par(par, internal_name=True)
+            if qpar:
+                par_list.append(par)
+                par_list.append(qpar)
+            else:
+                par_list.append(par)
+
+        data = {}
+        par_mapping = {}
+        for par in par_list:
+            ext_par = gismo_object.get_external_parameter_name(par)
+            d = list(gismo_object.df[ext_par])
+            # try:
+            #     d = [str(value) for value in gismo_object.get_data(par)]
+            # except:
+            #     ext_par = gismo_object.get_external_parameter_name(par)
+            #     d = [str(value) for value in gismo_object.df[ext_par]]
+
+            # if par == 'time':
+            #     d = [datetime.datetime.strftime(dd, '%Y-%m-%d %H:%M:%S') for dd in d]
+            data[ext_par] = d
+            par_mapping[ext_par] = par
+
+        # Add data type
+        if gismo_object.data_type == 'profile':
+            data['data_type'] = 'Profiles'
+        elif gismo_object.data_type == 'timeseries':
+            data['data_type'] = 'TimeSeries'
+        elif gismo_object.data_type == 'trajectory':
+            data['data_type'] = 'Trajectories'
+
+        return cls(data=data,
+                   qf_prefix=qf_prefix,
+                   qf_suffix=qf_suffix,
+                   parameter_mapping=par_mapping)
+
+    def create_file(self, file_path):
+        all_lines = []
+        all_lines.extend(self._get_semantic_header_rows())
+        all_lines.append(self._get_header_row(mapped=True))
+        all_lines.extend(self._get_data_rows())
+        with codecs.open(file_path, 'w', encoding=self.encoding) as fid:
+            fid.write('\n'.join(all_lines))
 
     def _save_column_types(self):
         self.col_type = {}
-        columns = list(self.data.columns)
-        for col in columns:
-            pot_qf_col = col.lstrip(self.qf_prefix)
-            if col != pot_qf_col:
-                self.col_type[col] = 'par'
-                self.col_type[pot_qf_col] = 'qf'
+        for col in self.data.keys():
+            val_col = None
+            if self.qf_prefix and col.startswith(self.qf_prefix):
+                val_col = self.qf_lstrip(col)
+            elif self.qf_suffix and col.endswith(self.qf_suffix):
+                val_col = self.qf_rstrip(col)
+            if val_col != col:
+                self.col_type[val_col] = 'par'
+                self.col_type[col] = 'qf'
 
-    def _get_semantic_header_rows(self, **kwargs):
+    def qf_lstrip(self, value):
+        if self.qf_prefix and value.startswith(self.qf_prefix):
+            return value[len(self.qf_prefix):]
+
+    def qf_rstrip(self, value):
+        if self.qf_suffix and value.endswith(self.qf_suffix):
+            return value[:-len(self.qf_suffix)]
+
+    def _add_data(self):
+        """
+        Adds data to self.data
+        :return:
+        """
+
+        self.data['yyyy-mm-ddThh:mm:ss.sss'] = []
+        self.data['Longitude [degrees_east]'] = []
+        self.data['Latitude [degrees_north]'] = []
+        self.data['Bot. Depth [m]'] = []
+
+        for index in range(len(self.data['time'])):
+            if type(self.data['time']) == list:
+                self.data['yyyy-mm-ddThh:mm:ss.sss'].append(self.data['time'][index].strftime('%Y-%m-%dT%H:%M:%S'))
+            else:
+                self.data['yyyy-mm-ddThh:mm:ss.sss'].append(self.data['time'].strftime('%Y-%m-%dT%H:%M:%S'))
+            if type(self.data['lon']) == list:
+                self.data['Longitude [degrees_east]'].append(self.data['lon'][index])
+            else:
+                self.data['Longitude [degrees_east]'].append(self.data['lon'])
+            if type(self.data['lat']) == list:
+                self.data['Latitude [degrees_north]'].append(self.data['lat'][index])
+            else:
+                self.data['Latitude [degrees_north]'].append(self.data['lat'])
+            if type(self.data.get('bot_depth', '')) == list:
+                self.data['Bot. Depth [m]'].append(self.data['bot_depth'][index])
+            else:
+                self.data['Bot. Depth [m]'].append(self.data.get('bot_depth', ''))
+
+        self.data['time_ISO8601'] = self.data['yyyy-mm-ddThh:mm:ss.sss']
+
+    def _get_semantic_header_rows(self):
         rows = [
             '//',
-            f'//<Creator>{kwargs.get("creator", "Unknown")}</Creator>'
-            f'//<CreateTime>{kwargs.get("created", "Unknown")}</CreateTime>',
-            f'//<Encoding>{kwargs.get("encoding", "Unknown")}</Encoding>',
-            f'//<MissingValueIndicators>{kwargs.get("missing_values", "Unknown")}</MissingValueIndicators>',
-            f'//<Software>{kwargs.get("software", "Unknown")}</Software>',
-            f'//<Source>{kwargs.get("source", "Unknown")}</Source>',
-            f'//<SourceLastModified>{kwargs.get("last_mod", "Unknown")}</SourceLastModified>',
-            f'//<Version>{kwargs.get("version", "Unknown")}</Version>',
+            f'//<Creator>{self.data.get("creator", "Unknown")}</Creator>'
+            f'//<CreateTime>{self.data.get("created", "Unknown")}</CreateTime>',
+            f'//<Encoding>{self.encoding}</Encoding>',
+            f'//<MissingValueIndicators>{self.data.get("missing_values_string", "Unknown")}</MissingValueIndicators>',
+            f'//<Software>{self.data.get("software", "Unknown")}</Software>',
+            f'//<Source>{self.data.get("source", "Unknown")}</Source>',
+            f'//<SourceLastModified>{self.data.get("last_mod", "Unknown")}</SourceLastModified>',
+            f'//<Version>{self.data.get("version", "Unknown")}</Version>',
 
             # Data information
-            f'//<DataField>{kwargs.get("data_field", "Unknown")}</DataField>',
-            f'//<DataType>{kwargs.get("data_type", "Unknown")}</DataType>',
+            f'//<DataField>{self.data.get("data_field", "Unknown")}</DataField>',
+            f'//<DataType>{self.data.get("data_type", "Unknown")}</DataType>',
             '//'
         ]
         return rows
 
-    def _get_header_row(self):
-        header = ['Cruise',
-                  'Station',
-                  'Type',
-                  'yyyy-mm-ddThh:mm:ss.sss',
-                  'Longitude [degrees_east]',
-                  'Latitude [degrees_north]',
-                  'Bot. Depth [m]']
-        for
+    def _get_header_row(self, as_list=False, mapped=False):
+        if not self.header:
+            self.header = self.meta_header[:]
+            self.header.append('time_ISO8601')
+            self.header.append(self.qf_tag)
+            for col in self.data.keys():
+                if self.col_type.get(col) == 'par':
+                    self.header.append(col)
+                    self.header.append(self.qf_tag)
 
+        if mapped:
+            header = [self.parameter_mapping.get(par, par) for par in self.header]
+        else:
+            header = self.header
+        if as_list:
+            return header
+        return self.delimiter.join(header)
 
-    def create_odv_file(self,
-                        series,
-                        series_list=False,
-                        Creator=None,
-                        Created=None,
-                        Source=None,
-                        LastMod=None,
-                        file_path=False,
-                        Encoding='cp1252',  # 'UTF-8',
-                        MissingValues='-9 -99 -999',
-                        Software='Python',
-                        Version='ODV Spreadsheet',
-                        DataField='Ocean',
-                        DataType='Profiles'):
-        """
-        Creates odv file.
-        """
+    def _get_data_rows(self):
+        data_rows = []
+        for i in range(len(self.data['time_ISO8601'])):
+            data_rows.append(self._get_data_row_string(i))
+        return data_rows
 
-        flag_as_questionable = ['?', 'S']
-        flag_as_bad = ['B']
-        # Check series
-        if type(series) == dict:
-            if not series_list:
-                series_list = sorted(series.keys())
-
-            current_series = []
-            for key in series_list:
-                try:
-                    current_series.append(series[key])
-                except:
-                    pass
-        elif type(series) != list:
-            current_series = [series]
-
-        # Check file path
-        if not file_path:
-            return
-        elif not file_path.endswith('.txt'):
-            file_path = file_path + '.txt'
-
-        # Mandatory header
-        header = ['Cruise', 'Station', 'Type', 'yyyy-mm-ddThh:mm:ss.sss', \
-                  'Longitude [degrees_east]', 'Latitude [degrees_north]', 'Bot. Depth [m]']
-
-        par_list = current_series[0].data_list
-        par_list.pop(par_list.index('DEPH'))
-        parameter_list = ['Depth'] + par_list
-        for par in parameter_list:
-            header.append(par)
-            header.append('QF')
-        #         header.append('QV:ODV:' + par)
-
-        # ==========================================================================
-        # Open file and write "information" and header
-        #         fid = codecs.open(file_path,'w', encoding='cp1252')
-        fid = codecs.open(file_path, 'w', encoding=Encoding)
-
-        # --------------------------------------------------------------------------
-        # File information
-        fid.write(u'//\n')
-        fid.write(u'//<Creator>%s</Creator>\n' % Creator)
-        fid.write(u'//<CreateTime>%s</CreateTime>\n' % Created)
-        fid.write(u'//<Encoding>%s</Encoding>\n' % Encoding)
-        fid.write(u'//<MissingValueIndicators>%s</MissingValueIndicators>\n' % MissingValues)
-        fid.write(u'//<Software>%s</Software>\n' % Software)
-        fid.write(u'//<Source>%s</Source>\n' % Source)
-        fid.write(u'//<SourceLastModified>%s</SourceLastModified>\n' % LastMod)
-        fid.write(u'//<Version>%s</Version>\n' % Version)
-
-        # Data information
-        fid.write(u'//<DataField>%s</DataField>\n' % DataField)
-        fid.write(u'//<DataType>%s</DataType>\n' % DataType)
-        fid.write(u'//\n')
-
-        # Header
-        header_str = u'\t'.join(header) + u'\n'
-        fid.write(header_str)
-        # --------------------------------------------------------------------------
-        # Add information to ODV-file
-        for series in current_series:
-            for i, value in enumerate(series['DEPH']):
-                # Adding meta information
-                if i == 0:
-
-                    # --------------------------------------------------------------
-                    # Get position
-                    lat, lon = series.get_position()
-
-                    # --------------------------------------------------------------
-                    # Writing first row of data
-                    fid.write(u'%s\t' % series.shipc)  # stnr_dict[nr]['SHIPC'][row])
-                    fid.write(u'%s (%s)\t' % (
-                    series.statn, series.serno))  # (stnr_dict[nr]['STATN'][row], stnr_dict[nr]['STNNO'][row]))
-                    fid.write(u'%s\t' % u'Type')
-                    try:
-                        if series.stime:
-                            fid.write(series.time.strftime('%Y-%m-%dT%H:%M\t'))
-                        else:
-                            fid.write(series.time.strftime('%Y-%m-%dT\t'))
-                    except:
-                        fid.write(u'%sT\t' % series.sdate)
-                    fid.write(u'%s\t' % lon)
-                    fid.write(u'%s\t' % lat)
-                    fid.write(u'%s\t' % series.wadep)  # stnr_dict[nr]['WADEP'][row])
-
-                # Tab if not first row
+    def _get_data_row_string(self, index):
+        data_row_list = []
+        for col in self._get_header_row(as_list=True):
+            if col == self.qf_tag:
+                continue
+            if col in ['Cruise', 'Station', 'Type']:
+                lower_col = col.lower()
+                if col == 'Type':
+                    default = 'B'
                 else:
-                    fid.write(u'\t\t\t\t\t\t\t')
+                    default = f'{col}_{index}'
+                value = self.data.get(lower_col, default)
+                if type(value) != str:
+                    value = self.data[lower_col][index]
+            else:
+                value = self.data[col][index]
 
-                # Write values
-                for par in parameter_list:
+            data_row_list.append(value)
 
-                    if par == u'Depth':
-                        value = series['DEPH'][i]
-                        qf = u''
-                    elif not series[par].qf:
-                        continue
-                    else:
-                        value = series[par][i]
-                        qf = series[par].qf[i]
+            if col == 'time_ISO8601':
+                data_row_list.append('1')
+            elif self.col_type.get(col) == 'par':
+                qf_par = self.qf_prefix + col + self.qf_suffix
+                data_row_list.append(str(int(self.data[qf_par][index])))
 
-                    # Write value
-                    if value:
-                        fid.write(u'%s\t' % value)
-                    else:
-                        fid.write(u'\t')
+        return self.delimiter.join(data_row_list)
 
-                    # Write flag
-                    if not value:
-                        fid.write(u'1\t')
-                    elif not qf:
-                        fid.write(u'0\t')
-                    elif qf in flag_as_questionable:
-                        fid.write(u'4\t')
-                    elif qf in flag_as_bad:
-                        fid.write(u'8\t')
-                    else:
-                        fid.write(u'1\t')
-
-                fid.write(u'\n')
-                # ------------------------------------------------------------------
-
-        fid.close()
 
 class CreateODVfilesBaseRow(object):
 
@@ -819,7 +902,43 @@ class ExceptionNotFound(CreateODVException):
 
 
 if __name__ == '__main__':
-    file_path = r'C:\mw\temp_sharktools/OlandsSodraGrund_35063_1978_2004.txt'
-    df = pd.read_csv(file_path, sep='\t')
+    if 1:
+        from sharkpylib.gismo.session import GISMOsession
+        from sharkpylib.gismo import sampling_types
+        from sharkpylib.gismo import qc_routines
+
+        d = r'C:\mw\temp_odv'
+        sampling_types_factory = sampling_types.PluginFactory()
+        qc_routines_factory = qc_routines.PluginFactory()
+        session = GISMOsession(root_directory=d,
+                                users_directory=d,
+                                log_directory=d,
+                                user='temp_user',
+                                sampling_types_factory=sampling_types_factory,
+                                qc_routines_factory=qc_routines_factory,
+                                save_pkl=False)
+        file_path = r'C:\mw\temp_odv/Asko_33022_201405220900_201411121000_OK.txt'
+        session.load_file('Ferrybox CMEMS', file_path, 'cmems_ferrybox')
+
+        g = session.data_manager.objects[session.get_file_id_list()[0]]
+
+        s = SimpleODVfile.from_gismo_object(g)
+
+        s.create_file(r'C:\mw\temp_odv/asko_gismo_odv.txt')
+
+    if 0:
+        # file_path = r'C:\mw\temp_odv/TransPaper_38003_20120601001612_20120630235947_OK.txt'
+        file_path = r'C:\mw\temp_odv/Asko_33022_201405220900_201411121000_OK.txt'
+        # df = pd.read_csv(file_path, sep='\t', dtype=str)
+        # for col in df.columns:
+        #     if col.startswith('8') and len(col) == 5:
+        #         df[col] = df[col].astype(float).astype(int).astype(str)
+        #
+        # df['38003'].head().apply(lambda x: datetime.datetime.strptime(x, '%Y%m%d%H%M%S'))
+
+        s = SimpleODVfile.from_cmems_timeseries_file(file_path)
+        # s.create_file(r'C:\mw\temp_odv/transpaper_odv.txt')
+        s.create_file(r'C:\mw\temp_odv/asko_odv.txt')
+
 
 

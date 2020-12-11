@@ -22,7 +22,8 @@ except:
 
 odv_directory_path = os.path.dirname(os.path.abspath(__file__))
 
-from .. import mappinglib as mapping
+# from .. import mappinglib as mapping
+from sharkpylib import mappinglib as mapping
 
 
 
@@ -37,10 +38,114 @@ class SpreadsheetFile():
     """
     
     #==========================================================================
-    def __init__(self, file_path=None): 
-        
+    def __init__(self, file_path=None):
         self.file_path = file_path
-         
+
+    def get_edited_flags(self, qf_prefix='QF_', qf_suffix=''):
+        def is_header_row(row):
+            if row.startswith('Cruise\t'):
+                return True
+            return False
+
+        def is_data_row(row):
+            if any([is_header_row(row), is_comment_row(row)]):
+                return False
+            return True
+
+        def row_has_metadata(row):
+            if not is_data_row(row):
+                return False
+            if row.startswith('\t'):
+                return False
+            return True
+
+        def is_comment_row(row):
+            if row.startswith('//'):
+                return True
+            return False
+
+        def is_flag_row(row):
+            if 'EDITFLAGS' in row:
+                return True
+            return False
+
+        def get_key(cdata):
+            time_object = datetime.datetime.strptime(cdata[time_par], time_format)
+            if data_type == 'Profiles':
+                return (time_object, cdata[header[7]])
+            else:
+                return (time_object, time_object)
+
+        time_format = '%Y-%m-%dT%H:%M:%S'
+        time_par = 'yyyy-mm-ddThh:mm:ss.sss'
+
+        data = {}
+        with codecs.open(self.file_path) as fid:
+            header = None
+            metadata = None
+            line_data = None
+            current_data = {}
+            key = None
+            data_type = ''
+            for i, line in enumerate(fid):
+                if '<DataType>' in line:
+                    data_type = line.split('<')[1].split('>')[1]
+                    continue
+                split_line = [item.strip() for item in line.split('\t')]
+                if is_header_row(line):
+                    header = split_line
+                    continue
+                if row_has_metadata(line):
+                    metadata = split_line[:7]
+
+                if is_data_row(line):
+                    line_data = metadata + split_line[7:]
+
+                if is_comment_row(line):
+                    metadata = None
+                    line_data = None
+
+                if line_data:
+                    current_data = {}
+                    h0 = ''
+                    for h, d in zip(header, line_data):
+                        h1 = h
+                        # if h == 'QF':
+                        #     h1 = qf_prefix + h0 + qf_suffix
+                        # else:
+                        #     h0 = h
+                        current_data[h1] = d
+
+                    # current_data = dict(zip(header, line_data))
+                    # key = ';'.join([current_data['yyyy-mm-ddThh:mm:ss.sss'],
+                    #                 current_data['Longitude [degrees_east]'],
+                    #                 current_data['Latitude [degrees_north]'],
+                    #                 current_data[header[7]]])
+                    key = get_key(current_data)
+                    data.setdefault(key, {})
+                    for col, value in current_data.items():
+                        data[key][col] = value
+
+                if is_flag_row(line):
+                    data[key].setdefault('flags', {})
+                    all_info = line.split('\t')[3]
+                    par = all_info.split('@')[0].strip()
+                    flag = all_info.split('->')[-1].split('<')[0].strip()
+                    data[key]['flags'][par] = flag
+
+        for key in list(data.keys()):
+            if not data[key].get('flags'):
+                data.pop(key)
+
+        fdata = {}
+        for key, value in data.items():
+            d = key[0]
+            for par, f in value['flags'].items():
+                fdata.setdefault(par, {})
+                fdata[par].setdefault(f, [])
+                fdata[par][f].append(key)
+
+        return fdata
 
     #==========================================================================
     def set_negative_value_to_zero(self, output_file_path):
@@ -646,5 +751,14 @@ def get_datetime_object(time_string):
             pass
     print(time_string, )
     raise ValueError
+
+
+
+if __name__ == '__main__':
+
+    file_path = r'C:\mw\temp_odv/data_from_asko_odv(5).txt'
+
+    sp = SpreadsheetFile(file_path)
+    data = sp.get_edited_flags(qf_prefix='8')
 
             

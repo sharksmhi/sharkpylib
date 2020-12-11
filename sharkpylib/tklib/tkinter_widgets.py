@@ -3,6 +3,10 @@
 import re
 import datetime
 
+import tkinter as tk
+from tkinter import ttk
+from tkinter import font
+
 try:
     import tkinter as tk
     from tkinter import ttk
@@ -3912,6 +3916,82 @@ class DirectoryWidget(tk.Frame):
 
     def set_value(self, directory):
         self.set_directory(directory)
+
+
+class FilePathWidget(tk.Frame):
+
+    def __init__(self,
+                 parent,
+                 prop_frame={},
+                 prop_entry={},
+                 default_directory='',
+                 callback=None,
+                 **kwargs):
+        self.prop_frame = {}
+        self.prop_frame.update(prop_frame)
+
+        self.prop_entry = {'width': 50}
+        self.prop_entry.update(prop_entry)
+
+        self.grid_frame = {'padx': 5,
+                           'pady': 5,
+                           'sticky': 'nsew'}
+        self.grid_frame.update(kwargs)
+
+        tk.Frame.__init__(self, parent, **self.prop_frame)
+        self.grid(**self.grid_frame)
+
+        self.callback = callback
+        self.default_directory = default_directory
+
+        self._set_frame()
+
+
+    # ===========================================================================
+    def _set_frame(self):
+        padx = 5
+        pady = 5
+
+        frame = tk.Frame(self)
+        frame.grid(row=0, column=0, padx=padx, pady=pady, sticky='w')
+        grid_configure(self)
+
+        r = 0
+        c = 0
+
+        # tk.Label(frame, text='Directory:').grid(row=r, column=c, padx=padx, pady=pady, sticky='nw')
+        self.stringvar_path = tk.StringVar()
+        self.entry_path = tk.Entry(frame, textvariable=self.stringvar_path, **self.prop_entry)
+        self.entry_path.grid(row=0, column=0, columnspan=2, padx=padx, pady=pady, sticky='nw')
+        self.stringvar_path.trace("w",
+                                       lambda name, index, mode, sv=self.stringvar_path: check_path_entry(sv))
+
+        ttk.Button(frame, text='Get file', command=self._get_file_path).grid(row=1,
+                                                                                  column=0,
+                                                                                  padx=padx,
+                                                                                  pady=pady, sticky='se')
+
+        grid_configure(frame, nr_rows=2, nr_columns=2)
+
+    def _get_file_path(self):
+        from tkinter import filedialog
+        path = filedialog.askopenfilename()
+        if path:
+            self.set_path(path)
+
+    def get_path(self):
+        return self.stringvar_path.get()
+
+    def set_path(self, path, call_target=True):
+        self.stringvar_path.set(path)
+        if self.callback and call_target:
+            self.callback()
+
+    def get_value(self):
+        return self.stringvar_path.get()
+
+    def set_value(self, directory):
+        self.set_path(directory)
 
 
 class DirectoryWidgetLabelframe(ttk.LabelFrame):
