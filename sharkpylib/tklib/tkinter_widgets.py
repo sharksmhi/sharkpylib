@@ -639,6 +639,9 @@ class ComboboxWidget(tk.Frame):
     def add_target(self, target):
         self.callback_targets.append(target)
         
+    @property
+    def values(self):
+        return self.combobox['values']
         
     #===========================================================================
     def get_value(self): 
