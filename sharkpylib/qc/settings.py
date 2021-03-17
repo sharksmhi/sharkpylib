@@ -6,6 +6,7 @@ Created on 2020-02-26 10:20
 
 """
 import os
+import json
 from sharkpylib.file.yaml_reader import YAMLreader
 from sharkpylib.utils import git_version
 
@@ -78,6 +79,9 @@ class Settings:
         paths = self.generate_filepaths(etc_path, pattern='.yaml')
         settings = YAMLreader().load_yaml(paths, file_names_as_key=True, return_config=True)
         self.set_attributes(self, **settings)
+        with open(os.path.join(etc_path, 'parameter_dependencies.json'), 'r') as f:
+            f = json.load(f)
+        self.set_attributes(self, parameter_dependencies=f)
 
     def set_attributes(self, obj, **kwargs):
         """
@@ -126,3 +130,7 @@ class Settings:
     @property
     def number_of_routines(self):
         return len(self.qc_routines)
+
+
+if __name__ == "__main__":
+    s = Settings()
