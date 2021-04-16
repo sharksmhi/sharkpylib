@@ -1,6 +1,6 @@
 functions:
     qc_range:
-        description: Check if values lies within given ranges
+        description: Check if values lies within a given range
         name: qc_range
         qc_index: 0
         function: !!python/name:sharkpylib.qc.functions.range.Range ''

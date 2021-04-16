@@ -9,11 +9,13 @@
     ],
     "TEMP_CTD": [
         "TEMP_CTD",
-        "DENS_CTD"
+        "DENS_CTD",
+        "DOXY_SAT_CTD"
     ],
     "TEMP2_CTD": [
         "TEMP2_CTD",
-        "DENS2_CTD"
+        "DENS2_CTD",
+        "DOXY2_SAT_CTD"
     ],
     "SALT_CTD": [
         "SALT_CTD",
@@ -42,10 +44,18 @@
         "DENS2_CTD"
     ],
     "DOXY_CTD": [
-        "DOXY_CTD"
+        "DOXY_CTD",
+        "DOXY_SAT_CTD"
     ],
     "DOXY2_CTD": [
-        "DOXY2_CTD"
+        "DOXY2_CTD",
+        "DOXY2_SAT_CTD"
+    ],
+    "DOXY_SAT_CTD": [
+        "DOXY_SAT_CTD"
+    ],
+    "DOXY2_SAT_CTD": [
+        "DOXY2_SAT_CTD"
     ],
     "PAR_CTD": [
         "PAR_CTD"
@@ -58,5 +68,8 @@
     ],
     "TURB_CTD": [
         "TURB_CTD"
+    ],
+    "SVEL_CTD": [
+        "SVEL_CTD"
     ]
 }
