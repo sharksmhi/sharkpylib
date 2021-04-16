@@ -153,13 +153,13 @@ class QCBlueprint:
         for flag_key in q_flag_keys:
             if flag_key not in self.df:
                 continue
-
+            qf_list = AA000
             for qf_list, qf in zip(self.df[flag_key], flag_field):
                 if qf_list[qc_index] == '0' or qf_list[qc_index] == 'A':
                     qf_list[qc_index] = qf
                 elif qf_list[qc_index] == 'S' and qf == 'B':
                     qf_list[qc_index] = qf
-                elif qf == 'S':
+                elif qf == 'S': # qf_list[qc_index] != 'B'
                     qf_list[qc_index] = qf
 
     def set_qc0_standard_format(self, key=None):
