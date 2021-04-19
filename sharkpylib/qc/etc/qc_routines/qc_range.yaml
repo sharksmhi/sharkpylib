@@ -57,10 +57,10 @@ datasets:
     'DENS_CTD':
         parameter: 'DENS_CTD'
         q_parameters: ['Q0_DENS_CTD']
-        min_range_value: -10
-        max_range_value: 36
-#        min_range_value: 990
-#        max_range_value: 1036
+#        min_range_value: -10
+#        max_range_value: 36
+        min_range_value: 990
+        max_range_value: 1036
         function: qc_range
     'DENS2_CTD':
         parameter: 'DENS2_CTD'
