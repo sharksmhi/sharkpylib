@@ -159,7 +159,7 @@ class QCBlueprint:
                     qf_list[qc_index] = qf
                 elif qf_list[qc_index] == 'S' and qf == 'B':
                     qf_list[qc_index] = qf
-                elif qf == 'S':
+                elif qf == 'S': # qf_list[qc_index] != 'B'
                     qf_list[qc_index] = qf
 
     def set_qc0_standard_format(self, key=None):

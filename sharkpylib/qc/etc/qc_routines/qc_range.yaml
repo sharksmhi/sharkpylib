@@ -1,6 +1,6 @@
 functions:
     qc_range:
-        description: Check if values lies within given ranges
+        description: Check if values lies within a given range
         name: qc_range
         qc_index: 0
         function: !!python/name:sharkpylib.qc.functions.range.Range ''
@@ -57,10 +57,10 @@ datasets:
     'DENS_CTD':
         parameter: 'DENS_CTD'
         q_parameters: ['Q0_DENS_CTD']
-        min_range_value: -10
-        max_range_value: 36
-#        min_range_value: 990
-#        max_range_value: 1036
+#        min_range_value: -10
+#        max_range_value: 36
+        min_range_value: 990
+        max_range_value: 1036
         function: qc_range
     'DENS2_CTD':
         parameter: 'DENS2_CTD'

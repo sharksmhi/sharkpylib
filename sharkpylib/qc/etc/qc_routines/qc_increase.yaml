@@ -17,11 +17,13 @@ datasets:
         acceptable_error: 0
         function: qc_increase
     'CNDC_CTD':
+        comnt: May decrease, but most commonly this parameter should increase with depth
         parameter: 'CNDC_CTD'
         q_parameters: ['Q0_CNDC_CTD', 'Q0_SALT_CTD']
         acceptable_error: 0.1
         function: qc_increase
     'CNDC2_CTD':
+        comnt: May decrease, but most commonly this parameter should increase with depth
         parameter: 'CNDC2_CTD'
         q_parameters: ['Q0_CNDC2_CTD', 'Q0_SALT2_CTD']
         acceptable_error: 0.1
