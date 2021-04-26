@@ -2433,7 +2433,8 @@ class NotebookWidget(ttk.Notebook):
     def __init__(self, 
                  parent, 
                  frames=[], 
-                 notebook_prop={}, 
+                 notebook_prop={},
+                 place=(),
                  **kwargs):
         
         self.frame_list = frames
@@ -2446,7 +2447,10 @@ class NotebookWidget(ttk.Notebook):
         self.grid_notebook.update(kwargs)
         
         ttk.Notebook.__init__(self, parent, **self.notebook_prop)
-        self.grid(**self.grid_notebook)
+        if place:
+            self.place(relx=place[0], rely=place[1], anchor=tk.CENTER)
+        else:
+            self.grid(**self.grid_notebook)
         
         self.frame_dict = {}
         self._set_frame()
