@@ -1,0 +1,125 @@
+class tkinter_widgets.CalendarWidget #74870F {}
+
+class tkinter_widgets.CheckbuttonWidgetSingle #74870F {}
+
+class tkinter_widgets.CheckbuttonWidget #74870F {}
+
+class tkinter_widgets.ComboboxWidget #74870F {}
+
+class tkinter_widgets.DDListbox #74870F {}
+
+class tkinter_widgets.EntryWidget #74870F {}
+
+class tkinter_widgets.EntryGridWidget #74870F {}
+
+class tkinter_widgets.HoverWindow #74870F {}
+
+class tkinter_widgets.LabelFrameLabel #74870F {}
+
+class tkinter_widgets.ListboxWidget #74870F {}
+
+class tkinter_widgets.ListboxSelectionWidget #74870F {}
+
+class tkinter_widgets.ListboxSelectionWidgetMultiple #74870F {}
+
+class tkinter_widgets.NotebookWidget #74870F {}
+
+class tkinter_widgets.PlotFrame #74870F {}
+
+class tkinter_widgets.LogWidget #74870F {}
+
+class tkinter_widgets.MapFrame #74870F {}
+
+class tkinter_widgets.ProgressbarWidget #74870F {}
+
+class tkinter_widgets.RadiobuttonWidget #74870F {}
+
+class tkinter_widgets.SelectionWidgets #74870F {}
+
+class tkinter_widgets.TextScrollbarWidget #74870F {}
+
+class tkinter_widgets.TimeWidgetSeason #74870F {}
+
+class tkinter_widgets.TimeWidgetMonthSelector #74870F {}
+
+class tkinter_widgets.TimeWidget #74870F {}
+
+class tkinter_widgets.FlagWidget #74870F {}
+
+class tkinter_widgets.Selection #74870F {}
+
+class tkinter_widgets.DirectoryWidget #74870F {}
+
+class tkinter_widgets.FilePathWidget #74870F {}
+
+class tkinter_widgets.DirectoryWidgetLabelframe #74870F {}
+
+class tkinter_widgets.WrappedLabel #74870F {}
+
+class tkinter_widgets.TableWidget #74870F {}
+
+class tkinter_widgets.TreeviewWidget #74870F {}
+
+class tkinter_widgets.MenuWidget #74870F {}
+
+class tkinter_widgets.Fonts #74870F {}
+
+class tkinter_widgets.TestApp #74870F {}
+
+class tkmap.TkMap #ADEB88 {}
+
+class tkmap.MapSize #ADEB88 {}
+
+class tkmap.MovableText #ADEB88 {}
+
+
+
+
+
+
+
+
+
+tkinter_widgets.HoverWindow <|-- object
+
+
+
+
+
+
+
+tkinter_widgets.LogWidget <|-- object
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+tkinter_widgets.MenuWidget <|-- object
+
+
+tkmap.TkMap <|-- object
+
+tkmap.MovableText <|-- object
+
+tkinter_widgets.ListboxSelectionWidget o-- tkinter_widgets.Selection
+
+tkinter_widgets.TestApp o-- tkinter_widgets.NotebookWidget
+tkinter_widgets.TestApp o-- tkinter_widgets.TreeviewWidget
+tkinter_widgets.TestApp o-- tkinter_widgets.TimeWidget
+tkinter_widgets.TestApp o-- tkinter_widgets.TimeWidget
+tkinter_widgets.TestApp o-- tkinter_widgets.EntryWidget
+tkinter_widgets.TestApp o-- tkinter_widgets.TestApp
+
+tkmap.TkMap o-- tkmap.TkMap
+tkmap.TkMap o-- tkmap.MovableText

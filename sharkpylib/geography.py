@@ -208,3 +208,8 @@ def transform(in_proj = 'EPSG:3011',out_proj = 'EPSG:4326', lat=0.0, lon=0.0):
         x, y = pyproj.transform(i_proj, o_proj, float(lon), float(lat))
     
     return y, x
+
+
+if __name__ == '__main__':
+    pos = 55.3828
+    print(decdeg_to_decmin(pos))

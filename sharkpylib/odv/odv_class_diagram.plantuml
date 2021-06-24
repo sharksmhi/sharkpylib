@@ -1,0 +1,99 @@
+class analysislog.AnalysisLogFile #0D14AC {}
+
+class create.SimpleODVfile #C65544 {}
+
+class create.CreateODVfilesBaseRow #C65544 {}
+
+class create.CreateODVfilesBiotaEEA #C65544 {}
+
+class create.CreateODVfileRow #C65544 {}
+
+class create.CreateODVfileTimeseriesRow #C65544 {}
+
+class create.CreateODVException #C65544 {}
+
+class create.ExceptionUnmappedValue #C65544 {}
+
+class create.ExceptionNotImplemented #C65544 {}
+
+class create.ExceptionNotFound #C65544 {}
+
+class ekdata.DataFile #F4979B {}
+
+class history.HistoryFlagFile #DF2B70 {}
+
+class history.StationClass #DF2B70 {}
+
+class history.HistoryLine #DF2B70 {}
+
+class history.HistoryFile #DF2B70 {}
+
+class modify.ModifyLog #2D5569 {}
+
+class modify.ModifyODVfile_old #2D5569 {}
+
+class modify.ModifyODVfile #2D5569 {}
+
+class odvfile.ODVdirectory #E704E8 {}
+
+class odvfile.ODVfile #E704E8 {}
+
+class spreadsheet.SpreadsheetFile #8198A2 {}
+
+class spreadsheet.SpreadsheetFileColumns #8198A2 {}
+
+
+analysislog.AnalysisLogFile <|-- dict
+
+create.CreateODVfilesBaseRow <|-- object
+
+create.CreateODVfilesBiotaEEA <|-- create.CreateODVfilesBaseRow
+
+create.CreateODVfileRow <|-- object
+
+create.CreateODVfileTimeseriesRow <|-- create.CreateODVfileRow
+
+create.CreateODVException <|-- Exception
+
+create.ExceptionUnmappedValue <|-- create.CreateODVException
+
+create.ExceptionNotImplemented <|-- create.CreateODVException
+
+create.ExceptionNotFound <|-- create.CreateODVException
+
+ekdata.DataFile <|-- object
+
+history.HistoryFlagFile <|-- object
+
+history.StationClass <|-- object
+
+history.HistoryLine <|-- object
+
+history.HistoryFile <|-- object
+
+modify.ModifyLog <|-- object
+
+modify.ModifyODVfile_old <|-- object
+
+modify.ModifyODVfile <|-- object
+
+odvfile.ODVdirectory <|-- object
+
+odvfile.ODVfile <|-- object
+
+create.CreateODVfilesBaseRow o-- create.ExceptionNotFound
+create.CreateODVfilesBaseRow o-- create.CreateODVfileTimeseriesRow
+create.CreateODVfilesBaseRow o-- create.ExceptionNotImplemented
+create.CreateODVfilesBaseRow o-- odvfile.ODVfile
+
+create.CreateODVfileTimeseriesRow o-- create.CreateODVfileRow
+create.CreateODVfileTimeseriesRow o-- odvfile.ODVfile
+
+modify.ModifyODVfile o-- modify.ModifyLog
+modify.ModifyODVfile o-- odvfile.ODVfile
+
+odvfile.ODVdirectory o-- odvfile.ODVfile
+odvfile.ODVdirectory o-- odvfile.ODVfile
+
+spreadsheet.SpreadsheetFileColumns o-- spreadsheet.SpreadsheetFile
+spreadsheet.SpreadsheetFileColumns o-- spreadsheet.SpreadsheetFile

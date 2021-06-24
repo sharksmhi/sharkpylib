@@ -1,0 +1,72 @@
+class boolean_base.BooleanBaseDataFrame #B81AF3 {}
+
+class boolean_base.BooleanBaseSerie #B81AF3 {}
+
+class mask_areas.MaskAreasDirectory #F32BE5 {}
+
+class mask_areas.MaskAreas #F32BE5 {}
+
+class qc.QC #716838 {}
+
+class qc_default.Qflag #89083E {}
+
+class qc_default.QCBlueprint #89083E {}
+
+class settings.Settings #AB66FF {}
+
+class continuous.ContinuousBase #910BDC {}
+
+class continuous.Decreasing #910BDC {}
+
+class continuous.Increasing #910BDC {}
+
+class dependencies.Dependencies #8DDAF0 {}
+
+class diff.DiffBase #43E9BD {}
+
+class diff.DataDiff #43E9BD {}
+
+class range.Range #F9CC82 {}
+
+class spike.Spike #43F3BF {}
+
+
+mask_areas.MaskAreasDirectory <|-- object
+
+mask_areas.MaskAreas <|-- object
+
+qc.QC <|-- object
+
+continuous.ContinuousBase <|-- BooleanBaseSerie
+continuous.ContinuousBase <|-- boolean_base.BooleanBaseSerie
+
+continuous.Decreasing <|-- continuous.ContinuousBase
+
+continuous.Increasing <|-- continuous.ContinuousBase
+
+diff.DiffBase <|-- BooleanBaseDataFrame
+diff.DiffBase <|-- boolean_base.BooleanBaseDataFrame
+
+diff.DataDiff <|-- diff.DiffBase
+
+range.Range <|-- BooleanBaseSerie
+range.Range <|-- boolean_base.BooleanBaseSerie
+
+spike.Spike <|-- BooleanBaseSerie
+spike.Spike <|-- boolean_base.BooleanBaseSerie
+
+mask_areas.MaskAreasDirectory o-- mask_areas.MaskAreas
+
+continuous.ContinuousBase o-- boolean_base.BooleanBaseSerie
+continuous.ContinuousBase o-- qc.QC
+
+qc_default.QCBlueprint o-- qc.QC
+qc_default.QCBlueprint o-- settings.Settings
+
+settings.Settings o-- qc.QC
+
+continuous.Decreasing o-- qc.QC
+
+continuous.Increasing o-- qc.QC
+
+diff.DataDiff o-- qc.QC

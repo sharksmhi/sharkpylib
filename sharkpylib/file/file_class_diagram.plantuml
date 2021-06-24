@@ -1,0 +1,55 @@
+class files.MappingFile #0BC388 {}
+
+class files.SynonymFile #0BC388 {}
+
+class files.ListFile #0BC388 {}
+
+class files.MultiListFile #0BC388 {}
+
+class file_handlers.Directory #E4C187 {}
+
+class file_handlers.MappingDirectory #E4C187 {}
+
+class file_handlers.SynonymDirectory #E4C187 {}
+
+class file_handlers.ListDirectory #E4C187 {}
+
+class file_handlers.MultiListDirectory #E4C187 {}
+
+class file_handlers.SamplingTypeSettingsDirectory #E4C187 {}
+
+class yaml_reader.YAMLreader #4D7440 {}
+
+
+files.MappingFile <|-- object
+
+files.SynonymFile <|-- object
+
+files.ListFile <|-- object
+
+files.MultiListFile <|-- object
+
+file_handlers.Directory <|-- object
+
+file_handlers.MappingDirectory <|-- file_handlers.Directory
+
+file_handlers.SynonymDirectory <|-- file_handlers.Directory
+
+file_handlers.ListDirectory <|-- file_handlers.Directory
+
+file_handlers.MultiListDirectory <|-- file_handlers.Directory
+
+file_handlers.SamplingTypeSettingsDirectory <|-- file_handlers.Directory
+
+files.MultiListFile o-- files.ListFile
+files.MultiListFile o-- files.ListFile
+files.MultiListFile o-- files.MultiListFile
+
+file_handlers.MappingDirectory o-- files.MappingFile
+
+file_handlers.SynonymDirectory o-- files.SynonymFile
+
+file_handlers.ListDirectory o-- files.ListFile
+
+file_handlers.MultiListDirectory o-- files.ListFile
+file_handlers.MultiListDirectory o-- files.MultiListFile

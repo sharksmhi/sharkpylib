@@ -322,8 +322,8 @@ class CheckbuttonWidget(tk.Frame):
     Names of checkbuttons are listed in "items". 
     Option to:
         include a "Select all" checkbutton at the bottom
-        allow simular parameters to be selected (ex. SALT_BTL and SALT_CTD can not be checked att the same time if 
-            allow_simular_parameters_to_be_checked=False
+        allow similar parameters to be selected (ex. SALT_BTL and SALT_CTD can not be checked att the same time if 
+            allow_similar_parameters_to_be_checked=False
     """
      
     def __init__(self, 
@@ -332,7 +332,7 @@ class CheckbuttonWidget(tk.Frame):
                  pre_checked_items=[],
                  nr_rows_per_column=10, 
                  include_select_all=True, 
-                 allow_simular_parameters_to_be_checked=True, 
+                 allow_similar_parameters_to_be_checked=True, 
                  colors={}, 
                  sort_items=False, 
                  prop_cbuttons={}, 
@@ -363,7 +363,7 @@ class CheckbuttonWidget(tk.Frame):
         self.pre_checked_items = pre_checked_items[:]
         self.nr_rows_per_column = nr_rows_per_column
         self.include_select_all = include_select_all
-        self.allow_simular_parameters_to_be_checked = allow_simular_parameters_to_be_checked
+        self.allow_similar_parameters_to_be_checked = allow_similar_parameters_to_be_checked
         self.colors = colors
         
         if sort_items:
@@ -423,7 +423,7 @@ class CheckbuttonWidget(tk.Frame):
     #===========================================================================
     def _on_select_item(self, source_item):
         
-        if not self.allow_simular_parameters_to_be_checked:
+        if not self.allow_similar_parameters_to_be_checked:
             if self.booleanvar[source_item].get():
                 for item in self.items:
                     if self.booleanvar[item].get() and item != source_item and item.startswith(source_item[:4]):
@@ -2484,6 +2484,15 @@ class NotebookWidget(ttk.Notebook):
     #===========================================================================
     def get_frame(self, frame):
         return self.frame_dict[frame]
+    
+    def set_state(self, state, *args, rest=None):
+        if rest:
+            for frame in self.frame_list:
+                self.tab(self.frame_dict[frame], state=rest)
+        if not args:
+            args = self.frame_list
+        for frame in args:
+            self.tab(self.frame_dict[frame], state=state)
 
 """
 ================================================================================
