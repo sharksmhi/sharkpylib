@@ -1,4 +1,5 @@
 numpy
 matplotlib
 pandas
+ctdpy
 # pandas==0.23.4
