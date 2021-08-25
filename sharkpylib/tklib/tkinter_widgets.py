@@ -1606,6 +1606,7 @@ class ListboxSelectionWidget(tk.Frame):
     
     def __init__(self, 
                  parent, 
+                 prop={}, 
                  prop_frame={}, 
                  prop_items={},
                  prop_selected={}, 
@@ -1619,6 +1620,9 @@ class ListboxSelectionWidget(tk.Frame):
                  callback_match_in_file=None, 
                  callback_match_subselection=None,
                  callback_set_default=None,
+                 callback=None, 
+                 callback_select=None, 
+                 callback_deselect=None, 
                  sort_selected=False, 
                  include_blank_item=False, 
                  target=None,
@@ -1636,6 +1640,10 @@ class ListboxSelectionWidget(tk.Frame):
         self.prop_frame = {}
         self.prop_frame.update(prop_frame)
         
+        if prop:
+            prop_items = prop
+            prop_selected = prop 
+            
         self.prop_listbox_items = {'bg': 'grey',
                                    'width': 30,
                                    'height': 10}
@@ -1675,6 +1683,13 @@ class ListboxSelectionWidget(tk.Frame):
         self.callback_match_in_file = callback_match_in_file
         self.callback_match_subselection = callback_match_subselection
         self.callback_set_default = callback_set_default
+        
+        if callback:
+            self.callback_select = callback
+            self.callback_deselect = callback
+        else:
+            self.callback_select = callback_select
+            self.callback_deselect = callback_deselect
         
         if isinstance(target, list):
             self.targets = target
@@ -1769,7 +1784,7 @@ class ListboxSelectionWidget(tk.Frame):
         
         
         if self.include_button_move_all_items:
-            self.button_move_all_items = tk.Button(frame, text=u'Select all', command=self.select_all, font=Fonts().fontsize_small)
+            self.button_move_all_items = tk.Button(frame, text=u'Select all', command=self._select_all, font=Fonts().fontsize_small)
             self.button_move_all_items.grid(row=r, column=0, padx=padx, pady=pady, sticky='w')
             r+=1
 
@@ -1814,7 +1829,7 @@ class ListboxSelectionWidget(tk.Frame):
         tk.Label(frame, textvariable=self.stringvar_nr_selected_items, font=Fonts().fontsize_small).grid(row=r, column=1, sticky='e')
         
         if self.include_button_move_all_selected:
-            self.button_move_all_selected = tk.Button(frame, text='Deselect all', command=self.deselect_all, font=Fonts().fontsize_small)
+            self.button_move_all_selected = tk.Button(frame, text='Deselect all', command=self._deselect_all, font=Fonts().fontsize_small)
             self.button_move_all_selected.grid(row=r, column=0, pady=pady, sticky='w')
             r+=1
 
@@ -1859,8 +1874,17 @@ class ListboxSelectionWidget(tk.Frame):
     #===========================================================================
     def add_target(self, target):
         self.targets.append(target)
-        
-    #===========================================================================
+
+    def _select_all(self):
+        self.select_all()
+        if self.callback_select:
+            self.callback_select()
+
+    def _deselect_all(self):
+        self.deselect_all()
+        if self.callback_deselect:
+            self.callback_deselect()
+
     def select_all(self):
         self.selected_items.extend(self.items)
         self.items = []
@@ -1880,7 +1904,6 @@ class ListboxSelectionWidget(tk.Frame):
         self.last_move_is_selected = False
         self._update_listboxes()
         
-    
     #===========================================================================
     def clear_lists(self):
         self.update_items()
@@ -2042,6 +2065,8 @@ class ListboxSelectionWidget(tk.Frame):
             self.last_move_is_selected = True
             self._update_listboxes()
             self.stringvar_items.set(u'')
+        if self.callback_select:
+            self.callback_select()
         
     #===========================================================================
     def _on_return_entry_selected(self, event):
@@ -2057,6 +2082,8 @@ class ListboxSelectionWidget(tk.Frame):
             self.last_move_is_selected = False
             self._update_listboxes()
             self.stringvar_selected.set(u'')
+        if self.callback_deselect:
+            self.callback_deselect()
         
     #===========================================================================
     def _on_click_items(self, event):
@@ -2082,6 +2109,8 @@ class ListboxSelectionWidget(tk.Frame):
             self._update_listboxes()
             self.stringvar_items.set(u'')
             self.listbox_items.see(max(0, index_to_pop))
+        if self.callback_select:
+            self.callback_select()
     
     #===========================================================================
     def _on_doubleclick_selected(self, event):
@@ -2095,6 +2124,8 @@ class ListboxSelectionWidget(tk.Frame):
             self._update_listboxes()
             self.stringvar_selected.set(u'')
             self.listbox_items.see(max(0, index_to_pop))
+        if self.callback_deselect:
+            self.callback_deselect()
     
     #===========================================================================
     def _update_listbox_items(self): 
@@ -2171,7 +2202,6 @@ class ListboxSelectionWidgetMultiple(tk.Frame):
     """
     Class to hold several listbox widgets.         
     """
-    
     def __init__(self, 
                  parent, 
                  titles=[], 
@@ -2455,7 +2485,10 @@ class NotebookWidget(ttk.Notebook):
         self.frame_dict = {}
         self._set_frame()
         
-    
+    def __call__(self, tab):
+        """ Returnf a referens to the frame with the provided name"""
+        return self.frame_dict.get(tab)
+        
     #===========================================================================
     def _set_frame(self):
                 
