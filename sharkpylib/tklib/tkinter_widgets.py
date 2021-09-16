@@ -1564,7 +1564,7 @@ class ListboxWidget(tk.Frame):
                 self.callback_delete_button(item)
         
     #===========================================================================
-    def update_items(self, items):
+    def update_items(self, items=[]):
         self.items = items
         self._update_items()
     
@@ -2494,7 +2494,7 @@ class NotebookWidget(ttk.Notebook):
                 
         for frame in self.frame_list:
             name = frame.strip(u'?')
-            name = u'frame_' + name.lower().replace(u' ', u'_')
+            name = u'frame_' + name.lower().replace(u' ', u'_').replace('ä', 'a').replace('å', 'a').replace('ö', 'o')
             notebook_frame = tk.Frame(self)
             setattr(self, name, notebook_frame)
             self.add(notebook_frame, text=frame)
