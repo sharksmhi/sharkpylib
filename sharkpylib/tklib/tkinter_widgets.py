@@ -1633,6 +1633,7 @@ class ListboxSelectionWidget(tk.Frame):
                  allow_nr_selected=None, 
                  vertical=False,
                  search_case_sensitive=True,
+                 count_text='items',
                  **kwargs):
         
         # Update kwargs dict
@@ -1676,6 +1677,7 @@ class ListboxSelectionWidget(tk.Frame):
         self.allow_nr_selected = allow_nr_selected
         self.vertical = vertical 
         self.search_case_sensitive = search_case_sensitive
+        self.count_text = count_text
 
         self.include_button_move_all_items = include_button_move_all_items
         self.include_button_move_all_selected = include_button_move_all_selected
@@ -1998,8 +2000,10 @@ class ListboxSelectionWidget(tk.Frame):
         self._update_listbox_selected()  
         
         # Update number of items
-        nr_items = '%s items' % len(self.items)
-        nr_selected_items = '%s items' % len(self.selected_items)
+        # nr_items = '%s items' % len(self.items)
+        # nr_selected_items = '%s items' % len(self.selected_items)
+        nr_items = f'{len(self.items)} {self.count_text}'
+        nr_selected_items = f'{len(self.selected_items)} {self.count_text}'
         self.stringvar_nr_items.set(nr_items)
         self.stringvar_nr_selected_items.set(nr_selected_items)
         
