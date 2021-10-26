@@ -2,4 +2,5 @@ numpy
 matplotlib
 pandas
 ctdpy
+basemap
 # pandas==0.23.4
