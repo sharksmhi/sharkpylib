@@ -622,10 +622,8 @@ class ComboboxWidget(tk.Frame):
         
         grid_configure(self, nr_rows=r+1, nr_columns=c+1)
         
-        if self.callback_targets:
-            self.combobox.bind('<<ComboboxSelected>>', self._on_select)
-            
-            
+        self.combobox.bind('<<ComboboxSelected>>', self._on_select)
+                
     #===========================================================================
     def _on_select(self, event): 
 #         print('tkw.Combobox()._on_select'
@@ -633,7 +631,6 @@ class ComboboxWidget(tk.Frame):
         
         for target in self.callback_targets:
             target()
-        
         
     #===========================================================================
     def add_target(self, target):
@@ -4423,7 +4420,6 @@ class TreeviewWidget(tk.Frame):
         # reverse sort next time
         tv.heading(col, command=lambda: self.treeview_sort_column(tv, col, not reverse))
 
-
     def get_selected(self):
         selection = self.tree.selection()
         item_dict = self.tree.item(selection)
@@ -4853,30 +4849,22 @@ def check_float_entry(stringvar, entry, only_negative_values=False, return_strin
         if return_string:
             return return_string
 
-"""
-================================================================================
-================================================================================
-================================================================================
-""" 
-# def main():
-#     app = TestApp()
-#     app.focus_force()
-#     app.mainloop()
-#
-# if __name__ == '__main__':
-#     main()
+
+def disable_buttons_in_class(cls, keep_button=None):
+    bg_color = tk.Button().cget('bg')
+    for key, widget in cls.__dict__.items():
+        if not isinstance(widget, tk.Button):
+            continue
+        widget.config(state='disabled', bg=bg_color)
+        widget.update_idletasks()
+    if keep_button:
+        keep_button.config(state='normal')
 
 
-# def test():
-#     root = tk.Tk()
-#     root.title('Date selection')
-#     ttkcal = CalendarWidget(firstweekday=calendar.SUNDAY, root=root)
-#     ttkcal.pack(expand=1, fill='both')
-#
-#     root.mainloop()
-#
-#     print(ttkcal.selection)
-#
-#
-# if __name__ == '__main__':
-#     test()
+def enable_buttons_in_class(cls):
+    bg_color = tk.Button().cget('bg')
+    for key, widget in cls.__dict__.items():
+        if not isinstance(widget, tk.Button):
+            continue
+        widget.config(state='normal', bg=bg_color)
+        widget.update_idletasks()

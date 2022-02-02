@@ -71,6 +71,7 @@ class GISMOdataManager(object):
             with open(kwargs.get('pkl_file_path'), "rb") as fid:
                 gismo_object = pickle.load(fid)
         else:
+            print('kwargs 3', kwargs)
             gismo_object = self.factory.get_object(sampling_type=sampling_type, **kwargs)
             if kwargs.get('save_pkl') and kwargs.get('pkl_file_path'):
                 # Save pkl file of the object

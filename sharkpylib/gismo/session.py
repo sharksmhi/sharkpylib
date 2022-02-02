@@ -489,7 +489,7 @@ class GISMOsession(object):
         kwargs can be:
             file_encoding
         """
-
+        print('kwargs 2', kwargs)
         if sampling_type not in self.data_manager.sampling_type_list:
             raise GISMOExceptionInvalidSamplingType(sampling_type)
         # print('=', self.settings_files)

@@ -66,6 +66,7 @@ class PluginFactory(object):
         if not self.classes.get(sampling_type):
             raise GISMOExceptionInvalidClass
         kwargs['sampling_type'] = sampling_type
+        print('args, kwargs', args, kwargs)
         return self.classes.get(sampling_type)(*args, **kwargs)
 
     def get_requirements(self, sampling_type):
@@ -374,6 +375,7 @@ class GISMOfile(GISMOdata):
                 self.df['depth'] = depth_par.split()[0].strip()
             else:
                 try:
+                    print(self.df.columns)
                     self.df['depth'] = self.df[depth_par].astype(float)
                 except KeyError as e:
                     raise GISMOExceptionInvalidParameter(e)
@@ -1666,7 +1668,8 @@ class NODCStandardFormatCTD(DVStandardFormatCTD):
     """
 
     def __init__(self, **kwargs):
-        super().__init__(self, **kwargs)
+        print('kwargs 4', kwargs)
+        super().__init__(**kwargs)
 
         self.filter_data_options = self.filter_data_options + []
         self.flag_data_options = self.flag_data_options + ['qc_routine']
@@ -2156,3 +2159,5 @@ def apply_datetime_object_to_df(x, **kwargs):
             pass
 
     raise GISMOExceptionInvalidTimeFormat('Could not find matching time format for "{}"'.format(time_string))
+
+
