@@ -173,10 +173,12 @@ class QCBlueprint:
         """
         :return:
         """
+        meta_columns = set(['YEAR', 'MONTH', 'DAY', 'HOUR', 'MINUTE', 'SECOND',
+                           'CRUISE', 'STATION', 'LATITUDE_DD', 'LONGITUDE_DD',
+                            'COMNT_SAMP', 'SCAN_BIN_CTD'])
         for key in self.df:
             key = key.split(' ')[0]
-            if key not in ['YEAR', 'MONTH', 'DAY', 'HOUR', 'MINUTE', 'SECOND',
-                           'CRUISE', 'STATION', 'LATITUDE_DD', 'LONGITUDE_DD']:
+            if key not in meta_columns:
                 if not key.startswith('Q'):
                     if 'Q0_'+key not in self.df:
                         self.set_qc0_standard_format(key='Q0_'+key)
