@@ -4,8 +4,11 @@ class Package:
     """
     Class to hold several seabird files with the same filename structure.
     """
+    RAW_FILES_EXTENSIONS = ['.bl', '.btl', '.hdr', '.hex', '.ros', '.xmlcon', '.con']
+
     def __init__(self):
         self._files = []
+        self._config_file_suffix = None
 
     def __str__(self):
         if not self._files:
@@ -15,10 +18,21 @@ class Package:
             string = string + '\n    ' + str(file_obj)
         return string
 
+    # def __call__(self, key):
+    #     for file_obj in self._files:
+    #         if file_obj(key):
+    #             return file_obj(key)
+
     def __call__(self, key):
-        for file_obj in self._files:
-            if file_obj(key):
-                return file_obj(key)
+        return self.attributes.get(key)
+
+    def __getitem__(self, item):
+        return self.path(item)
+
+    def path(self, item):
+        for f in self._files:
+            if f.suffix[1:] == item or f.suffix == item:
+                return f.path
 
     @property
     def pattern(self):
@@ -30,9 +44,14 @@ class Package:
     def files(self):
         return self._files
 
+    # @property
+    # def config_file_suffix(self):
+    #     return self._config_file_suffix
+
     @property
     def attributes(self):
-        attributes = {}
+        attributes = dict()
+        attributes['config_file_suffix'] = self._config_file_suffix
         for file_obj in self._files:
             attributes.update(file_obj.attributes)
         return attributes
@@ -60,13 +79,32 @@ class Package:
                     serno=self('serno'))
 
     def add_file(self, file_obj):
-        if not self._files:
-            self._files.append(file_obj)
-            return True
-        elif file_obj.pattern == self._files[0].pattern and file_obj not in self._files:
-            self._files.append(file_obj)
-            return True
-        return False
+        if file_obj in self._files:
+            return False
+        elif self._files and file_obj.pattern != self._files[0].pattern:
+            return False
+
+        self._files.append(file_obj)
+        self._set_config_suffix(file_obj)
+        self.set_key()
+
+        # if not self._files:
+        #     self._files.append(file_obj)
+        #     return True
+        # elif file_obj.pattern == self._files[0].pattern:
+        #     self._files.append(file_obj)
+        #     return True
+        # return False
+
+    def _set_config_suffix(self, file_obj):
+        if 'con' in file_obj.suffix:
+            self._config_file_suffix = file_obj.suffix
+
+    def set_key(self):
+        for file in self.files:
+            file.key = self.key
+
+
 
 
 

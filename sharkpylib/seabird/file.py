@@ -1,4 +1,4 @@
-import re
+import shutil
 from pathlib import Path
 from abc import ABC, abstractmethod
 
@@ -11,9 +11,11 @@ class SeabirdFile(ABC):
     suffix = None
     _path_info = {}
     _attributes = {}
+    _lines = None
 
     def __init__(self, path):
         self.path = Path(path)
+        self._key = None
         self._path_info = {}
         self._attributes = {}
         self._load_file()
@@ -22,6 +24,8 @@ class SeabirdFile(ABC):
         self._save_attributes()
 
         self._attributes.update(self._path_info)
+        self._attributes['suffix'] = self.suffix
+
 
     def _save_info_from_file(self):
         pass
@@ -37,6 +41,36 @@ class SeabirdFile(ABC):
 
     def __call__(self, key):
         return self._attributes.get(key, None)
+
+    def __eq__(self, other):
+        if self.name.upper() == other.name.upper():
+            return True
+        return False
+
+    @property
+    def lines(self):
+        """
+        Use in self.save_file
+        """
+        return self._lines
+
+    @lines.setter
+    def lines(self, lines):
+        if not isinstance(lines, list):
+            raise TypeError(f'Invalid type when setting lines in file: {self}')
+        self._lines = lines
+
+    @property
+    def key(self):
+        return self._key
+
+    @key.setter
+    def key(self, key):
+        self._key = key
+
+    @property
+    def name(self):
+        return self.path.name
 
     @property
     def stem(self):
@@ -68,6 +102,42 @@ class SeabirdFile(ABC):
     def _fixup(self):
         self._path_info['year'] = mapping.get_year_mapping(self._path_info.get('year'))
         self._path_info['ship'] = mapping.get_ship_mapping(self._path_info['ship'])
+
+    def get_proper_name(self):
+        prefix = self('prefix') or ''
+        tail = self('tail') or ''
+        return f'{prefix + self.key + tail}{self.suffix}'
+
+    def get_proper_path(self, directory=None):
+        if not directory:
+            directory = self.path.parent
+        return Path(directory, self.get_proper_name())
+
+    def get_save_name(self):
+        return self.get_proper_name()
+
+    def get_save_path(self, directory=None):
+        if not directory:
+            directory = self.path.parent
+        return Path(directory, self.get_save_name())
+
+    def save_file(self, directory=None, overwrite=False):
+        if not self.lines:
+            return
+        target_path = self.get_save_path(directory)
+        if target_path.exists() and not overwrite:
+            raise FileExistsError(target_path)
+        with open(target_path, 'w') as fid:
+            fid.write('\n'.join(self.lines))
+
+
+    # def save_file(self, directory, overwrite=False):
+    #     path = Path(directory, f'{self.key}{self.suffix}')
+    #     if path.exists() and not overwrite:
+    #         raise FileExistsError(path)
+    #     if not path.parent.exists():
+    #         path.parent.mkdir(parents=True)
+    #     shutil.copy2(self.path, path)
 
 
 class UnrecognizedFile(Exception):

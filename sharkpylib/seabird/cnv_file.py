@@ -6,6 +6,8 @@ from sharkpylib.seabird.patterns import get_cruise_match_dict
 
 from sharkpylib.seabird import xmlcon_parser
 
+from sharkpylib.seabird.modify_cnv import ModifyCnv
+
 
 class HeaderName:
     _string = None
@@ -46,30 +48,36 @@ class HeaderName:
 class Header:
     def __init__(self, linebreak='\n'):
         self.linebreak = linebreak
-        self.rows = []
+        self._lines = []
 
-    def add_row(self, row):
-        self.rows.append(row.strip())
+    @property
+    def lines(self):
+        return self._lines
+
+    def add_line(self, row):
+        self._lines.append(row.strip())
 
     # def insert_row_after(self, row, after_str, ignore_if_string=None):
-    #     for line in self.rows:
+    #     for line in self._rows:
     #         if row == line:
     #             return
-    #     for i, value in enumerate(self.rows[:]):
+    #     for i, value in enumerate(self._rows[:]):
     #         if after_str in value:
     #             if ignore_if_string:
-    #                 if ignore_if_string in self.rows[i+1]:
+    #                 if ignore_if_string in self._rows[i+1]:
     #                     continue
-    #             self.rows.insert(i+1, row.strip())
+    #             self._rows.insert(i+1, row.strip())
     #             break
     #
     # def append_to_row(self, string_in_row, append_string):
-    #     for i, value in enumerate(self.rows[:]):
+    #     for i, value in enumerate(self._rows[:]):
     #         if string_in_row in value:
-    #             new_string = self.rows[i] + append_string.rstrip()
-    #             if self.rows[i] == new_string:
+    #             if value.endswith(append_string):
     #                 continue
-    #             self.rows[i] = new_string
+    #             new_string = self._rows[i] + append_string.rstrip()
+    #             # if self._rows[i] == new_string:
+    #             #     continue
+    #             self._rows[i] = new_string
     #             break
     #
     # def get_row_index_for_matching_string(self, match_string, as_list=False):
@@ -100,11 +108,12 @@ class Header:
 
 
 class Parameter:
-    def __init__(self, use_cnv_info_format=False, cnv_info_object=None, index=None, name=None):
-        self.index = index
-        self.name = name
+    def __init__(self, use_cnv_info_format=False, cnv_info_object=None, index=None, name=None, **kwargs):
 
-        self.info = {}
+        self.info = {'index': index,
+                     'name': name}
+        self.info.update(kwargs)
+
         self.use_cnv_info_format = use_cnv_info_format
         self.cnv_info_object = cnv_info_object
         self._tot_value_length = 11
@@ -113,6 +122,12 @@ class Parameter:
         self.sample_value = None
         self._data = []
         self.active = False
+
+    def __getitem__(self, item):
+        return self.info.get(item)
+
+    def __getattr__(self, item):
+        return self.info.get(item)
 
     def __repr__(self):
         return_list = [f'CNVparameter (dict): {self.info["name"]}']
@@ -123,9 +138,9 @@ class Parameter:
         if len(self._data):
             return_list.append(f'{blanks}{"Sample value":<20}{self.sample_value}')
             if self.use_cnv_info_format:
-                form = f'{self.format} (from info file)'
+                form = f'{self.get_format()} (from info file)'
             else:
-                form = f'{self.format} (calculated from data)'
+                form = f'{self.get_format()} (calculated from data)'
             return_list.append(f'{blanks}{"Value format":<20}{form}')
         return '\n'.join(return_list)
 
@@ -141,14 +156,16 @@ class Parameter:
                 self._nr_decimals = nr
                 self.sample_value = float(value_str)
 
-    @property
-    def format(self):
+    def get_format(self, value=None):
         if self.use_cnv_info_format:
             return self.cnv_info_object.format
         if self._nr_decimals is None:
             form = f'{self._tot_value_length}{self._value_format}'
         else:
-            form = f'{self._tot_value_length}.{self._nr_decimals}{self._value_format}'
+            if value and self._value_format == 'e' and str(value).startswith('-'):
+                form = f'{self._tot_value_length}.{self._nr_decimals - 1}{self._value_format}'
+            else:
+                form = f'{self._tot_value_length}.{self._nr_decimals}{self._value_format}'
         return form
 
     def set_value_length(self, length):
@@ -179,18 +196,20 @@ class Parameter:
 
     def change_name(self, new_name):
         self.info['name'] = new_name
-        self.name = new_name
 
     def get_value_as_string_for_index(self, index):
-        return '{:{}}'.format(self.data[index], self.format)
+        if type(self.data[index]) == str:
+            return self.data[index].rjust(self._tot_value_length)
+        return '{:{}}'.format(self.data[index], self.get_format(self.data[index]))
 
     def set_active(self, is_active):
         self.active = is_active
 
 
-class Cnvfile(SeabirdFile):
+class CnvFile(SeabirdFile):
     suffix = '.cnv'
     header_date_format = '%b %d %Y %H:%M:%S'
+    header = None
     _header_datetime = None
     _header_lat = None
     _header_lon = None
@@ -201,6 +220,15 @@ class Cnvfile(SeabirdFile):
     _xml_tree = None
     _parameters = {}
     _sensor_info = None
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self._save_columns()
+
+    def get_save_name(self):
+        if self('prefix') == 'd':
+            return f'{self.key}{self.suffix}'
+        return self.get_proper_name()
 
     @property
     def datetime(self):
@@ -219,7 +247,7 @@ class Cnvfile(SeabirdFile):
         self._header_form = {'info': []}
         self._header_names = []
         self._nr_data_lines = 0
-        self._header_rows = Header()
+        self.header = Header()
         self._parameters = {}
         self._header_cruise_info = {}
 
@@ -275,11 +303,11 @@ class Cnvfile(SeabirdFile):
                     self._sensor_info = xmlcon_parser.get_sensor_info(self._xml_tree)
 
                 if '*END*' in line:
-                    self._header_rows.add_row(line)
+                    self.header.add_line(line)
                     header = False
                     continue
                 if header:
-                    self._header_rows.add_row(line)
+                    self.header.add_line(line)
                 else:
                     if not line.strip():
                         continue
@@ -290,6 +318,7 @@ class Cnvfile(SeabirdFile):
                         value_length = tot_len / len(split_line)
                         int_value_lenght = int(value_length)
                         if int_value_lenght != value_length:
+                            print(self.path)
                             raise ValueError('Something is wrong in the file!')
                         for i, value in enumerate(split_line):
                             self._parameters[i].set_value_length(int_value_lenght)
@@ -305,6 +334,77 @@ class Cnvfile(SeabirdFile):
                                      int(self._path_info['hour']),
                                      int(self._path_info['minute']))
 
-    def _check_time(self):
-        pass
+    def _save_columns(self):
+        self.col_pres = None
+        self.col_dens = None
+        self.col_dens2 = None
+        self.col_depth = None
+        self.col_sv = None
+
+        for par in self._parameters.values():
+            if 'Pressure, Digiquartz [db]' in par.name:
+                self.col_pres = par.index
+            elif 'Density [sigma-t' in par.name:
+                self.col_dens = par.index
+            elif 'Density, 2 [sigma-t' in par.name:
+                self.col_dens2 = par.index
+            elif 'Depth [fresh water, m]' in par.name:
+                self.col_depth = par.index
+            elif 'Depth [true depth, m]' in par.name:
+                self.col_depth = par.index
+            elif 'Sound Velocity [Chen-Millero, m/s]' in par.name:
+                self.col_sv = par.index
+
+    @property
+    def parameters(self):
+        return self._parameters
+
+    @property
+    def pressure_data(self):
+        return self._parameters[self.col_pres].data
+
+    @property
+    def depth_data(self):
+        return self._parameters[self.col_depth].data
+
+    @property
+    def sound_velocity_data(self):
+        return self._parameters[self.col_sv].data
+
+    @property
+    def density_data(self):
+        if self._parameters[self.col_dens].active:
+            return self._parameters[self.col_dens].data
+        elif self._parameters[self.col_dens2].active:
+            return self._parameters[self.col_dens2].data
+        else:
+            return [ModifyCnv.missing_value]*self._nr_data_lines
+
+    @property
+    def header_lines(self):
+        return self.header.lines
+
+    @property
+    def data_lines(self):
+        data_rows = []
+        for r in range(self._nr_data_lines):
+            line_list = []
+            for par, obj in self.parameters.items():
+                value = obj.get_value_as_string_for_index(r)
+                line_list.append(value)
+            line_string = ''.join(line_list)
+            data_rows.append(line_string)
+        return data_rows
+
+    def string_match_header_form(self, string):
+        for value in self._header_form.values():
+            if isinstance(value, list):
+                for item in value:
+                    if string in item:
+                        return True
+            else:
+                if string in value:
+                    return True
+        return False
+
 
