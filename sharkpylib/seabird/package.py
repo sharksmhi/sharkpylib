@@ -78,11 +78,16 @@ class Package:
                     cruise=self('cruise'),
                     serno=self('serno'))
 
-    def add_file(self, file_obj):
+    def add_file(self, file_obj, replace=False):
         if file_obj in self._files:
             return False
         elif self._files and file_obj.pattern != self._files[0].pattern:
             return False
+
+        if replace:
+            for file in self._files:
+                if file_obj.get_proper_name() == file.get_proper_name():
+                    self._files.pop(self._files.index(file))
 
         self._files.append(file_obj)
         self._set_config_suffix(file_obj)
@@ -103,6 +108,31 @@ class Package:
     def set_key(self):
         for file in self.files:
             file.key = self.key
+
+    def get_files(self, **kwargs):
+        matching_files = []
+        for file in self._files:
+            if all([file(key) == value for key, value in kwargs.items()]):
+                matching_files.append(file)
+        return matching_files
+
+    def get_file(self, **kwargs):
+        matching_files = self.get_files(**kwargs)
+        if not matching_files:
+            raise Exception(f'No matching files for keyword arguments {kwargs}')
+        if len(matching_files) > 1:
+            raise Exception(f'To many matching files for keyword arguments {kwargs}')
+        return matching_files[0]
+
+    def get_file_path(self, **kwargs):
+        file = self.get_file(**kwargs)
+        return file.path
+
+    def get_raw_files(self):
+        return [file for file in self._files if file.suffix in self.RAW_FILES_EXTENSIONS]
+
+    def get_plot_files(self):
+        return [file for file in self._files if file.suffix == '.jpg']
 
 
 

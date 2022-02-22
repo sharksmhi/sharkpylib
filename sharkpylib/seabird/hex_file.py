@@ -1,6 +1,3 @@
-from pathlib import Path
-import datetime
-
 from sharkpylib.seabird.file import SeabirdFile
 
 

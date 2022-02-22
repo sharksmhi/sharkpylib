@@ -3,6 +3,7 @@ INSTRUMENT = {'SBE 911plus/917plus CTD': 'SBE09',
               'SBE 19plus V2 Seacat CTD': 'SBE19'}
 
 SHIP = {'77se': '77SE',
+        '77_10': '77SE',
         'sv': '77SE'}
 
 

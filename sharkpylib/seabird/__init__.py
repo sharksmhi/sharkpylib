@@ -4,6 +4,7 @@ import shutil
 
 from sharkpylib.seabird.file import UnrecognizedFile
 
+from sharkpylib.seabird.file import SeabirdFile
 from sharkpylib.seabird.cnv_file import CnvFile
 from sharkpylib.seabird.xmlcon_file import XmlconFile
 from sharkpylib.seabird.hdr_file import HdrFile
@@ -11,6 +12,7 @@ from sharkpylib.seabird.bl_file import BlFile
 from sharkpylib.seabird.btl_file import BtlFile
 from sharkpylib.seabird.hex_file import HexFile
 from sharkpylib.seabird.ros_file import RosFile
+from sharkpylib.seabird.jpg_file import JpgFile
 
 from sharkpylib.seabird.package import Package
 
@@ -20,7 +22,22 @@ FILES = {CnvFile.suffix: CnvFile,
          BlFile.suffix: BlFile,
          BtlFile.suffix: BtlFile,
          HexFile.suffix: HexFile,
-         RosFile.suffix: RosFile}
+         RosFile.suffix: RosFile,
+         JpgFile.suffix: JpgFile}
+
+
+def _get_paths_in_directory_tree(directory, stem='', exclude_directory=None):
+    # all_files = Path(directory).glob(f'**/*{stem}*')
+    all_files = []
+    for root, dirs, files in os.walk(directory, topdown=False):
+        for name in files:
+            path = Path(root, name)
+            if stem and stem.lower() not in path.stem.lower():
+                continue
+            all_files.append(path)
+    if exclude_directory:
+        all_files = [path for path in all_files if exclude_directory not in path.parts]
+    return all_files
 
 
 def get_file_object_for_path(path):
@@ -42,17 +59,25 @@ def get_packages_from_file_list(file_list):
             continue
         pack = packages.setdefault(file_obj.pattern, Package())
         pack.add_file(file_obj)
+    for pack in packages.values():
+        pack.set_key()
     return packages
 
 
 def get_packages_in_directory(directory):
-    all_files = Path(directory).glob('**/*')
+    all_files = _get_paths_in_directory_tree(directory)
     return get_packages_from_file_list(all_files)
 
 
-def get_package_for_file(path):
+def get_package_for_file(path, directory=None, exclude_directory=None):
+    if isinstance(path, SeabirdFile):
+        path = path.path
+    elif isinstance(path, Package):
+        path = path.files[0].path
     path = Path(path)
-    all_files = Path(path.parent).glob(f'**/{path.stem}*')
+    if not directory:
+        directory = path.parent
+    all_files = _get_paths_in_directory_tree(directory, stem=path.stem, exclude_directory=exclude_directory)
     packages = get_packages_from_file_list(all_files)
     return packages[path.stem]
 
@@ -60,7 +85,6 @@ def get_package_for_file(path):
 def get_file_names_in_directory(directory, suffix=None):
     packages = get_packages_in_directory(directory)
     paths = []
-    print('packages', packages)
     for pack in packages.values():
         path = pack[suffix or 'hex']
         if not path:
@@ -72,13 +96,14 @@ def get_file_names_in_directory(directory, suffix=None):
     return paths
 
 
-def update_package_with_files_in_directory(package, directory):
+def update_package_with_files_in_directory(package, directory, exclude_directory=None, replace=False):
     all_files = Path(directory).glob('**/*')
+    all_files = _get_paths_in_directory_tree(directory, exclude_directory=exclude_directory)
     for path in all_files:
         obj = get_file_object_for_path(path)
         if not obj:
             continue
-        package.add_file(obj)
+        package.add_file(obj, replace=replace)
 
 
 def rename_file_object(file_object, overwrite=False):
@@ -130,17 +155,17 @@ def copy_package(package, overwrite=False):
     return new_package
 
 
-def copy_raw_files_in_package(package, directory, overwrite=False):
-    if not isinstance(package, Package):
-        raise Exception('Given package is not a Package class')
-    package.set_key()
-    new_package = Package()
-    for file in package.files:
-        if file.suffix in Package.RAW_FILES_EXTENSIONS:
-            new_package.add_file(copy_file_object(file, directory=directory, overwrite=overwrite))
-        else:
-            new_package.add_file(file)
-    return new_package
+# def copy_raw_files_in_package(package, directory, overwrite=False):
+#     if not isinstance(package, Package):
+#         raise Exception('Given package is not a Package class')
+#     package.set_key()
+#     new_package = Package()
+#     for file in package.files:
+#         if file.suffix in Package.RAW_FILES_EXTENSIONS:
+#             new_package.add_file(copy_file_object(file, directory=directory, overwrite=overwrite))
+#         else:
+#             new_package.add_file(file)
+#     return new_package
 
 
 def modify_cnv_down_file(package, directory=None, overwrite=False):
