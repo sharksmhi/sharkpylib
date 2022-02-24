@@ -1,10 +1,10 @@
 from pathlib import Path
 import datetime
 
-from sharkpylib.seabird.file import SeabirdFile
+from sharkpylib.seabird.file import InstrumentFile
 
 
-class RosFile(SeabirdFile):
+class RosFile(InstrumentFile):
     suffix = '.ros'
 
     def _save_info_from_file(self):

@@ -1,14 +1,47 @@
 
+class Operations:
 
-class Package:
+    def __call__(self, *args, **kwargs):
+        pass
+
+    def __eq__(self, other):
+        if self('datetime') == other('datetime'):
+            return True
+        return False
+
+    def __lt__(self, other):
+        if self('datetime') < other('datetime'):
+            return True
+        return False
+
+    def __gt__(self, other):
+        if self('datetime') > other('datetime'):
+            return True
+        return False
+
+    def __le__(self, other):
+        if self('datetime') <= other('datetime'):
+            return True
+        return False
+
+    def __ge__(self, other):
+        if self('datetime') >= other('datetime'):
+            return True
+        return False
+
+
+class Package(Operations):
     """
     Class to hold several seabird files with the same filename structure.
     """
+    INSTRUMENT_TYPE = 'sbe'
     RAW_FILES_EXTENSIONS = ['.bl', '.btl', '.hdr', '.hex', '.ros', '.xmlcon', '.con']
 
-    def __init__(self):
+    def __init__(self, attributes=None):
         self._files = []
         self._config_file_suffix = None
+        attributes = attributes or {}
+        self._attributes = dict((key, value.lower()) for key, value in attributes.items())
 
     def __str__(self):
         if not self._files:
@@ -17,11 +50,6 @@ class Package:
         for file_obj in sorted([str(f) for f in self._files]):
             string = string + '\n    ' + str(file_obj)
         return string
-
-    # def __call__(self, key):
-    #     for file_obj in self._files:
-    #         if file_obj(key):
-    #             return file_obj(key)
 
     def __call__(self, key):
         return self.attributes.get(key)
@@ -44,14 +72,16 @@ class Package:
     def files(self):
         return self._files
 
-    # @property
-    # def config_file_suffix(self):
-    #     return self._config_file_suffix
+    @property
+    def file_names(self):
+        return [file.name for file in self.files]
 
     @property
     def attributes(self):
         attributes = dict()
+        attributes.update(self._attributes)
         attributes['config_file_suffix'] = self._config_file_suffix
+        attributes['nr_files'] = len(self.files)
         for file_obj in self._files:
             attributes.update(file_obj.attributes)
         return attributes
@@ -78,32 +108,24 @@ class Package:
                     cruise=self('cruise'),
                     serno=self('serno'))
 
-    def add_file(self, file_obj, replace=False):
-        if file_obj in self._files:
+    def add_file(self, file, replace=False):
+        if file.name in self.file_names:
             return False
-        elif self._files and file_obj.pattern != self._files[0].pattern:
+        elif self._files and file.pattern != self._files[0].pattern:
             return False
 
         if replace:
             for file in self._files:
-                if file_obj.get_proper_name() == file.get_proper_name():
+                if file.get_proper_name() == file.get_proper_name():
                     self._files.pop(self._files.index(file))
 
-        self._files.append(file_obj)
-        self._set_config_suffix(file_obj)
+        self._files.append(file)
+        self._set_config_suffix(file)
         self.set_key()
 
-        # if not self._files:
-        #     self._files.append(file_obj)
-        #     return True
-        # elif file_obj.pattern == self._files[0].pattern:
-        #     self._files.append(file_obj)
-        #     return True
-        # return False
-
-    def _set_config_suffix(self, file_obj):
-        if 'con' in file_obj.suffix:
-            self._config_file_suffix = file_obj.suffix
+    def _set_config_suffix(self, file):
+        if 'con' in file.suffix:
+            self._config_file_suffix = file.suffix
 
     def set_key(self):
         for file in self.files:
@@ -134,7 +156,49 @@ class Package:
     def get_plot_files(self):
         return [file for file in self._files if file.suffix == '.jpg']
 
+    def validate(self):
+        """
+        Validates the package. Making cross checks etc.
+        :return:
+        """
+        skip_keys = ['tail', 'prefix', 'suffix', 'sensor_info']
+        mismatch = {}
+        attributes = {}
+        for file in self._files:
+            for key, value in file.attributes.items():
+                if key in skip_keys:
+                    continue
+                if key not in attributes:
+                    attributes[key] = (str(file), value)
+                else:
+                    if attributes[key][1] != value:
+                        mismatch.setdefault(key, [attributes[key]])
+                        mismatch[key].append((str(file), value))
+        return mismatch
 
+
+class MvpPackage(Package):
+    INSTRUMENT_TYPE = 'mvp'
+    RAW_FILES_EXTENSIONS = ['.eng', '.log', '.m1', '.raw', '.asc', '.asvp', '.calc', '.em1', '.rnn', '.s10', '.s12', '.s52']
+
+    def _set_config_suffix(self, file):
+        pass
+
+    @property
+    def key(self):
+        if not all(list(self.key_info.values())):
+            return None
+        return '_'.join([self('instrument'),
+                         self('date'),
+                         self('time'),
+                         self('transect')]).upper()
+
+    @property
+    def key_info(self):
+        return dict(instrument=self('instrument'),
+                    date=self('date'),
+                    time=self('time'),
+                    transect=self('transect'))
 
 
 

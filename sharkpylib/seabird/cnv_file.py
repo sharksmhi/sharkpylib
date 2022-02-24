@@ -1,7 +1,7 @@
 from pathlib import Path
 import datetime
 
-from sharkpylib.seabird.file import SeabirdFile
+from sharkpylib.seabird.file import InstrumentFile
 from sharkpylib.seabird.patterns import get_cruise_match_dict
 
 from sharkpylib.seabird import xmlcon_parser
@@ -56,55 +56,6 @@ class Header:
 
     def add_line(self, row):
         self._lines.append(row.strip())
-
-    # def insert_row_after(self, row, after_str, ignore_if_string=None):
-    #     for line in self._rows:
-    #         if row == line:
-    #             return
-    #     for i, value in enumerate(self._rows[:]):
-    #         if after_str in value:
-    #             if ignore_if_string:
-    #                 if ignore_if_string in self._rows[i+1]:
-    #                     continue
-    #             self._rows.insert(i+1, row.strip())
-    #             break
-    #
-    # def append_to_row(self, string_in_row, append_string):
-    #     for i, value in enumerate(self._rows[:]):
-    #         if string_in_row in value:
-    #             if value.endswith(append_string):
-    #                 continue
-    #             new_string = self._rows[i] + append_string.rstrip()
-    #             # if self._rows[i] == new_string:
-    #             #     continue
-    #             self._rows[i] = new_string
-    #             break
-    #
-    # def get_row_index_for_matching_string(self, match_string, as_list=False):
-    #     index = []
-    #     for i, value in enumerate(self.rows):
-    #         if match_string in value:
-    #             index.append(i)
-    #     if not index:
-    #         return None
-    #     if as_list:
-    #         return index
-    #     if len(index) == 1:
-    #         return index[0]
-    #     return index
-    #
-    # def replace_string_at_index(self, index, from_string, to_string, ignore_if_present=True):
-    #     if index is None:
-    #         return
-    #     if type(index) == int:
-    #         index = [index]
-    #     for i in index:
-    #         if to_string in self.rows[i] and ignore_if_present:
-    #             continue
-    #         self.rows[i] = self.rows[i].replace(from_string, to_string)
-    #
-    # def replace_row(self, index, new_value):
-    #     self.rows[index] = new_value.strip()
 
 
 class Parameter:
@@ -206,7 +157,7 @@ class Parameter:
         self.active = is_active
 
 
-class CnvFile(SeabirdFile):
+class CnvFile(InstrumentFile):
     suffix = '.cnv'
     header_date_format = '%b %d %Y %H:%M:%S'
     header = None
@@ -230,14 +181,11 @@ class CnvFile(SeabirdFile):
             return f'{self.key}{self.suffix}'
         return self.get_proper_name()
 
-    @property
-    def datetime(self):
+    def _get_datetime(self):
         return self._header_datetime or self._get_datetime_from_path()
 
     def _save_attributes(self):
         self._attributes.update(self._header_cruise_info)
-        self._attributes['date'] = self.datetime.strftime('%Y%m%d')
-        self._attributes['time'] = self.datetime.strftime('%H%M')
         self._attributes['lat'] = self._header_lat
         self._attributes['lon'] = self._header_lon
         self._attributes['station'] = self._header_station
@@ -325,14 +273,6 @@ class CnvFile(SeabirdFile):
                         has_set_value_length = True
                     for i, value in enumerate(split_line):
                         self._parameters[i].add_data(value)
-
-    def _get_datetime_from_path(self):
-        if all([self._path_info.get(key) for key in ['year', 'day', 'minute', 'hour', 'minute']]):
-            return datetime.datetime(int(self._path_info['year']),
-                                     int(self._path_info['day']),
-                                     int(self._path_info['minute']),
-                                     int(self._path_info['hour']),
-                                     int(self._path_info['minute']))
 
     def _save_columns(self):
         self.col_pres = None

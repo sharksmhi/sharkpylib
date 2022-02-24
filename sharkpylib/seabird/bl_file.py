@@ -1,10 +1,10 @@
 from pathlib import Path
 import datetime
 
-from sharkpylib.seabird.file import SeabirdFile
+from sharkpylib.seabird.file import InstrumentFile
 
 
-class BlFile(SeabirdFile):
+class BlFile(InstrumentFile):
     suffix = '.bl'
     _number_of_bottles = 0
 

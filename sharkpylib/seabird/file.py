@@ -1,12 +1,13 @@
-import shutil
 from pathlib import Path
 from abc import ABC, abstractmethod
+import datetime
+import hashlib
 
 from sharkpylib.seabird.patterns import get_file_stem_match
 from sharkpylib.seabird import mapping
 
 
-class SeabirdFile(ABC):
+class InstrumentFile(ABC):
     path = None
     suffix = None
     _path_info = {}
@@ -21,16 +22,29 @@ class SeabirdFile(ABC):
         self._load_file()
         self._fixup()
         self._save_info_from_file()
-        self._save_attributes()
 
         self._attributes.update(self._path_info)
         self._attributes['suffix'] = self.suffix
+        self._attributes['cruise'] = '00'
+        self._attributes['datetime'] = self.datetime
+        self._attributes['date'] = self.datetime.strftime('%Y%m%d')
+        self._attributes['time'] = self.datetime.strftime('%H%M')
+        self._save_attributes()
 
+    def _get_datetime(self):
+        # Overwrite this in subclasses if needed
+        return self._get_datetime_from_path()
+
+    @property
+    def datetime(self):
+        return self._get_datetime()
 
     def _save_info_from_file(self):
+        # Overwrite this in subclasses
         pass
 
     def _save_attributes(self):
+        # Overwrite this in subclasses
         pass
 
     def __str__(self):
@@ -43,7 +57,7 @@ class SeabirdFile(ABC):
         return self._attributes.get(key, None)
 
     def __eq__(self, other):
-        if self.name.upper() == other.name.upper():
+        if self.md5 == other.md5:
             return True
         return False
 
@@ -89,19 +103,44 @@ class SeabirdFile(ABC):
     def attributes(self):
         return self._attributes
 
+    @property
+    def md5(self):
+        with open(self.path, 'rb') as fid:
+            return hashlib.md5(fid.read()).hexdigest()
+
     def _load_file(self):
         if self.path.suffix.lower() != self.suffix.lower():
             raise UnrecognizedFile(f'{self.path} does not have suffix {self.suffix}')
 
-        name_match = get_file_stem_match(self.path.stem)
+        name_match = get_file_stem_match(self.path.name)
         if not name_match:
             raise UnrecognizedFile(f'File {self.path} does not math any registered file patterns')
         self.name_match = name_match
         self._path_info.update(name_match.groupdict())
 
+    def _get_datetime_from_path(self):
+        if all([self._path_info.get(key) for key in ['year', 'day', 'month', 'hour', 'minute', 'second']]):
+            return datetime.datetime(int(self._path_info['year']),
+                                     int(self._path_info['month']),
+                                     int(self._path_info['day']),
+                                     int(self._path_info['hour']),
+                                     int(self._path_info['minute']),
+                                     int(self._path_info['second']))
+        elif all([self._path_info.get(key) for key in ['year', 'day', 'month', 'hour', 'minute']]):
+            return datetime.datetime(int(self._path_info['year']),
+                                     int(self._path_info['month']),
+                                     int(self._path_info['day']),
+                                     int(self._path_info['hour']),
+                                     int(self._path_info['minute']))
+        elif all([self._path_info.get(key) for key in ['year', 'day', 'month']]):
+            return datetime.datetime(int(self._path_info['year']),
+                                     int(self._path_info['month']),
+                                     int(self._path_info['day']))
+
     def _fixup(self):
         self._path_info['year'] = mapping.get_year_mapping(self._path_info.get('year'))
-        self._path_info['ship'] = mapping.get_ship_mapping(self._path_info['ship'])
+        if 'ship' in self._path_info:
+            self._path_info['ship'] = mapping.get_ship_mapping(self._path_info['ship'])
 
     def get_proper_name(self):
         prefix = self('prefix') or ''

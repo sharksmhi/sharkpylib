@@ -1,11 +1,11 @@
 from pathlib import Path
 
-from sharkpylib.seabird.file import SeabirdFile
+from sharkpylib.seabird.file import InstrumentFile
 
 from sharkpylib.seabird import xmlcon_parser
 
 
-class XmlconFile(SeabirdFile):
+class XmlconFile(InstrumentFile):
     suffix = '.xmlcon'
     _tree = None
     _sensor_info = None

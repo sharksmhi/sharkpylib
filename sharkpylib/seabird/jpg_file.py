@@ -1,5 +1,5 @@
-from sharkpylib.seabird.file import SeabirdFile
+from sharkpylib.seabird.file import InstrumentFile
 
 
-class JpgFile(SeabirdFile):
+class JpgFile(InstrumentFile):
     suffix = '.jpg'

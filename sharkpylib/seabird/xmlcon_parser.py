@@ -19,8 +19,15 @@ def get_sensor_info(tree):
     if tree.find('Instrument'):
         root = tree.find('Instrument').find('SensorArray')
 
-    for i, sensor in enumerate(root.findall('Sensor')):
-        child = sensor.getchildren()[0]
+    sensors = root.findall('Sensor')
+    if not sensors:
+        sensors = root.findall('sensor')
+
+    for i, sensor in enumerate(sensors):
+        children = sensor.getchildren()
+        if not children:
+            continue
+        child = children[0]
         par = child.tag
         nr = child.find('SerialNumber').text
         if nr is None:
@@ -30,6 +37,7 @@ def get_sensor_info(tree):
         data = {'parameter': par,
                 'serial_number': nr}
         sensor_info.append(data)
+
     for par, index_list in index.items():
         if len(index_list) == 1:
             continue

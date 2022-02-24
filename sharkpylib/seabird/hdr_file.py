@@ -1,11 +1,11 @@
 from pathlib import Path
 import datetime
 
-from sharkpylib.seabird.file import SeabirdFile
+from sharkpylib.seabird.file import InstrumentFile
 from sharkpylib.seabird.patterns import get_cruise_match_dict
 
 
-class HdrFile(SeabirdFile):
+class HdrFile(InstrumentFile):
     suffix = '.hdr'
     date_format = '%b %d %Y %H:%M:%S'
     _datetime = None
@@ -13,8 +13,7 @@ class HdrFile(SeabirdFile):
     _cruise_info = None
     _header_form = None
 
-    @property
-    def datetime(self):
+    def _get_datetime(self):
         return self._datetime
 
     def _save_info_from_file(self):
@@ -42,9 +41,6 @@ class HdrFile(SeabirdFile):
 
     def _save_attributes(self):
         self._attributes.update(self._cruise_info)
-        self._attributes['datetime'] = self._datetime
-        self._attributes['date'] = self.datetime.strftime('%Y%m%d')
-        self._attributes['time'] = self.datetime.strftime('%H%M')
         self._attributes['lat'] = self._lat
         self._attributes['lon'] = self._lon
         self._attributes['station'] = self._station
