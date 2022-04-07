@@ -1609,8 +1609,8 @@ class ListboxSelectionWidget(tk.Frame):
                  prop_selected={}, 
                  items=[], 
                  selected_items=[], 
-                 title_items=u'',
-                 title_selected=u'', 
+                 title_items=None,
+                 title_selected=None,
                  font=None, 
                  include_button_move_all_items=True, 
                  include_button_move_all_selected=True, 
@@ -1626,7 +1626,7 @@ class ListboxSelectionWidget(tk.Frame):
                  target_select=None,
                  target_deselect=None, 
                  bind_tab_entry_items=None, 
-                 widget_id=u'', 
+                 widget_id='',
                  allow_nr_selected=None, 
                  vertical=False,
                  search_case_sensitive=True,
@@ -1750,7 +1750,7 @@ class ListboxSelectionWidget(tk.Frame):
 
         r = 0
         if self.title_items:
-            tk.Label(frame, text=self.title_items).grid(row=0, column=0)
+            tk.Label(frame, **self.title_items).grid(row=0, column=0)
             r+=1 
             
         self.listbox_items = tk.Listbox(frame, selectmode=u'single', font=self.font, **self.prop_listbox_items)
@@ -1796,7 +1796,7 @@ class ListboxSelectionWidget(tk.Frame):
 
         r = 0
         if self.title_selected:
-            tk.Label(frame, text=self.title_selected).grid(row=r, column=0)
+            tk.Label(frame, **self.title_selected).grid(row=r, column=0)
             r+=1 
             
         self.listbox_selected = tk.Listbox(frame, selectmode='single', font=self.font, **self.prop_listbox_selected)
