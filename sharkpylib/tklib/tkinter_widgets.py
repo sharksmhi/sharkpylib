@@ -1518,10 +1518,10 @@ class ListboxWidget(tk.Frame):
         grid_configure(self) 
         
         r=0
-        self.listbox = tk.Listbox(frame, selectmode=u'single', **self.prop_listbox)
+        self.listbox = tk.Listbox(frame, selectmode='single', **self.prop_listbox)
         self.listbox.grid(row=r, column=0, padx=padx, pady=pady, sticky='nsew')
         self.scrollbar = ttk.Scrollbar(frame, 
-                                       orient=u'vertical', 
+                                       orient='vertical',
                                        command=self.listbox.yview)
         self.scrollbar.grid(row=r, column=1, pady=pady, sticky='nsw')
         self.listbox.configure(yscrollcommand=self.scrollbar.set)
@@ -1561,10 +1561,9 @@ class ListboxWidget(tk.Frame):
                 self.callback_delete_button(item)
         
     #===========================================================================
-    def update_items(self, items=[]):
-        self.items = items
+    def update_items(self, items=None):
+        self.items = items or []
         self._update_items()
-    
     
     #===========================================================================
     def _update_items(self): 
@@ -1709,6 +1708,10 @@ class ListboxSelectionWidget(tk.Frame):
             self.font = font
         else:
             self.font = Fonts().fontsize_medium
+        if not self.prop_listbox_items.get('font'):
+            self.prop_listbox_items['font'] = self.font
+        if not self.prop_listbox_selected.get('font'):
+            self.prop_listbox_selected['font'] = self.font
         
         self._remove_selected_items_from_items()
         self._set_frame()
@@ -1751,15 +1754,14 @@ class ListboxSelectionWidget(tk.Frame):
         r = 0
         if self.title_items:
             tk.Label(frame, **self.title_items).grid(row=0, column=0)
-            r+=1 
-            
-        self.listbox_items = tk.Listbox(frame, selectmode=u'single', font=self.font, **self.prop_listbox_items)
+            r+=1
+        self.listbox_items = tk.Listbox(frame, selectmode='single', **self.prop_listbox_items)
         self.listbox_items.grid(row=r, column=0, columnspan=2,
-                                 sticky=u'nsew', padx=(padx, 0), pady=pady)
+                                 sticky='nsew', padx=(padx, 0), pady=pady)
         self.scrollbar_items = ttk.Scrollbar(frame,
-                                              orient=u'vertical', 
+                                              orient='vertical',
                                               command=self.listbox_items.yview)
-        self.scrollbar_items.grid(row=r, column=2, sticky=u'ns')
+        self.scrollbar_items.grid(row=r, column=2, sticky='ns')
         self.listbox_items.configure(yscrollcommand=self.scrollbar_items.set)
         self.listbox_items.bind('<<ListboxSelect>>', self._on_click_items)
         self.listbox_items.bind('<Double-Button-1>', self._on_doubleclick_items)
@@ -1770,8 +1772,8 @@ class ListboxSelectionWidget(tk.Frame):
         self.entry_items = tk.Entry(frame,
                                     textvariable=self.stringvar_items, 
                                     width=self.prop_listbox_items['width'], 
-                                    state=u'normal')
-        self.entry_items.grid(row=r, column=0, columnspan=2, sticky=u'e')
+                                    state='normal')
+        self.entry_items.grid(row=r, column=0, columnspan=2, sticky='e')
         self.stringvar_items.trace("w", self._search_item)
         self.entry_items.bind('<Return>', self._on_return_entry_items)
         self.entry_items.bind('<Tab>', self._on_tab_entry_items)
@@ -1799,7 +1801,7 @@ class ListboxSelectionWidget(tk.Frame):
             tk.Label(frame, **self.title_selected).grid(row=r, column=0)
             r+=1 
             
-        self.listbox_selected = tk.Listbox(frame, selectmode='single', font=self.font, **self.prop_listbox_selected)
+        self.listbox_selected = tk.Listbox(frame, selectmode='single', **self.prop_listbox_selected)
         self.listbox_selected.grid(row=r, column=0, columnspan=2,
                                  sticky='nsew', padx=(padx, 0), pady=pady)
         self.scrollbar_selected = ttk.Scrollbar(frame,
