@@ -19,6 +19,13 @@ class Ftp:
                 ftp.cwd(subdir)
             return ftp.pwd()
 
+    @property
+    def server_files(self):
+        with ftplib.FTP(**self.cred) as ftp:
+            for subdir in self.subdirs:
+                ftp.cwd(subdir)
+            return ftp.nlst()
+
     def change_directory(self, *args):
         self.subdirs = args
 
@@ -44,4 +51,3 @@ class Ftp:
             for path in self.files_to_send:
                 with open(path, 'rb') as fid:
                     ftp.storbinary(f'STOR {path.name}', fid)
-
