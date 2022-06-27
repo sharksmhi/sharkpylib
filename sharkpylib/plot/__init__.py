@@ -1,2 +1,15 @@
-# Copyright (c) 2018 SMHI, Swedish Meteorological and Hydrological Institute
-# License: MIT License (see LICENSE.txt or http://opensource.org/licenses/mit).
+from sharkpylib.plot.seabird_like_plot import ProfilePlot4
+from . import config
+from pathlib import Path
+
+
+def create_seabird_like_plots_for_package(pack, directory, suffix='png'):
+    for file in config.get_config_list():
+        if not file.startswith('seabird'):
+            continue
+        plot_tag = file.split('_', 1)[-1]
+        file_path = Path(directory, f'{pack.key}_{pack("station")}_{plot_tag}.{suffix.strip(".")}')
+        conf = config.load_file(file)
+        plot = ProfilePlot4(pack)
+        plot.plot_from_config(conf)
+        plot.save(file_path)

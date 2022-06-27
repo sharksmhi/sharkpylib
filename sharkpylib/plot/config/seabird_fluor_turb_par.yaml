@@ -1,0 +1,43 @@
+
+depth_par:
+    key: 'pres'
+    title: 'Tryck [dbar]'
+    data_par: 'PRES_CTD [dbar]'
+    qf_par: 'Q_PRES_CTD'
+
+pars:
+  -
+    key: 'temp1'
+    title: 'Temperatur [°C (ITS-90)]'
+    data_par: 'TEMP_CTD [°C (ITS-90)]'
+    qf_par: 'Q_TEMP_CTD'
+    color: 'blue'
+    xmin: 0
+    xmax: 10
+
+  -
+    key: 'flour'
+    title: 'Fluoroscence [mg/m3]'
+    data_par: 'CHLFLUO_CTD [mg/m3]'
+    qf_par: 'Q_CHLFLUO_CTD'
+    color: 'green'
+    xmin: 0
+    xmax: 10
+
+  -
+    key: 'turb'
+    title: 'Turbiditet [NTU]'
+    data_par: 'TURB_CTD [NTU]'
+    qf_par: 'Q_TURB_CTD'
+    color: 'purple'
+    xmin: 0
+    xmax: 10
+
+  -
+    key: 'par'
+    title: 'PAR/Irradiance'
+    data_par: 'PAR_CTD [µE/(cm2 sec)]'
+    qf_par: 'Q_PAR_CTD'
+    color: 'pink'
+    xmin: 0
+    xmax: 1000
