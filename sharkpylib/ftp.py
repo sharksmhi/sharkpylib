@@ -1,30 +1,42 @@
 import ftplib
 import pathlib
+import socket
+
+
+class FtpConnectionError(Exception):
+    pass
 
 
 class Ftp:
 
-    def __init__(self, host=None, user=None, passwd=None):
+    def __init__(self, host=None, user=None, passwd=None, status_callback=None):
         self.cred = dict(host=host,
                          user=user,
                          passwd=passwd)
 
         self.files_to_send = []
         self.subdirs = []
+        self.status_callback = status_callback
 
     @property
     def destination(self):
-        with ftplib.FTP(**self.cred) as ftp:
-            for subdir in self.subdirs:
-                ftp.cwd(subdir)
-            return ftp.pwd()
+        try:
+            with ftplib.FTP(**self.cred) as ftp:
+                for subdir in self.subdirs:
+                    ftp.cwd(subdir)
+                return ftp.pwd()
+        except socket.gaierror:
+            return 'Not able to connect to ftp'
 
     @property
     def server_files(self):
-        with ftplib.FTP(**self.cred) as ftp:
-            for subdir in self.subdirs:
-                ftp.cwd(subdir)
-            return ftp.nlst()
+        try:
+            with ftplib.FTP(**self.cred) as ftp:
+                for subdir in self.subdirs:
+                    ftp.cwd(subdir)
+                return ftp.nlst()
+        except socket.gaierror:
+            return []
 
     def change_directory(self, *args):
         self.subdirs = args
@@ -45,9 +57,17 @@ class Ftp:
         return files_to_send
 
     def _send_files(self):
-        with ftplib.FTP(**self.cred) as ftp:
-            for subdir in self.subdirs:
-                ftp.cwd(subdir)
-            for path in self.files_to_send:
-                with open(path, 'rb') as fid:
-                    ftp.storbinary(f'STOR {path.name}', fid)
+        tot = len(self.files_to_send)
+        try:
+            with ftplib.FTP(**self.cred) as ftp:
+                for subdir in self.subdirs:
+                    ftp.cwd(subdir)
+                for i, path in enumerate(self.files_to_send):
+                    with open(path, 'rb') as fid:
+                        ftp.storbinary(f'STOR {path.name}', fid)
+                    if self.status_callback:
+                        self.status_callback([i+1, tot])
+        except socket.gaierror:
+            raise FtpConnectionError 
+        except:
+            raise 
