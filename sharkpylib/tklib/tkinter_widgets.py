@@ -1477,9 +1477,8 @@ class ListboxWidget(tk.Frame):
                  callback_delete_button=None,  # returns at the removed item
                  title='',
                  **kwargs):
-        
-        # Update kwargs dict
-        #---------------------------------------------------------------------------------------
+
+        self.sort_items = kwargs.pop('sort_items', True)
         self.prop_frame = {}
         self.prop_frame.update(prop_frame)
         
@@ -1498,7 +1497,6 @@ class ListboxWidget(tk.Frame):
         self.only_unique_items = only_unique_items 
         self.include_delete_button = include_delete_button
         self.callback_delete_button = callback_delete_button
-
         
         #---------------------------------------------------------------------------------------
         tk.Frame.__init__(self, parent, **self.prop_frame)
@@ -1573,10 +1571,11 @@ class ListboxWidget(tk.Frame):
         if self.only_unique_items:
             self.items = list(set(self.items))
         # Add new entries
-        try:
-            self.items = sorted(self.items, key=int)
-        except:
-            self.items = sorted(self.items)
+        if self.sort_items:
+            try:
+                self.items = sorted(self.items, key=int)
+            except:
+                self.items = sorted(self.items)
             
 #        if self.include_blank_item: 
 #            if u'<blank>' in self.items:
