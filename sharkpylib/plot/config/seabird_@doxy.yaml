@@ -1,0 +1,43 @@
+
+depth_par:
+    key: 'pres'
+    title: 'Tryck [dbar]'
+    data_par: 'PRES_CTD [dbar]'
+    qf_par: 'Q_PRES_CTD'
+
+pars:
+  -
+    key: 'doxy1'
+    title: 'Syre [ml/l]'
+    data_par: 'DOXY_CTD [ml/l]'
+    qf_par: 'Q_DOXY_CTD'
+    color: 'black'
+    xmin: 0
+    xmax: 10
+
+  -
+    key: 'doxy2'
+    title: 'Syre, 2 [ml/l]'
+    data_par: 'DOXY2_CTD [ml/l]'
+    qf_par: 'Q_DOXY2_CTD'
+    color: 'green'
+    xmin: 0
+    xmax: 10
+
+  -
+    key: 'temp1'
+    title: 'Temperatur [°C (ITS-90)]'
+    data_par: 'TEMP_CTD [°C (ITS-90)]'
+    qf_par: 'Q_TEMP_CTD'
+    color: 'blue'
+    xmin: 0
+    xmax: 20
+
+  -
+    key: 'salt1'
+    title: 'Salinitet [psu]'
+    data_par: 'SALT_CTD [psu]'
+    qf_par: 'Q_SALT_CTD'
+    color: 'red'
+    xmin: 0
+    xmax: 40

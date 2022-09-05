@@ -19,7 +19,8 @@ def get_random_color():
 class ProfilePlot4:
 
     qf_colors = {'B': 'red',
-                 'S': 'pink'}
+                 'S': 'orange',
+                 'E': 'green'}
 
     def __init__(self, pack, **kwargs):
 
@@ -75,7 +76,8 @@ class ProfilePlot4:
             xmax=config['xmax']
         )
         self._plot_par(nr, **data)
-        plt.show()
+        plt.close()
+        # plt.show()
 
     def _plot_qf_from_config(self, nr, config):
 
@@ -194,7 +196,7 @@ class ProfilePlot4:
 
     def _plot_par(self, nr, xdata, ydata, **kwargs):
         self._add_ax_func_mapping[nr](**kwargs)
-        self._ax[nr].set_ylim(min(ydata), 0)
+        self._ax[nr].set_ylim(self._get_y_min_from_data(ydata), 0)
         self._ax[nr].plot(xdata, ydata, color=self._colors[nr], label=kwargs.get('label', str(nr)))
         self._set_x_label(nr, **kwargs)
         self._set_color(nr, **kwargs)
@@ -204,6 +206,15 @@ class ProfilePlot4:
 
     def _plot_qf(self, nr, xdata, ydata, **kwargs):
         self._ax[nr].plot(xdata, ydata, 'o', color=kwargs.get('color'))
+
+    @staticmethod
+    def _get_y_min_from_data(ydata):
+        value = min(ydata)
+        if value > 50:
+            ymin = int(np.round(value/10))*10 - 10
+        else:
+            ymin = int(np.round(value/5))*5 - 5
+        return ymin
 
     def save_pdf(self, file_path, **kwargs):
         pdf_pages = PdfPages(file_path)
