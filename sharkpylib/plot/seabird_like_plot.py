@@ -227,3 +227,4 @@ class ProfilePlot4:
         )
         kw.update(kwargs)
         self._fig.savefig(file_path, **kw)
+        return file_path

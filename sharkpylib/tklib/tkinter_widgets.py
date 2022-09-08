@@ -1617,9 +1617,11 @@ class ListboxSelectionWidget(tk.Frame):
                  callback_set_default=None,
                  callback=None, 
                  callback_select=None, 
-                 callback_deselect=None, 
+                 callback_deselect=None,
+                 sort_items=True, 
                  sort_selected=False, 
-                 include_blank_item=False, 
+                 include_blank_item=False,
+                 only_unique_items=False,
                  target=None,
                  target_select=None,
                  target_deselect=None, 
@@ -1662,7 +1664,9 @@ class ListboxSelectionWidget(tk.Frame):
         tk.Frame.__init__(self, parent, **self.prop_frame)
         self.grid(**self.grid_frame)
         
+        self.sort_items = sort_items
         self.sort_selected = sort_selected
+        self.only_unique_items = only_unique_items
         self.title_items = title_items
         self.title_selected = title_selected
         self.items = items[:] # List of items to choose from. Copy of list here is very important!
@@ -2134,15 +2138,23 @@ class ListboxSelectionWidget(tk.Frame):
         # Delete old entries
         self.listbox_items.delete(0, u'end')
         # Add new entries
-        try:
-            self.items = sorted(self.items, key=int)
-        except:
-            self.items = sorted(self.items)
+        if self.only_unique_items:
+            self.items = list(set(self.items))
+        # Add new entries
+        if self.sort_items:
+            try:
+                self.items = sorted(self.items, key=int)
+            except:
+                self.items = sorted(self.items)
+        # try:
+        #     self.items = sorted(self.items, key=int)
+        # except:
+        #     self.items = sorted(self.items)
             
         if self.include_blank_item: 
-            if u'<blank>' in self.items:
-                self.items.pop(self.items.index(u'<blank>'))
-            self.items = [u'<blank>'] + self.items 
+            if '<blank>' in self.items:
+                self.items.pop(self.items.index('<blank>'))
+            self.items = ['<blank>'] + self.items 
         for item in self.items:  
             self.listbox_items.insert('end', item) 
     
@@ -2151,11 +2163,19 @@ class ListboxSelectionWidget(tk.Frame):
         # Delete old entries
         self.listbox_selected.delete(0, u'end')
         # Add new entries
-        if self.sort_selected:
+        if self.only_unique_items:
+            self.selected_items = list(set(self.selected_items))
+        # Add new entries
+        if self.sort_items:
             try:
                 self.selected_items = sorted(self.selected_items, key=int)
             except:
                 self.selected_items = sorted(self.selected_items)
+        # if self.sort_selected:
+        #     try:
+        #         self.selected_items = sorted(self.selected_items, key=int)
+        #     except:
+        #         self.selected_items = sorted(self.selected_items)
         for item in self.selected_items:
             self.listbox_selected.insert('end', item)  
      

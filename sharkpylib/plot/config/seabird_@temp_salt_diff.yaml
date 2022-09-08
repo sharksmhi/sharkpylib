@@ -27,8 +27,10 @@ pars:
   -
     key: 'temp_diff'
     title: 'Temperatur diff, 2-1 [°C (ITS-90)]'
-    data_par: 'TEMP2_CTD [°C (ITS-90)]--TEMP_CTD [°C (ITS-90)]'
-    qf_par: 'Q_TEMP2_CTD--Q_TEMP_CTD'
+    data_par: 'TEMP_DIFF_CTD [°C (ITS-90)]'
+    qf_par: 'Q_TEMP_DIFF_CTD'
+#    data_par: 'TEMP2_CTD [°C (ITS-90)]--TEMP_CTD [°C (ITS-90)]'
+#    qf_par: 'Q_TEMP2_CTD--Q_TEMP_CTD'
     color: 'green'
     xmin: -0.2
     xmax: 0.2
@@ -36,8 +38,10 @@ pars:
   -
     key: 'salt_diff'
     title: 'Salinitet diff, 2-1 [psu]'
-    data_par: 'SALT2_CTD [psu]--SALT_CTD [psu]'
-    qf_par: 'Q_SALT2_CTD--Q_SALT_CTD'
+    data_par: 'SALT_DIFF_CTD [psu]'
+    qf_par: 'Q_SALT_DIFF_CTD'
+#    data_par: 'SALT2_CTD [psu]--SALT_CTD [psu]'
+#    qf_par: 'Q_SALT2_CTD--Q_SALT_CTD'
     color: 'brown'
     xmin: -0.2
     xmax: 0.2

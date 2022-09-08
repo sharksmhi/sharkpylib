@@ -4,12 +4,15 @@ from pathlib import Path
 
 
 def create_seabird_like_plots_for_package(pack, directory, suffix='png', **kwargs):
+    img_paths = []
     config_files_obj = config.ConfigFiles()
     for conf_file in config_files_obj.iter_config_files_for_position(pack.lat, pack.lon):
         file_path = Path(directory, f'{pack.key}_{pack("station")}_{conf_file.name}.{suffix.strip(".")}')
         plot = ProfilePlot4(pack)
         plot.plot_from_config(conf_file.get_config(**kwargs))
-        plot.save(file_path)
+        path = plot.save(file_path)
+        img_paths.append(path)
+    return img_paths
 
 
 def get_parameter_config_for_pack(pack):
