@@ -62,9 +62,20 @@ class ProfilePlot4:
         for nr, c in enumerate(config['pars']):
             try:
                 self._plot_par_from_config(nr, c)
+                self._plot_vertikal_lines_from_config(nr, c)
                 self._plot_qf_from_config(nr, c)
             except KeyError as e:
                 logger.warning(f'Parameter {e} not found in file: {self._pack.key}')
+
+    def _plot_vertikal_lines_from_config(self, nr, config):
+        data = dict(
+            color=config['color'],
+            xmin=config['xmin'],
+            xmax=config['xmax'],
+            default_xmin=config.get('default_xmin'),
+            default_xmax=config.get('default_xmax')
+        )
+        self._plot_vertikal_lines(nr, **data)
 
     def _plot_par_from_config(self, nr, config):
         data = dict(
@@ -203,6 +214,25 @@ class ProfilePlot4:
         self._set_limit(nr, **kwargs)
         self._set_xticks(nr)
         self._set_yticks(nr)
+
+    def _plot_vertikal_lines(self, nr, **kwargs):
+        xmin = kwargs.get('xmin')
+        xmax = kwargs.get('xmax')
+        default_xmin = kwargs.get('default_xmin')
+        default_xmax = kwargs.get('default_xmax')
+        logger.debug(f'{xmin=}')
+        logger.debug(f'{xmax=}')
+        logger.debug(f'{default_xmin=}')
+        logger.debug(f'{default_xmax=}')
+        # if default_xmin is not None and default_xmax is not None and xmin < default_xmin and xmax > default_xmax:
+        #     print('a')
+        #     self._ax[nr].axvspan(default_xmin, default_xmax, edgecolor=kwargs.get('color'), linestyle='--', alpha=1.0)
+        if default_xmin is not None and xmin < default_xmin:
+            print('b')
+            self._ax[nr].axvline(x=default_xmin, color=kwargs.get('color'), linestyle='--', label='default_xmin')
+        if default_xmax is not None and xmax > default_xmax:
+            print('c')
+            self._ax[nr].axvline(x=default_xmax, color=kwargs.get('color'), linestyle='--', label='default_xmin')
 
     def _plot_qf(self, nr, xdata, ydata, **kwargs):
         self._ax[nr].plot(xdata, ydata, 'o', color=kwargs.get('color'))

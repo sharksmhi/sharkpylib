@@ -74,7 +74,8 @@ class ConfigFile:
             data = kwargs.get(par['key'])
             if not data:
                 continue
-            print('data', data)
+            par['default_xmin'] = par['xmin']
+            par['default_xmax'] = par['xmax']
             par['xmin'] = data['xmin']
             par['xmax'] = data['xmax']
         return config
