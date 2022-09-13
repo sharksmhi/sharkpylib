@@ -7,11 +7,11 @@ depth_par:
 
 pars:
   -
-    key: 'temp1'
-    title: 'Temperatur [°C (ITS-90)]'
-    data_par: 'TEMP_CTD [°C (ITS-90)]'
-    qf_par: 'Q_TEMP_CTD'
-    color: 'blue'
+    key: 'phyc'
+    title: 'Phycocyanin Fluorescence [mg/m^3]'
+    data_par: 'PHYC_CTD [ppb]'
+    qf_par: 'Q_PHYC_CTD'
+    color: 'red'
     xmin: 0
     xmax: 10
 
