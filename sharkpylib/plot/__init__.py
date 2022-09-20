@@ -7,7 +7,8 @@ def create_seabird_like_plots_for_package(pack, directory, suffix='png', **kwarg
     img_paths = []
     config_files_obj = config.ConfigFiles()
     for conf_file in config_files_obj.iter_config_files_for_position(pack.lat, pack.lon):
-        file_path = Path(directory, f'{pack.key}_{pack("station")}_{conf_file.name}.{suffix.strip(".")}')
+        file_path = Path(directory, f'{pack.key}_{pack("station", pref_suffix=".hdr")}_{conf_file.name}'
+                                    f'.{suffix.strip(".")}')
         plot = ProfilePlot4(pack)
         plot.plot_from_config(conf_file.get_config(**kwargs))
         path = plot.save(file_path)

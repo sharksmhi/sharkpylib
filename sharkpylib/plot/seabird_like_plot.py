@@ -44,7 +44,7 @@ class ProfilePlot4:
         self._fig = plt.figure(**kw)
 
         plt.gcf().text(0.5, 0.98,
-                       f'{pack("station")}: {pack.key}',
+                       f'{pack("station", pref_suffix=".hdr")}: {pack.key}',
                        fontsize=14,
                        horizontalalignment='center')
 
