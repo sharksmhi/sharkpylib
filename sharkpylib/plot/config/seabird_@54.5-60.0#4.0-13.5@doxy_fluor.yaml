@@ -7,24 +7,6 @@ depth_par:
 
 pars:
   -
-    key: 'doxy1'
-    title: 'Syre [ml/l]'
-    data_par: 'DOXY_CTD [ml/l]'
-    qf_par: 'Q_DOXY_CTD'
-    color: 'black'
-    xmin: 0
-    xmax: 10
-
-  -
-    key: 'doxy2'
-    title: 'Syre, 2 [ml/l]'
-    data_par: 'DOXY2_CTD [ml/l]'
-    qf_par: 'Q_DOXY2_CTD'
-    color: 'green'
-    xmin: 0
-    xmax: 10
-
-  -
     key: 'temp1'
     title: 'Temperatur [°C (ITS-90)]'
     data_par: 'TEMP_CTD [°C (ITS-90)]'
@@ -40,4 +22,22 @@ pars:
     qf_par: 'Q_SALT_CTD'
     color: 'red'
     xmin: 0
-    xmax: 20
+    xmax: 40
+  
+  -
+    key: 'doxy1'
+    title: 'Syre [ml/l]'
+    data_par: 'DOXY_CTD [ml/l]'
+    qf_par: 'Q_DOXY_CTD'
+    color: 'grey'
+    xmin: 0
+    xmax: 10
+    
+  -
+    key: 'flour'
+    title: 'Fluoroscence [mg/m3]'
+    data_par: 'CHLFLUO_CTD [mg/m3]'
+    qf_par: 'Q_CHLFLUO_CTD'
+    color: 'green'
+    xmin: 0
+    xmax: 10

@@ -22,7 +22,7 @@ pars:
     qf_par: 'Q_SALT_CTD'
     color: 'red'
     xmin: 0
-    xmax: 20
+    xmax: 40
 
   -
     key: 'temp_diff'
