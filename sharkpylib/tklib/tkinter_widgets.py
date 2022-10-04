@@ -1631,6 +1631,7 @@ class ListboxSelectionWidget(tk.Frame):
                  vertical=False,
                  search_case_sensitive=True,
                  count_text='items',
+                 multiselect=True,
                  **kwargs):
         
         # Update kwargs dict
@@ -1650,8 +1651,7 @@ class ListboxSelectionWidget(tk.Frame):
         self.prop_listbox_selected = {'width': 30,
                                       'height': 10}
         self.prop_listbox_selected.update(prop_selected)
-        
-        
+
         self.grid_frame = {'row': 0,
                            'column': 0,
                            'sticky': 'nsew',
@@ -1677,6 +1677,10 @@ class ListboxSelectionWidget(tk.Frame):
         self.vertical = vertical 
         self.search_case_sensitive = search_case_sensitive
         self.count_text = count_text
+        if multiselect:
+            self.selectmode = 'extended'
+        else:
+            self.selectmode = 'single'
 
         self.include_button_move_all_items = include_button_move_all_items
         self.include_button_move_all_selected = include_button_move_all_selected
@@ -1723,10 +1727,7 @@ class ListboxSelectionWidget(tk.Frame):
         
     #===========================================================================
     def _set_frame(self):
-        
-        padx = 5
-        pady = 2
-        
+
         self.frame_items = tk.Frame(self)
         self.frame_selected = tk.Frame(self)
         self.frame_buttons = tk.Frame(self)
@@ -1758,7 +1759,8 @@ class ListboxSelectionWidget(tk.Frame):
         if self.title_items:
             tk.Label(frame, **self.title_items).grid(row=0, column=0)
             r+=1
-        self.listbox_items = tk.Listbox(frame, selectmode='single', **self.prop_listbox_items)
+
+        self.listbox_items = tk.Listbox(frame, selectmode=self.selectmode, **self.prop_listbox_items)
         self.listbox_items.grid(row=r, column=0, columnspan=2,
                                  sticky='nsew', padx=(padx, 0), pady=pady)
         self.scrollbar_items = ttk.Scrollbar(frame,
@@ -1768,6 +1770,7 @@ class ListboxSelectionWidget(tk.Frame):
         self.listbox_items.configure(yscrollcommand=self.scrollbar_items.set)
         self.listbox_items.bind('<<ListboxSelect>>', self._on_click_items)
         self.listbox_items.bind('<Double-Button-1>', self._on_doubleclick_items)
+        self.listbox_items.bind('<Return>', self._on_return_items)
         r+=1
         
         # Search field items
@@ -1785,8 +1788,7 @@ class ListboxSelectionWidget(tk.Frame):
         # Information about number of items in list
         self.stringvar_nr_items = tk.StringVar()
         tk.Label(frame, textvariable=self.stringvar_nr_items, font=Fonts().fontsize_small).grid(row=r, column=1, sticky='e')
-        
-        
+
         if self.include_button_move_all_items:
             self.button_move_all_items = tk.Button(frame, text=u'Select all', command=self._select_all, font=Fonts().fontsize_small)
             self.button_move_all_items.grid(row=r, column=0, padx=padx, pady=pady, sticky='w')
@@ -1804,7 +1806,7 @@ class ListboxSelectionWidget(tk.Frame):
             tk.Label(frame, **self.title_selected).grid(row=r, column=0)
             r+=1 
             
-        self.listbox_selected = tk.Listbox(frame, selectmode='single', **self.prop_listbox_selected)
+        self.listbox_selected = tk.Listbox(frame, selectmode=self.selectmode, **self.prop_listbox_selected)
         self.listbox_selected.grid(row=r, column=0, columnspan=2,
                                  sticky='nsew', padx=(padx, 0), pady=pady)
         self.scrollbar_selected = ttk.Scrollbar(frame,
@@ -1815,7 +1817,8 @@ class ListboxSelectionWidget(tk.Frame):
     #         Hover(self.listbox_series, text=HelpTexts().listbox_seriesinformation, controller=self.controller)
         self.listbox_selected.bind('<<ListboxSelect>>', self._on_click_selected)
         self.listbox_selected.bind('<Double-Button-1>', self._on_doubleclick_selected)
-        r+=1
+        self.listbox_selected.bind('<Return>', self._on_return_selected)
+        r += 1
         
         # Search field selected
         self.stringvar_selected = tk.StringVar()
@@ -1975,35 +1978,29 @@ class ListboxSelectionWidget(tk.Frame):
             
             selected_item = self.items.pop(i)
             self.selected_items.append(selected_item)
-        
-        
-    #===========================================================================
+
     def move_items_to_selected(self, items, update_targets=False):
         if type(items) != list:
             items = [items]
         for item in items:
             if item in self.items:
                 self._move_to_selected(item=item)
-#                 self.selected_items.append(self.items.pop(self.items.index(item)))
+        self.last_move_is_selected = True
         self._update_listboxes(update_targets=update_targets)
-        
-    #===========================================================================
+
     def move_selected_to_items(self, items, update_targets=False):
         if type(items) != list:
             items = [items]
         for item in items:
             if item in self.selected_items:
                 self.items.append(self.selected_items.pop(self.selected_items.index(item)))
+        self.last_move_is_selected = False
         self._update_listboxes(update_targets=update_targets)
 
-    #===========================================================================
     def _update_listboxes(self, update_targets=True):
         self._update_listbox_items()
         self._update_listbox_selected()  
-        
-        # Update number of items
-        # nr_items = '%s items' % len(self.items)
-        # nr_selected_items = '%s items' % len(self.selected_items)
+
         nr_items = f'{len(self.items)} {self.count_text}'
         nr_selected_items = f'{len(self.selected_items)} {self.count_text}'
         self.stringvar_nr_items.set(nr_items)
@@ -2020,90 +2017,128 @@ class ListboxSelectionWidget(tk.Frame):
                  
             if self.target_deselect and not self.last_move_is_selected:
                 self.target_deselect()
-        
-    #===========================================================================
-    def _search_item(self, *dummy):
-        self.listbox_items.selection_clear(0, u'end')
-        search_string = self.stringvar_items.get()
-        if not self.search_case_sensitive:
-            search_string = search_string.lower()
-            
-        # print(search_string)
-        index = []
-        for i, item in enumerate(self.items):
-            if not self.search_case_sensitive:
-                item = item.lower()
-            if search_string and item.startswith(search_string):
-                index.append(i)
-        if index:
-            # print(index)
-            self.listbox_items.selection_set(index[0], index[-1])
-            self.listbox_items.see(index[0])
-        
-    #===========================================================================
-    def _search_selected(self, *dummy):
-        self.listbox_selected.selection_clear(0, u'end')
-        search_string = self.stringvar_selected.get()
-        if not self.search_case_sensitive:
-            search_string = search_string.lower()
-        index = []
-        for i, item in enumerate(self.selected_items):
-            if not self.search_case_sensitive:
-                item = item.lower()
-            if search_string and item.startswith(search_string):
-                index.append(i)
-        if index: 
-            self.listbox_selected.selection_set(index[0], index[-1])
-            self.listbox_selected.see(index[0])
 
-    #===========================================================================
-    def _on_return_entry_items(self, event):
-        search_string = self.stringvar_items.get().lower()
+            if self.callback_select and self.last_move_is_selected:
+                self.callback_select()
+
+            if self.callback_deselect and not self.last_move_is_selected:
+                self.callback_deselect()
+
+    def _search_item(self, *dummy):
+        if self.selectmode == 'single':
+            return
+        self.listbox_items.selection_clear(0, 'end')
+        search_string = self.stringvar_items.get().strip()
+        if not search_string:
+            return
+        if not self.search_case_sensitive:
+            search_string = search_string.lower()
         index = []
         for i, item in enumerate(self.items):
-            if search_string and item.lower().startswith(search_string):
+            if not self.search_case_sensitive:
+                item = item.lower()
+            if search_string in item:
                 index.append(i)
-        if len(index) >= 1:
-            for i in index[::-1]:
-                self._move_to_selected(index=i)
-#                 selected_item = self.items.pop(i)
-#                 self.selected_items.append(selected_item)
-            self.last_move_is_selected = True
-            self._update_listboxes()
-            self.stringvar_items.set(u'')
-        if self.callback_select:
-            self.callback_select()
-        
-    #===========================================================================
-    def _on_return_entry_selected(self, event):
-        search_string = self.stringvar_selected.get().lower()
+        if not index:
+            return
+        for i in index:
+            self.listbox_items.selection_set(i)
+            self.listbox_items.see(i)
+
+    def _search_selected(self, *dummy):
+        if self.selectmode == 'single':
+            return
+        self.listbox_selected.selection_clear(0, 'end')
+        search_string = self.stringvar_selected.get().strip()
+        if not search_string:
+            return
+        if not self.search_case_sensitive:
+            search_string = search_string.lower()
         index = []
         for i, item in enumerate(self.selected_items):
-            if search_string and item.lower().startswith(search_string):
+            if not self.search_case_sensitive:
+                item = item.lower()
+            if search_string in item:
                 index.append(i)
-        if len(index) >= 1:
-            for i in index[::-1]:
-                selected_item = self.selected_items.pop(i)
-                self.items.append(selected_item)
-            self.last_move_is_selected = False
-            self._update_listboxes()
-            self.stringvar_selected.set(u'')
-        if self.callback_deselect:
-            self.callback_deselect()
-        
-    #===========================================================================
+        if not index:
+            return
+        for i in index:
+            self.listbox_selected.selection_set(i)
+            self.listbox_selected.see(i)
+
+    def _on_return_entry_items(self, event):
+        self._search_item(None)
+        self._on_return_items(None)
+#         search_string = self.stringvar_items.get().lower()
+#         index = []
+#         for i, item in enumerate(self.items):
+#             if search_string and item.lower().startswith(search_string):
+#                 index.append(i)
+#         if len(index) >= 1:
+#             for i in index[::-1]:
+#                 self._move_to_selected(index=i)
+# #                 selected_item = self.items.pop(i)
+# #                 self.selected_items.append(selected_item)
+#             self.last_move_is_selected = True
+#             self._update_listboxes()
+#             self.stringvar_items.set(u'')
+#         if self.callback_select:
+#             self.callback_select()
+
+    def _on_return_entry_selected(self, event):
+        self._search_selected(None)
+        self._on_return_selected(None)
+        # search_string = self.stringvar_selected.get().lower()
+        # index = []
+        # for i, item in enumerate(self.selected_items):
+        #     if search_string and item.lower().startswith(search_string):
+        #         index.append(i)
+        # if len(index) >= 1:
+        #     for i in index[::-1]:
+        #         selected_item = self.selected_items.pop(i)
+        #         self.items.append(selected_item)
+        #     self.last_move_is_selected = False
+        #     self._update_listboxes()
+        #     self.stringvar_selected.set(u'')
+        # if self.callback_deselect:
+        #     self.callback_deselect()
+
     def _on_click_items(self, event):
+        if self.selectmode != 'single':
+            return
         selection = self.listbox_items.curselection()
         if selection:
             self.stringvar_items.set(self.listbox_items.get(selection[0]))
-            
-    #===========================================================================
+
+    def _on_return_items(self, event):
+        if self.selectmode != 'extended':
+            return
+        index = self.listbox_items.curselection()
+        if not index:
+            return
+        items = [self.listbox_items.get(i) for i in index]
+        self.move_items_to_selected(items)
+        self.listbox_items.see(max(0, max(index)))
+        self.stringvar_items.set('')
+
     def _on_click_selected(self, event):
+        if self.selectmode != 'single':
+            return
         selection = self.listbox_selected.curselection()
         if selection:
             self.stringvar_selected.set(self.listbox_selected.get(selection[0]))
-               
-    #===========================================================================
+
+    def _on_return_selected(self, event):
+        if self.selectmode != 'extended':
+            return
+        index = self.listbox_selected.curselection()
+        if not index:
+            return
+        items = [self.listbox_selected.get(i) for i in index]
+        self.move_selected_to_items(items)
+        self.listbox_selected.see(max(0, max(index)))
+        self.stringvar_selected.set('')
+
     def _on_doubleclick_items(self, event):
         selection = self.listbox_items.curselection()
         if selection:
@@ -2113,18 +2148,17 @@ class ListboxSelectionWidget(tk.Frame):
 #             self.selected_items.append(selected_item)
             self.last_move_is_selected = True
             self._update_listboxes()
-            self.stringvar_items.set(u'')
+            self.stringvar_items.set('')
             self.listbox_items.see(max(0, index_to_pop))
         if self.callback_select:
             self.callback_select()
-    
-    #===========================================================================
+
     def _on_doubleclick_selected(self, event):
         selection = self.listbox_selected.curselection()
         if selection:
             index_to_pop = int(selection[0])
             selected_item = self.selected_items.pop(index_to_pop)
-            if selected_item != u'<blank>':
+            if selected_item != '<blank>':
                 self.items.append(selected_item)
             self.last_move_is_selected = False
             self._update_listboxes()
@@ -2136,7 +2170,7 @@ class ListboxSelectionWidget(tk.Frame):
     #===========================================================================
     def _update_listbox_items(self): 
         # Delete old entries
-        self.listbox_items.delete(0, u'end')
+        self.listbox_items.delete(0, 'end')
         # Add new entries
         if self.only_unique_items:
             self.items = list(set(self.items))
