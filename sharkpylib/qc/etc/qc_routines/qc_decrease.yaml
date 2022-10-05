@@ -1,23 +1,28 @@
-functions:
+routines:
     qc_decrease:
         description: Check if values are continuously decreasing with depth
         name: qc_decrease
         qc_index: 2
-        function: !!python/name:sharkpylib.qc.functions.continuous.Decreasing ''
+        routine: !!python/name:sharkpylib.qc.functions.continuous.Decreasing ''
 
 datasets:
     'DOXY_CTD':
         parameter: 'DOXY_CTD'
         q_parameters: ['Q0_DOXY_CTD']
         acceptable_error: 1
-        function: qc_decrease
+        routine: qc_decrease
     'DOXY2_CTD':
         parameter: 'DOXY2_CTD'
         q_parameters: ['Q0_DOXY2_CTD']
         acceptable_error: 1
-        function: qc_decrease
+        routine: qc_decrease
     'PAR_CTD':
         parameter: 'PAR_CTD'
         q_parameters: ['Q0_PAR_CTD']
         acceptable_error: 0.8
-        function: qc_decrease
+        routine: qc_decrease
+    'SPAR_CTD':
+        parameter: 'SPAR_CTD'
+        q_parameters: ['Q0_SPAR_CTD']
+        acceptable_error: 0.8
+        routine: qc_decrease

@@ -1,59 +1,59 @@
-functions:
+routines:
     qc_range:
         description: Check if values lies within a given range
         name: qc_range
         qc_index: 0
-        function: !!python/name:sharkpylib.qc.functions.range.Range ''
+        routine: !!python/name:sharkpylib.qc.functions.range.Range ''
 
 datasets:
     'DEPH':
         parameter: 'DEPH'
         q_parameters: ['Q0_DEPH']
         min_range_value: 0
-        max_range_value: 500
-        function: qc_range
+        max_range_value: 2000
+        routine: qc_range
     'PRES_CTD':
         parameter: 'PRES_CTD'
         q_parameters: ['Q0_PRES_CTD']
         min_range_value: 0
-        max_range_value: 500
-        function: qc_range
+        max_range_value: 2000
+        routine: qc_range
     'TEMP_CTD':
         parameter: 'TEMP_CTD'
         q_parameters: ['Q0_TEMP_CTD', 'Q0_DENS_CTD']
         min_range_value: -2
         max_range_value: 27
-        function: qc_range
+        routine: qc_range
     'TEMP2_CTD':
         parameter: 'TEMP2_CTD'
         q_parameters: ['Q0_TEMP2_CTD', 'Q0_DENS2_CTD']
         min_range_value: -2
         max_range_value: 27
-        function: qc_range
+        routine: qc_range
     'CNDC_CTD':
         parameter: 'CNDC_CTD'
         q_parameters: ['Q0_CNDC_CTD', 'Q0_SALT_CTD']
         min_range_value: 0
         max_range_value: 6
-        function: qc_range
+        routine: qc_range
     'CNDC2_CTD':
         parameter: 'CNDC2_CTD'
         q_parameters: ['Q0_CNDC2_CTD', 'Q0_SALT2_CTD']
         min_range_value: 0
         max_range_value: 6
-        function: qc_range
+        routine: qc_range
     'SALT_CTD':
         parameter: 'SALT_CTD'
         q_parameters: ['Q0_SALT_CTD', 'Q0_DENS_CTD']
         min_range_value: 0
         max_range_value: 36
-        function: qc_range
+        routine: qc_range
     'SALT2_CTD':
         parameter: 'SALT2_CTD'
         q_parameters: ['Q0_SALT2_CTD', 'Q0_DENS2_CTD']
         min_range_value: 0
         max_range_value: 36
-        function: qc_range
+        routine: qc_range
     'DENS_CTD':
         parameter: 'DENS_CTD'
         q_parameters: ['Q0_DENS_CTD']
@@ -61,7 +61,7 @@ datasets:
 #        max_range_value: 36
         min_range_value: 990
         max_range_value: 1036
-        function: qc_range
+        routine: qc_range
     'DENS2_CTD':
         parameter: 'DENS2_CTD'
         q_parameters: ['Q0_DENS2_CTD']
@@ -69,46 +69,52 @@ datasets:
 #        max_range_value: 36
         min_range_value: 990
         max_range_value: 1036
-        function: qc_range
+        routine: qc_range
     'DOXY_CTD':
         parameter: 'DOXY_CTD'
         q_parameters: ['Q0_DOXY_CTD']
         min_range_value: 0
         max_range_value: 12
-        function: qc_range
+        routine: qc_range
     'DOXY2_CTD':
         parameter: 'DOXY2_CTD'
         q_parameters: ['Q0_DOXY2_CTD']
         min_range_value: 0
         max_range_value: 12
-        function: qc_range
+        routine: qc_range
     'DOXY_SAT_CTD':
         parameter: 'DOXY_SAT_CTD'
         q_parameters: ['Q0_DOXY_SAT_CTD']
         min_range_value: 0
         max_range_value: 150
-        function: qc_range
+        routine: qc_range
     'CHLFLUO_CTD':
         parameter: 'CHLFLUO_CTD'
         q_parameters: ['Q0_CHLFLUO_CTD']
         min_range_value: 0
         max_range_value: 30
-        function: qc_range
+        routine: qc_range
     'PHYC_CTD':
         parameter: 'PHYC_CTD'
         q_parameters: ['Q0_PHYC_CTD']
         min_range_value: 0
         max_range_value: 2
-        function: qc_range
+        routine: qc_range
     'PAR_CTD':
         parameter: 'PAR_CTD'
         q_parameters: ['Q0_PAR_CTD']
         min_range_value: 0
         max_range_value: 10000
-        function: qc_range
+        routine: qc_range
+    'SPAR_CTD':
+        parameter: 'SPAR_CTD'
+        q_parameters: ['Q0_SPAR_CTD']
+        min_range_value: 0
+        max_range_value: 10000
+        routine: qc_range
     'TURB_CTD':
         parameter: 'TURB_CTD'
         q_parameters: ['Q0_TURB_CTD']
         min_range_value: 0
         max_range_value: 5
-        function: qc_range
+        routine: qc_range

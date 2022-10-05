@@ -1,50 +1,50 @@
-functions:
+routines:
     qc_increase:
         description: Check if values are continuously increasing with depth
         name: qc_increase
         qc_index: 1
-        function: !!python/name:sharkpylib.qc.functions.continuous.Increasing ''
+        routine: !!python/name:sharkpylib.qc.functions.continuous.Increasing ''
 
 datasets:
     'DEPH':
         parameter: 'DEPH'
         q_parameters: ['Q0_DEPH']
         acceptable_error: 0
-        function: qc_increase
+        routine: qc_increase
     'PRES_CTD':
         parameter: 'PRES_CTD'
         q_parameters: ['Q0_PRES_CTD']
         acceptable_error: 0
-        function: qc_increase
+        routine: qc_increase
     'CNDC_CTD':
         comnt: May decrease, but most commonly this parameter should increase with depth
         parameter: 'CNDC_CTD'
         q_parameters: ['Q0_CNDC_CTD', 'Q0_SALT_CTD']
         acceptable_error: 0.1
-        function: qc_increase
+        routine: qc_increase
     'CNDC2_CTD':
         comnt: May decrease, but most commonly this parameter should increase with depth
         parameter: 'CNDC2_CTD'
         q_parameters: ['Q0_CNDC2_CTD', 'Q0_SALT2_CTD']
         acceptable_error: 0.1
-        function: qc_increase
+        routine: qc_increase
     'SALT_CTD':
         parameter: 'SALT_CTD'
         q_parameters: ['Q0_SALT_CTD', 'Q0_DENS_CTD']
         acceptable_error: 0.5
-        function: qc_increase
+        routine: qc_increase
     'SALT2_CTD':
         parameter: 'SALT2_CTD'
         q_parameters: ['Q0_SALT2_CTD', 'Q0_DENS2_CTD']
         acceptable_error: 0.5
-        function: qc_increase
+        routine: qc_increase
     'DENS_CTD':
         parameter: 'DENS_CTD'
         q_parameters: ['Q0_DENS_CTD']
         acceptable_error: 0.1
-        function: qc_increase
+        routine: qc_increase
     'DENS2_CTD':
         parameter: 'DENS2_CTD'
         q_parameters: ['Q0_DENS2_CTD']
         acceptable_error: 0.1
-        function: qc_increase
+        routine: qc_increase
