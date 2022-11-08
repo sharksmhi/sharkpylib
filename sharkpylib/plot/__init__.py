@@ -6,7 +6,7 @@ from pathlib import Path
 def create_seabird_like_plots_for_package(pack, directory, suffix='png', **kwargs):
     img_paths = []
     config_files_obj = config.ConfigFiles()
-    for conf_file in config_files_obj.iter_config_files_for_position(pack.lat, pack.lon):
+    for conf_file in config_files_obj.iter_config_files_for_position(pack.lat_dd, pack.lon_dd):
         file_path = Path(directory, f'{pack.key}_{pack("station", pref_suffix=".hdr")}_{conf_file.name}'
                                     f'.{suffix.strip(".")}')
         plot = ProfilePlot4(pack)

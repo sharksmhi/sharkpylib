@@ -1,6 +1,9 @@
 import yaml
 from pathlib import Path
 from typing import Union
+import logging
+
+logger = logging.getLogger(__file__)
 
 CONFIG_DIR = Path(Path(__file__).parent)
 
@@ -105,13 +108,16 @@ class ConfigFiles:
         for name, cf in self._default_files.items():
             bb_files = self._bb_files.get(name, [])
             if not bb_files:
+                logger.debug(f'Adding default plot config file (not found): {cf}')
                 files.append(cf)
                 continue
             for bb_file in bb_files:
                 if bb_file.is_in_bounding_box(lat, lon):
+                    logger.debug(f'Adding plot bb_file: {bb_file}')
                     files.append(bb_file)
                     break
             else:
+                logger.debug(f'Adding default plot config file: {cf}')
                 files.append(cf)
         return files
     
