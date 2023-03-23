@@ -2,6 +2,7 @@
 # License: MIT License (see LICENSE.txt or http://opensource.org/licenses/mit).
 import re
 import datetime
+import logging
 
 import tkinter as tk
 from tkinter import ttk
@@ -19,7 +20,7 @@ try:
 except:
     pass
 
-# from . import utils
+logger = logging.getLogger(__name__)
 
 
 class CalendarWidget(tk.Frame):
@@ -1949,6 +1950,10 @@ class ListboxSelectionWidget(tk.Frame):
         If no items are given, all items in widget will be removed. 
         If "keep_selected"==True selected items will be still selected if they belong to the new item list.
         """
+        if items in [None, False]:
+            logger.debug(f'Items is set to {items}. Converting to list!')
+            items = []
+        items = items or []
         selected_items = self.get_selected()
         self.items = items[:]
         self.selected_items = []
