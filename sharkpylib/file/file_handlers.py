@@ -2,20 +2,20 @@
 # License: MIT License (see LICENSE.txt or http://opensource.org/licenses/mit).
 import os
 import re
+import pathlib
 
 from . import files
 
-FILE_DIR = os.path.realpath(os.path.dirname(__file__))
-# print(FILE_DIR)
-DIRECTORIES = dict(mapping_files=os.path.join(FILE_DIR, 'mapping_files'),
-                   synonym_files=os.path.join(FILE_DIR, 'synonym_files'),
-                   list_files=os.path.join(FILE_DIR, 'list_files'),
-                   multi_list_files=os.path.join(FILE_DIR, 'multilist_files'),
-                   sampling_type_settings_files=os.path.join(FILE_DIR, 'sampling_type_settings_files'))
+FILE_DIR = pathlib.Path(__file__).parent.resolve()
+
+DIRECTORIES = dict(mapping_files=pathlib.Path(FILE_DIR, 'mapping_files'),
+                   synonym_files=pathlib.Path(FILE_DIR, 'synonym_files'),
+                   list_files=pathlib.Path(FILE_DIR, 'list_files'),
+                   multi_list_files=pathlib.Path(FILE_DIR, 'multilist_files'),
+                   sampling_type_settings_files=pathlib.Path(FILE_DIR, 'sampling_type_settings_files'))
 
 for d in DIRECTORIES.values():
-    if not os.path.exists(d):
-        os.mkdir(d)
+    d.mkdir(parents=True, exist_ok=True)
 
 
 class Directory(object):

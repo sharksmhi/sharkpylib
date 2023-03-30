@@ -14,7 +14,7 @@ DIRECTORY_SETTINGS_FILES = os.path.join(os.path.dirname(__file__), 'gismo', 'set
 from . import bodc
 from . import diva
 from . import eea
-from . import gismo
+# from . import gismo
 from . import ices
 from . import odv
 from . import file_io

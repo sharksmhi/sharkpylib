@@ -27,8 +27,11 @@ from sharkpylib.gismo.qc.qc_profile import ProfileQCrangeSimple, ProfileQCreport
 
 
 # This is for Profile DV QC§
-from ctdpy.core.session import Session
-from ctdpy.core.utils import generate_filepaths, get_reversed_dictionary
+try:
+    from ctdpy.core.session import Session
+    from ctdpy.core.utils import generate_filepaths, get_reversed_dictionary
+except:
+    pass
 from sharkpylib.qc.qc_default import QCBlueprint
 
 import logging

@@ -30,7 +30,7 @@ parent_directory = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 if parent_directory not in sys.path:
     sys.path.append(parent_directory)
 
-from sharkpylib import gismo
+# from sharkpylib import gismo
 
 
 class TavastlandException(Exception):
