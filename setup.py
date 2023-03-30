@@ -39,7 +39,7 @@ setuptools.setup(
     long_description_content_type="text/markdown",
     url="https://github.com/sharksmhi/sharkpylib",
     packages=setuptools.find_packages(exclude=('tests*', 'htmlcov*', 'log*')),
-    package_data={'file_explorer': include_files},
+    package_data={'sharkpylib': include_files},
     classifiers=[
         "Programming Language :: Python :: 3",
         "License :: OSI Approved :: MIT License",
