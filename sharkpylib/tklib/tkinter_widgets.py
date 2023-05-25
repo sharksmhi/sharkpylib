@@ -2125,6 +2125,9 @@ class ListboxSelectionWidget(tk.Frame):
         self.move_items_to_selected(items)
         self.listbox_items.see(max(0, max(index)))
         self.stringvar_items.set('')
+        self.last_move_is_selected = True
+        if self.callback_select:
+            self.callback_select()
 
     def _on_click_selected(self, event):
         if self.selectmode != 'single':
@@ -2143,20 +2146,21 @@ class ListboxSelectionWidget(tk.Frame):
         self.move_selected_to_items(items)
         self.listbox_selected.see(max(0, max(index)))
         self.stringvar_selected.set('')
+        self.last_move_is_selected = False
+        # if self.callback_deselect:
+        #     self.callback_deselect()
 
     def _on_doubleclick_items(self, event):
         selection = self.listbox_items.curselection()
         if selection:
             index_to_pop = int(selection[0])
             self._move_to_selected(index=index_to_pop)
-#             selected_item = self.items.pop(index_to_pop)
-#             self.selected_items.append(selected_item)
             self.last_move_is_selected = True
             self._update_listboxes()
             self.stringvar_items.set('')
             self.listbox_items.see(max(0, index_to_pop))
-        if self.callback_select:
-            self.callback_select()
+        # if self.callback_select:
+        #     self.callback_select()
 
     def _on_doubleclick_selected(self, event):
         selection = self.listbox_selected.curselection()

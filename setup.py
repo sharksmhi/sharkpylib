@@ -28,10 +28,9 @@ for root, dirs, files in os.walk(root_path, topdown=False):
             continue
         include_files.append(str(path))
 
-
 setuptools.setup(
     name='sharkpylib',
-    version='0.1.0',
+    version='0.1.1',
     author="Magnus Wenzer",
     author_email="magnus.wenzer@smhi.se",
     description="Package containing a collection of help functions and classes used by the shark team.",
